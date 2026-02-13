@@ -1,0 +1,877 @@
+// Polymarket & Kalshi Integration Database Schema
+// For Warriors AI - External Markets Integration
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// EXTERNAL MARKETS (Polymarket & Kalshi)
+// ============================================
+
+model ExternalMarket {
+  id          String   @id // Format: "poly_xxx" or "kalshi_xxx"
+  source      String   // 'polymarket' | 'kalshi'
+  externalId  String   // Original platform ID
+  question    String
+  description String?
+  category    String?
+  tags        String?  // JSON array as string
+
+  // Pricing (stored as integers: 0-10000 = 0-100.00%)
+  yesPrice Int
+  noPrice  Int
+
+  // Volume & Liquidity (stored as string for big numbers)
+  volume    String
+  liquidity String
+
+  // Timing
+  endTime   DateTime
+  createdAt DateTime @default(now())
+
+  // Status
+  status  String  // 'active' | 'closed' | 'resolved' | 'unopened'
+  outcome String? // 'yes' | 'no' | 'invalid'
+
+  // Source info
+  sourceUrl String
+  metadata  String? // JSON string for platform-specific data
+
+  // Sync tracking
+  lastSyncAt DateTime @default(now())
+
+  @@unique([source, externalId])
+  @@index([source])
+  @@index([status])
+  @@index([category])
+  @@index([endTime])
+}
+
+// ============================================
+// WHALE TRACKING
+// ============================================
+
+model WhaleTrade {
+  id             String   @id @default(cuid())
+  source         String
+  marketId       String
+  marketQuestion String
+  traderAddress  String?
+  side           String   // 'buy' | 'sell'
+  outcome        String   // 'yes' | 'no'
+  amountUsd      String   // USD value
+  shares         String
+  price          Int      // 0-10000
+  timestamp      DateTime
+  txHash         String?
+
+  @@index([source])
+  @@index([timestamp])
+  @@index([traderAddress])
+}
+
+model TrackedTrader {
+  id          String   @id @default(cuid())
+  address     String
+  source      String
+  alias       String?
+  totalVolume String   @default("0")
+  winRate     Float?
+  followers   Int      @default(0)
+  isWhale     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([source, address])
+}
+
+// Copy trading: User follows whale
+model WhaleFollow {
+  id           String   @id @default(cuid())
+  userId       String   // User's wallet address as ID
+  userAddress  String   // User wallet address
+  whaleAddress String   // Whale trader address
+  config       String   // JSON config: { maxCopyAmount, copyPercentage, enabledSources, autoMirror }
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userAddress, whaleAddress])
+  @@index([whaleAddress])
+  @@index([isActive])
+}
+
+// Mirror copy trade execution log
+model MirrorCopyTrade {
+  id              String   @id @default(cuid())
+  userId          String   // User's wallet address as ID
+  whaleAddress    String
+  originalTradeId String   // Reference to WhaleTrade
+  mirrorKey       String   // Mirror market key
+  outcome         String   // 'yes' | 'no'
+  copyAmount      String   // Amount copied
+  status          String   @default("pending") // 'pending' | 'completed' | 'failed'
+  txHash          String?
+  vrfRequestId    String?  // VRF request ID if used
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([whaleAddress])
+  @@index([status])
+}
+
+// ============================================
+// USER AUTHENTICATION FOR EXTERNAL PLATFORMS
+// ============================================
+
+model UserExternalAuth {
+  id String @id @default(cuid())
+
+  userId String // Wallet address
+  source String // 'polymarket' | 'kalshi'
+
+  // Encrypted credentials (for Kalshi API key)
+  encryptedApiKey String?
+
+  // Polymarket uses wallet signatures, no stored keys needed
+  polyWallet String?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, source])
+}
+
+// ============================================
+// SYNC LOGS
+// ============================================
+
+model SyncLog {
+  id        String   @id @default(cuid())
+  source    String
+  action    String   // 'full_sync' | 'incremental' | 'price_update'
+  status    String   // 'success' | 'failed' | 'partial'
+  count     Int      @default(0)
+  duration  Int      // milliseconds
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([source, createdAt])
+}
+
+// ============================================
+// USER-CREATED MARKETS (Simmer-style)
+// ============================================
+
+model UserCreatedMarket {
+  id             Int      @id @default(autoincrement())
+  creatorAddress String
+  question       String
+  description    String?
+  category       String?
+
+  // Pricing
+  initialYesPrice Int    @default(5000) // 50%
+  currentYesPrice Int
+  currentNoPrice  Int
+
+  // Liquidity
+  initialLiquidity String
+  totalVolume      Float  @default(0)
+
+  // Revenue sharing (2% to creator)
+  creatorRevenue Float @default(0)
+
+  // Timing
+  endTime   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Status
+  status  String  @default("active")
+  outcome String?
+
+  // AI Activity
+  aiTradeCount  Int @default(0)
+  aiDebateCount Int @default(0)
+
+  // On-chain reference
+  onChainMarketId String?
+  txHash          String?
+
+  @@index([creatorAddress])
+  @@index([status])
+  @@index([category])
+}
+
+// ============================================
+// CREATOR REVENUE TRACKING
+// ============================================
+
+model CreatorRevenue {
+  id             String   @id @default(cuid())
+  creatorAddress String
+  marketId       String
+  tradeAmount    String
+  feeAmount      String
+  txHash         String
+  timestamp      DateTime @default(now())
+
+  @@index([creatorAddress])
+  @@index([marketId])
+}
+
+model Creator {
+  id                   String   @id @default(cuid())
+  address              String   @unique
+  type                 String   @default("market") // 'market' | 'warrior' | 'agent'
+  tier                 String   @default("bronze") // 'bronze' | 'silver' | 'gold' | 'diamond'
+  totalVolumeGenerated String   @default("0")
+  totalFeesEarned      String   @default("0")
+  pendingRewards       String   @default("0")
+  totalClaimed         String   @default("0")
+  marketsCreated       Int      @default(0)
+  warriorsCreated      Int      @default(0)
+  agentsOperated       Int      @default(0)
+  createdAt            DateTime @default(now())
+  lastActiveAt         DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([tier])
+  @@index([totalVolumeGenerated])
+}
+
+model CreatorFeeEntry {
+  id             String   @id @default(cuid())
+  creatorAddress String
+  marketId       String
+  tradeVolume    String
+  feeAmount      String
+  traderAddress  String?
+  txHash         String?
+  source         String   @default("market_trade") // 'market_trade' | 'warrior_battle' | 'agent_trade'
+  createdAt      DateTime @default(now())
+
+  @@index([creatorAddress])
+  @@index([marketId])
+  @@index([createdAt])
+}
+
+// ============================================
+// AI DEBATE SYSTEM
+// ============================================
+
+model AIDebate {
+  id       String @id @default(cuid())
+  marketId String
+  question String
+  source   String // 'native' | 'polymarket' | 'kalshi'
+
+  // Final prediction
+  predictedOutcome    String? // 'yes' | 'no'
+  probability         Int?    // 0-10000
+  confidence          Int?    // 0-100
+  keyFactors          String? // JSON array
+  sources             String? // JSON array of sources
+
+  // 0G Verification
+  inputHash           String?
+  outputHash          String?
+  providerAddress     String?
+  isVerified          Boolean @default(false)
+
+  // Status
+  status    String   @default("pending") // 'pending' | 'in_progress' | 'completed' | 'failed'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rounds AIDebateRound[]
+
+  @@index([marketId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AIDebateRound {
+  id          String   @id @default(cuid())
+  debateId    String
+  roundNumber Int
+  agentRole   String   // 'bull' | 'bear' | 'neutral' | 'supervisor'
+  argument    String
+  sources     String?  // JSON array of URLs
+  confidence  Int      // 0-100
+  timestamp   DateTime @default(now())
+
+  debate AIDebate @relation(fields: [debateId], references: [id], onDelete: Cascade)
+
+  @@index([debateId])
+}
+
+// ============================================
+// AI PREDICTION TRACKING & LEADERBOARD
+// ============================================
+
+model AIPredictionScore {
+  id           String @id @default(cuid())
+  agentId      String // iNFT agent ID
+  agentAddress String // Owner address
+
+  // Prediction stats
+  totalPredictions   Int    @default(0)
+  correctPredictions Int    @default(0)
+  accuracy           Float?
+
+  // Financial performance
+  totalStaked  String @default("0")
+  totalReturns String @default("0")
+  roi          Float?
+
+  // Ranking
+  rank Int?
+  tier String @default("bronze") // bronze, silver, gold, diamond
+
+  // Streaks
+  currentStreak Int @default(0)
+  longestStreak Int @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([agentId])
+  @@index([accuracy])
+  @@index([roi])
+  @@index([rank])
+}
+
+model PredictionOutcome {
+  id           String @id @default(cuid())
+  predictionId String // Reference to AIDebate
+  agentId      String
+  marketId     String
+
+  predictedOutcome String  // 'yes' | 'no'
+  actualOutcome    String? // 'yes' | 'no' | null (unresolved)
+  wasCorrect       Boolean?
+
+  predictedAt DateTime
+  resolvedAt  DateTime?
+
+  @@index([agentId])
+  @@index([wasCorrect])
+  @@index([resolvedAt])
+}
+
+// ============================================
+// SOCIAL FEATURES
+// ============================================
+
+model MarketComment {
+  id           String   @id @default(cuid())
+  marketId     String
+  marketSource String
+  userAddress  String
+  content      String
+  likes        Int      @default(0)
+  parentId     String?  // For replies
+  createdAt    DateTime @default(now())
+
+  @@index([marketId, marketSource])
+  @@index([userAddress])
+  @@index([createdAt])
+}
+
+model MarketShare {
+  id          String   @id @default(cuid())
+  marketId    String
+  userAddress String
+  platform    String   // 'twitter' | 'discord' | 'telegram'
+  shareUrl    String?
+  createdAt   DateTime @default(now())
+
+  @@index([marketId])
+  @@index([createdAt])
+}
+
+// ============================================
+// NOTIFICATION PREFERENCES
+// ============================================
+
+model UserNotificationPrefs {
+  id          String @id @default(cuid())
+  userAddress String @unique
+
+  // Channels (JSON array)
+  channels String @default("[\"push\"]")
+
+  // Alert thresholds
+  whaleAlertThreshold     Int     @default(10000) // USD
+  arbitrageAlertEnabled   Boolean @default(true)
+  predictionAlertEnabled  Boolean @default(true)
+  marketResolutionEnabled Boolean @default(true)
+
+  // External integrations
+  discordWebhook  String?
+  telegramChatId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// ARBITRAGE OPPORTUNITIES
+// ============================================
+
+model ArbitrageOpportunity {
+  id String @id @default(cuid())
+
+  // Market 1 (usually Polymarket)
+  market1Source   String
+  market1Id       String
+  market1Question String
+  market1YesPrice Int
+  market1NoPrice  Int
+
+  // Market 2 (usually Kalshi)
+  market2Source   String
+  market2Id       String
+  market2Question String
+  market2YesPrice Int
+  market2NoPrice  Int
+
+  // Analysis
+  spread          Int   // Basis points
+  potentialProfit Float // Expected profit percentage
+  confidence      Float // How confident markets are same event
+
+  // Status
+  status     String   @default("active") // 'active' | 'expired' | 'executed'
+  detectedAt DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([status])
+  @@index([detectedAt])
+}
+
+// ============================================
+// AGENT TRADES (For tracking and performance updates)
+// ============================================
+
+model AgentTrade {
+  id              String   @id @default(cuid())
+  agentId         String   // iNFT token ID
+  marketId        String   // Flow chain market ID
+
+  // Trade details
+  isYes           Boolean
+  amount          String   // CRwN amount
+  txHash          String   // Trade transaction hash
+
+  // Copy trade info
+  isCopyTrade     Boolean  @default(false)
+  copiedFrom      String?  // Original agent if copy trade
+
+  // Resolution status
+  outcome         String?  // 'yes' | 'no' | null
+  won             Boolean?
+  pnl             String?  // Profit/loss
+
+  // Tracking
+  recordedOn0G    Boolean  @default(false) // Whether result was recorded on 0G
+  recordTxHash    String?  // 0G recordTrade tx hash
+
+  createdAt       DateTime @default(now())
+  resolvedAt      DateTime?
+
+  @@index([agentId])
+  @@index([marketId])
+  @@index([recordedOn0G])
+}
+
+// ============================================
+// MIRROR MARKETS (Avalanche C-Chain)
+// ============================================
+
+model MirrorMarket {
+  id              String   @id @default(cuid())
+  mirrorKey       String   @unique // bytes32 key
+  onChainMarketId String   // Market ID in PredictionMarketAMM
+
+  // External market link
+  externalId      String
+  source          String   // 'polymarket' | 'kalshi'
+  question        String
+
+  // Pricing
+  initialPrice    Int      // Initial YES price (0-10000 bps)
+  lastSyncPrice   Int      // Last synced price
+  lastSyncAt      DateTime @default(now())
+
+  // Stats
+  totalVolume     String   @default("0")
+  tradeCount      Int      @default(0)
+
+  // Status
+  isActive        Boolean  @default(true)
+  resolved        Boolean  @default(false) // Added for event tracking
+  yesWon          Boolean? // Added for event tracking
+  resolvedOutcome String?  // 'yes' | 'no'
+  resolvedAt      DateTime?
+
+  // Metadata
+  creator         String   // Creator wallet address
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  trades          MirrorTrade[]
+  predictions     VerifiedPrediction[]
+
+  @@index([source])
+  @@index([isActive])
+  @@index([externalId, source])
+}
+
+model MirrorTrade {
+  id              String   @id @default(cuid())
+  mirrorKey       String
+  mirrorMarketId  String?
+  onChainMarketId String?  // On-chain market ID
+
+  // Trade details
+  traderAddress   String
+  agentId         String?  // Agent ID if agent trade
+  isYes           Boolean
+  amount          String   // CRwN amount
+  sharesReceived  String
+  price           Int      // Execution price (0-10000 bps)
+
+  // Transaction
+  txHash          String   @unique // Added unique constraint for event deduplication
+  blockNumber     Int      // Changed from String to Int for sorting
+
+  // VRF details (if copy trade)
+  usedVRF         Boolean  @default(false)
+  isVRFTrade      Boolean  @default(false) // Added for VRF copy trades
+  completed       Boolean  @default(true)  // Added for VRF trade completion
+  completedAt     DateTime? // Added for VRF trade completion tracking
+
+  // Prediction link (if verified)
+  predictionId    String?
+  predictionHash  String?  // Added for prediction hash
+
+  // Resolution status
+  resolved        Boolean  @default(false) // Added for event tracking
+  yesWon          Boolean? // Added for resolution outcome
+  pnl             String?  // Profit/loss after resolution
+  resolvedAt      DateTime?
+
+  // 0G Storage
+  storageRootHash String?
+
+  timestamp       DateTime @default(now())
+
+  // Relations
+  mirrorMarket    MirrorMarket? @relation(fields: [mirrorMarketId], references: [id], onDelete: SetNull)
+
+  @@index([mirrorKey])
+  @@index([traderAddress])
+  @@index([timestamp])
+  @@index([agentId])
+  @@index([blockNumber]) // Added for sync queries
+}
+
+// ============================================
+// VERIFIED PREDICTIONS (0G Compute)
+// ============================================
+
+model VerifiedPrediction {
+  id              String   @id @default(cuid())
+  marketId        String
+  source          String   // 'polymarket' | 'kalshi' | 'native'
+  agentId         String
+
+  // Prediction
+  outcome         String   // 'yes' | 'no'
+  confidence      Int      // 0-100
+  reasoning       String
+  keyFactors      String?  // JSON array
+
+  // 0G Verification Proof
+  isVerified      Boolean
+  inputHash       String
+  outputHash      String
+  providerAddress String
+  modelHash       String
+  chatId          String?
+
+  // 0G Storage
+  storageRootHash String?
+
+  // Resolution tracking
+  actualOutcome   String?  // 'yes' | 'no'
+  wasCorrect      Boolean?
+  resolvedAt      DateTime?
+
+  timestamp       DateTime @default(now())
+
+  // Relations
+  mirrorMarket    MirrorMarket? @relation(fields: [mirrorMarketId], references: [id], onDelete: SetNull)
+  mirrorMarketId  String?
+
+  @@index([marketId, source])
+  @@index([agentId])
+  @@index([isVerified])
+  @@index([wasCorrect])
+  @@index([timestamp])
+}
+
+// ============================================
+// EVENT TRACKING (Added for blockchain event sync)
+// ============================================
+
+// Tracks price sync events from external markets
+model PriceSyncHistory {
+  id          String   @id @default(cuid())
+  mirrorKey   String
+  oldPrice    Int
+  newPrice    Int
+  syncedAt    DateTime
+
+  @@index([mirrorKey])
+  @@index([syncedAt])
+}
+
+// Audit log for critical system events (oracle changes, admin actions)
+model SystemAudit {
+  id          String   @id @default(cuid())
+  eventType   String   // 'OracleUpdated' | 'AgentContractUpdated'
+  oldValue    String
+  newValue    String
+  txHash      String
+  blockNumber Int
+  timestamp   DateTime @default(now())
+
+  @@index([eventType])
+  @@index([timestamp])
+  @@index([txHash])
+}
+
+// ============================================
+// MARKET SNAPSHOTS (0G Storage Index)
+// ============================================
+
+model MarketSnapshot {
+  id          String   @id @default(cuid())
+  rootHash    String   @unique // 0G Storage root hash
+  marketId    String
+  source      String   // 'polymarket' | 'kalshi' | 'native'
+  question    String
+
+  // Price data at snapshot time
+  yesPrice    Int?     // 0-10000 bps
+  noPrice     Int?
+  volume      String?
+
+  // Snapshot metadata
+  timestamp   DateTime
+
+  @@index([marketId, source])
+  @@index([timestamp])
+}
+
+// ============================================
+// PREDICTION ARENA (Warrior Debate Battles)
+// ============================================
+
+model PredictionBattle {
+  id                String   @id @default(cuid())
+
+  // External market link
+  externalMarketId  String
+  source            String   // 'polymarket' | 'kalshi'
+  question          String
+
+  // Warriors (WarriorsNFT tokenIds)
+  warrior1Id        Int      // YES side warrior
+  warrior1Owner     String
+  warrior2Id        Int      // NO side warrior
+  warrior2Owner     String
+
+  // Stakes & scores
+  stakes            String   // CRwN staked by each
+  warrior1Score     Int      @default(0)
+  warrior2Score     Int      @default(0)
+
+  // Battle state
+  status            String   @default("pending") // pending | active | completed | cancelled
+  currentRound      Int      @default(0)
+
+  // On-chain reference
+  onChainBattleId   String?  // Contract battle ID
+  txHash            String?
+
+  // 0G Storage
+  battleDataHash    String?  // Root hash of full battle data
+
+  createdAt         DateTime @default(now())
+  completedAt       DateTime?
+
+  // Relations
+  rounds            PredictionRound[]
+
+  @@index([status])
+  @@index([externalMarketId, source])
+  @@index([warrior1Id])
+  @@index([warrior2Id])
+}
+
+model PredictionRound {
+  id              String   @id @default(cuid())
+  battleId        String
+  roundNumber     Int      // 1-5
+
+  // Warrior 1 (YES) round data
+  w1Argument      String?  // AI-generated argument
+  w1Evidence      String?  // JSON array of sources
+  w1Move          String?  // STRIKE | TAUNT | DODGE | SPECIAL | RECOVER
+  w1Confidence    Int?     // 0-100
+  w1Score         Int      @default(0)
+
+  // Warrior 2 (NO) round data
+  w2Argument      String?
+  w2Evidence      String?
+  w2Move          String?
+  w2Confidence    Int?
+  w2Score         Int      @default(0)
+
+  // Round resolution
+  roundWinner     String?  // 'warrior1' | 'warrior2' | 'draw'
+  judgeReasoning  String?  // AI explanation
+
+  // 0G Storage
+  argumentsHash   String?  // Hash of arguments stored in 0G
+
+  startedAt       DateTime @default(now())
+  endedAt         DateTime?
+
+  battle          PredictionBattle @relation(fields: [battleId], references: [id], onDelete: Cascade)
+
+  @@unique([battleId, roundNumber])
+  @@index([battleId])
+}
+
+model WarriorArenaStats {
+  id              String   @id @default(cuid())
+  warriorId       Int      @unique // WarriorsNFT tokenId
+
+  // Win/Loss record
+  totalBattles    Int      @default(0)
+  wins            Int      @default(0)
+  losses          Int      @default(0)
+  draws           Int      @default(0)
+
+  // Performance
+  totalEarnings   String   @default("0")
+  avgScore        Float?
+
+  // Streaks
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+
+  // Elo-style rating
+  arenaRating     Int      @default(1000)
+  peakRating      Int      @default(1000)
+
+  // Category performance (JSON)
+  categoryStats   String?  // { "crypto": { wins: 5, losses: 2 }, ... }
+
+  updatedAt       DateTime @updatedAt
+
+  @@index([arenaRating])
+}
+
+// ============================================
+// BATTLE BETTING (Spectators bet on warriors)
+// ============================================
+
+model BattleBet {
+  id              String   @id @default(cuid())
+  battleId        String
+  bettorAddress   String
+  betOnWarrior1   Boolean  // true = bet on warrior1 (YES side), false = warrior2 (NO side)
+  amount          String   // Wei amount
+
+  // Claim status
+  claimed         Boolean  @default(false)
+  payout          String?  // Wei amount after resolution
+
+  // Transaction refs
+  placeTxHash     String?
+  claimTxHash     String?
+
+  placedAt        DateTime @default(now())
+  claimedAt       DateTime?
+
+  @@unique([battleId, bettorAddress])
+  @@index([battleId])
+  @@index([bettorAddress])
+  @@index([placedAt])
+}
+
+model BattleBettingPool {
+  id                  String   @id @default(cuid())
+  battleId            String   @unique
+  totalWarrior1Bets   String   @default("0") // Wei total
+  totalWarrior2Bets   String   @default("0")
+  totalBettors        Int      @default(0)
+  bettingOpen         Boolean  @default(true)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([bettingOpen])
+}
+
+// ============================================
+// MATCHED MARKETS (Cross-platform topic matching)
+// ============================================
+
+model MatchedMarketPair {
+  id                  String   @id @default(cuid())
+
+  // Polymarket side
+  polymarketId        String
+  polymarketQuestion  String
+  polymarketYesPrice  Int
+  polymarketNoPrice   Int
+  polymarketVolume    String
+
+  // Kalshi side
+  kalshiId            String
+  kalshiQuestion      String
+  kalshiYesPrice      Int
+  kalshiNoPrice       Int
+  kalshiVolume        String
+
+  // Matching analysis
+  similarity          Float    // 0-1
+  priceDifference     Float    // Percentage
+
+  // Arbitrage
+  hasArbitrage        Boolean  @default(false)
+  arbitrageStrategy   String?  // JSON: { buyYesOn, buyNoOn, potentialProfit }
+
+  // Status
+  isActive            Boolean  @default(true)
+  lastUpdated         DateTime @default(now())
+
+  @@unique([polymarketId, kalshiId])
+  @@index([hasArbitrage])
+  @@index([similarity])
+}
