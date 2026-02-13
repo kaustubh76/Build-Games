@@ -1,0 +1,1523 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "_crownToken",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_warriorsNFT",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_aiPublicKey",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "BETTING_CLOSE_ROUND",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "BETTING_FEE_BPS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "DEFAULT_CHALLENGE_DURATION",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_ROUNDS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MIN_BET",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MIN_STAKES",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "PLATFORM_FEE_BPS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "acceptChallenge",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_warriorId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "aiPublicKey",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "battleBets",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "bettor",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "betOnWarrior1",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "claimed",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "battleBettingPools",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "totalWarrior1Bets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalWarrior2Bets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalBettors",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "bettingOpen",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "battleBettors",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "battleRounds",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "roundNumber",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "warrior1ArgumentHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "warrior2ArgumentHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "warrior1Move",
+        "type": "uint8",
+        "internalType": "enum PredictionArena.DebateMove"
+      },
+      {
+        "name": "warrior2Move",
+        "type": "uint8",
+        "internalType": "enum PredictionArena.DebateMove"
+      },
+      {
+        "name": "warrior1Score",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "warrior2Score",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "isComplete",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "battles",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "externalMarketKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "warrior1Id",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "warrior1Owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "warrior2Id",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "warrior2Owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "stakes",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "warrior1Score",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "warrior2Score",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "currentRound",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "status",
+        "type": "uint8",
+        "internalType": "enum PredictionArena.BattleStatus"
+      },
+      {
+        "name": "createdAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "completedAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "battleDataHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "cancelChallenge",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "challenges",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "warriorId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "challengerOwner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "challengerSideYes",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "externalMarketKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "stakes",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expiresAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "isAccepted",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "isCancelled",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "claimBet",
+    "inputs": [
+      {
+        "name": "_battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createChallenge",
+    "inputs": [
+      {
+        "name": "_warriorId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_externalMarketKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "_sideYes",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "_stakes",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_duration",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "crownToken",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract ICrownToken"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getBattle",
+    "inputs": [
+      {
+        "name": "_battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PredictionArena.Battle",
+        "components": [
+          {
+            "name": "battleId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "externalMarketKey",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "warrior1Id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "warrior1Owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "warrior2Id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "warrior2Owner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "stakes",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "warrior1Score",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "warrior2Score",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "currentRound",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "status",
+            "type": "uint8",
+            "internalType": "enum PredictionArena.BattleStatus"
+          },
+          {
+            "name": "createdAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "completedAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "battleDataHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getBettingOdds",
+    "inputs": [
+      {
+        "name": "_battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "warrior1Odds",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "warrior2Odds",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalPool",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getBettingPool",
+    "inputs": [
+      {
+        "name": "_battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PredictionArena.BattleBettingPool",
+        "components": [
+          {
+            "name": "totalWarrior1Bets",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalWarrior2Bets",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalBettors",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "bettingOpen",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChallenge",
+    "inputs": [
+      {
+        "name": "_challengeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PredictionArena.Challenge",
+        "components": [
+          {
+            "name": "challengeId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "warriorId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "challengerOwner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "challengerSideYes",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "externalMarketKey",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "stakes",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "expiresAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isAccepted",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isCancelled",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMarketChallenges",
+    "inputs": [
+      {
+        "name": "_marketKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getOpenChallengesCount",
+    "inputs": [
+      {
+        "name": "_marketKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "count",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRound",
+    "inputs": [
+      {
+        "name": "_battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_roundNumber",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PredictionArena.Round",
+        "components": [
+          {
+            "name": "roundNumber",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "warrior1ArgumentHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "warrior2ArgumentHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "warrior1Move",
+            "type": "uint8",
+            "internalType": "enum PredictionArena.DebateMove"
+          },
+          {
+            "name": "warrior2Move",
+            "type": "uint8",
+            "internalType": "enum PredictionArena.DebateMove"
+          },
+          {
+            "name": "warrior1Score",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "warrior2Score",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "isComplete",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserBet",
+    "inputs": [
+      {
+        "name": "_battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_bettor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PredictionArena.Bet",
+        "components": [
+          {
+            "name": "bettor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "betOnWarrior1",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "claimed",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getWarriorBattles",
+    "inputs": [
+      {
+        "name": "_warriorId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "marketChallenges",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nextBattleId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nextChallengeId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "placeBet",
+    "inputs": [
+      {
+        "name": "_battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_betOnWarrior1",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "_amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "storeBattleData",
+    "inputs": [
+      {
+        "name": "_battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_dataHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "submitRound",
+    "inputs": [
+      {
+        "name": "_battleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_roundNumber",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "_w1ArgumentHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "_w2ArgumentHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "_w1Move",
+        "type": "uint8",
+        "internalType": "enum PredictionArena.DebateMove"
+      },
+      {
+        "name": "_w2Move",
+        "type": "uint8",
+        "internalType": "enum PredictionArena.DebateMove"
+      },
+      {
+        "name": "_w1Score",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "_w2Score",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "_signature",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "totalFeesCollected",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "warriorBattles",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "warriorsNFT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IWarriorsNFT"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "withdrawFees",
+    "inputs": [
+      {
+        "name": "_to",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "BattleCompleted",
+    "inputs": [
+      {
+        "name": "battleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "winnerId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "winnerOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "warrior1FinalScore",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "warrior2FinalScore",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "payout",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BattleDataStored",
+    "inputs": [
+      {
+        "name": "battleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "dataHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BattleStarted",
+    "inputs": [
+      {
+        "name": "battleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "warrior1Id",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "warrior2Id",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "externalMarketKey",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "stakes",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BetClaimed",
+    "inputs": [
+      {
+        "name": "battleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "bettor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "payout",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "won",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BetPlaced",
+    "inputs": [
+      {
+        "name": "battleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "bettor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "betOnWarrior1",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BettingClosed",
+    "inputs": [
+      {
+        "name": "battleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalPool",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ChallengeCancelled",
+    "inputs": [
+      {
+        "name": "challengeId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ChallengeCreated",
+    "inputs": [
+      {
+        "name": "challengeId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "warriorId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "externalMarketKey",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "sideYes",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "stakes",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "expiresAt",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RoundCompleted",
+    "inputs": [
+      {
+        "name": "battleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "roundNumber",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "warrior1Score",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "warrior2Score",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "warrior1Move",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum PredictionArena.DebateMove"
+      },
+      {
+        "name": "warrior2Move",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum PredictionArena.DebateMove"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "ECDSAInvalidSignature",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ECDSAInvalidSignatureLength",
+    "inputs": [
+      {
+        "name": "length",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ECDSAInvalidSignatureS",
+    "inputs": [
+      {
+        "name": "s",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__AlreadyClaimed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__BattleAlreadyCompleted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__BattleNotActive",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__BettingClosed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__CannotChallengeself",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__ChallengeExpired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__ChallengeNotOpen",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__InvalidBetAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__InvalidMarketKey",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__InvalidRound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__InvalidSignature",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__InvalidStakes",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__InvalidWarrior",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__NothingToClaim",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PredictionArena__Unauthorized",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ReentrancyGuardReentrantCall",
+    "inputs": []
+  }
+]
