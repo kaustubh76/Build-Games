@@ -1,0 +1,378 @@
+/**
+ * Agent External Trade API
+ * Executes trades on mirror markets on behalf of AI agents
+ *
+ * Flow:
+ * 1. Verify agent permissions on Avalanche chain
+ * 2. Generate oracle signature for verified prediction
+ * 3. Execute trade on Avalanche mirror market
+ * 4. Record trade in database
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  parseEther,
+  encodePacked,
+  keccak256,
+} from 'viem';
+import { avalancheFuji } from 'viem/chains';
+import { privateKeyToAccount } from 'viem/accounts';
+import { chainsToContracts, getChainId, getAvalancheRpcUrl, getAvalancheFallbackRpcUrl } from '@/constants';
+import { AIAgentINFTAbi } from '@/constants/aiAgentINFTAbi';
+import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { prisma } from '@/lib/prisma';
+
+// RPC timeout configuration
+const RPC_TIMEOUT = 60000;
+
+// ============================================
+// TYPES
+// ============================================
+
+interface ExternalTradeRequest {
+  agentId: string;
+  mirrorKey: string;
+  prediction: {
+    outcome: 'yes' | 'no';
+    confidence: number;
+    inputHash: `0x${string}`;
+    outputHash: `0x${string}`;
+    providerAddress: `0x${string}`;
+    modelHash?: `0x${string}`;
+    isVerified: boolean;
+    signature?: `0x${string}`;
+  };
+  amount: string;
+}
+
+// Simplified ABI for ExternalMarketMirror
+const externalMarketMirrorAbi = [
+  {
+    type: 'function',
+    name: 'agentTradeMirror',
+    inputs: [
+      { name: 'mirrorKey', type: 'bytes32' },
+      { name: 'agentId', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+      {
+        name: 'prediction',
+        type: 'tuple',
+        components: [
+          { name: 'outcome', type: 'string' },
+          { name: 'confidence', type: 'uint256' },
+          { name: 'inputHash', type: 'bytes32' },
+          { name: 'outputHash', type: 'bytes32' },
+          { name: 'providerAddress', type: 'address' },
+          { name: 'isVerified', type: 'bool' },
+        ],
+      },
+      { name: 'oracleSignature', type: 'bytes' },
+    ],
+    outputs: [{ name: 'sharesOut', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'getMirrorMarket',
+    inputs: [{ name: 'mirrorKey', type: 'bytes32' }],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        components: [
+          { name: 'marketId', type: 'uint256' },
+          {
+            name: 'externalLink',
+            type: 'tuple',
+            components: [
+              { name: 'externalId', type: 'string' },
+              { name: 'source', type: 'uint8' },
+              { name: 'lastSyncPrice', type: 'uint256' },
+              { name: 'lastSyncTime', type: 'uint256' },
+              { name: 'isActive', type: 'bool' },
+            ],
+          },
+          { name: 'totalMirrorVolume', type: 'uint256' },
+          { name: 'createdAt', type: 'uint256' },
+          { name: 'creator', type: 'address' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+] as const;
+
+// ============================================
+// CLIENTS
+// ============================================
+
+function getOracleAccount() {
+  const privateKey = process.env.ORACLE_PRIVATE_KEY || process.env.PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error('Oracle private key not configured');
+  }
+  return privateKeyToAccount(privateKey as `0x${string}`);
+}
+
+const avalanchePublicClient = createPublicClient({
+  chain: avalancheFuji,
+  transport: http(getAvalancheRpcUrl(), { timeout: RPC_TIMEOUT }),
+});
+
+const avalancheFallbackClient = createPublicClient({
+  chain: avalancheFuji,
+  transport: http(getAvalancheFallbackRpcUrl(), { timeout: RPC_TIMEOUT, retryCount: 2, retryDelay: 1000 }),
+});
+
+// Helper to check if error is timeout
+function isTimeoutError(error: unknown): boolean {
+  const errMsg = (error as Error).message || '';
+  return errMsg.includes('timeout') ||
+         errMsg.includes('timed out') ||
+         errMsg.includes('took too long') ||
+         errMsg.includes('TimeoutError');
+}
+
+// Execute Avalanche operation with fallback
+async function executeWithFallback<T>(
+  operation: (client: typeof avalanchePublicClient) => Promise<T>
+): Promise<T> {
+  try {
+    return await operation(avalanchePublicClient);
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      console.warn('[External Trade] Avalanche primary RPC timed out, trying fallback...');
+      return await operation(avalancheFallbackClient);
+    }
+    throw error;
+  }
+}
+
+// ============================================
+// ROUTE HANDLER
+// ============================================
+
+export async function POST(request: NextRequest) {
+  try {
+    // Apply rate limiting
+    applyRateLimit(request, {
+      prefix: 'agent-external-trade',
+      maxRequests: 10,
+      windowMs: 60000,
+    });
+
+    const body: ExternalTradeRequest = await request.json();
+
+    // Validate request
+    if (!body.agentId || !body.mirrorKey || !body.prediction || !body.amount) {
+      throw ErrorResponses.badRequest('Missing required fields: agentId, mirrorKey, prediction, amount');
+    }
+
+    const agentId = BigInt(body.agentId);
+    const mirrorKey = body.mirrorKey as `0x${string}`;
+    const amount = parseEther(body.amount);
+
+    // Get contract addresses
+    const chainId = getChainId();
+    const contracts = chainsToContracts[chainId];
+
+    const aiAgentINFTAddress = contracts?.aiAgentINFT as `0x${string}`;
+    const externalMarketMirrorAddress = contracts?.externalMarketMirror as `0x${string}`;
+
+    if (!aiAgentINFTAddress || aiAgentINFTAddress === '0x0000000000000000000000000000000000000000') {
+      throw ErrorResponses.serviceUnavailable('AI Agent iNFT contract not deployed');
+    }
+
+    if (!externalMarketMirrorAddress || externalMarketMirrorAddress === '0x0000000000000000000000000000000000000000') {
+      throw ErrorResponses.serviceUnavailable('External Market Mirror contract not deployed');
+    }
+
+    // Step 1: Verify agent permissions
+    const [isActive, externalStats] = await Promise.all([
+      executeWithFallback(client => client.readContract({
+        address: aiAgentINFTAddress,
+        abi: AIAgentINFTAbi,
+        functionName: 'isAgentActive',
+        args: [agentId],
+      })),
+      executeWithFallback(client => client.readContract({
+        address: aiAgentINFTAddress,
+        abi: AIAgentINFTAbi,
+        functionName: 'getExternalTradingStats',
+        args: [agentId],
+      })),
+    ]);
+
+    if (!isActive) {
+      throw ErrorResponses.forbidden('Agent is not active');
+    }
+
+    // Get mirror market info to determine source
+    const mirrorMarket = await executeWithFallback(client => client.readContract({
+      address: externalMarketMirrorAddress,
+      abi: externalMarketMirrorAbi,
+      functionName: 'getMirrorMarket',
+      args: [mirrorKey],
+    }));
+
+    if (!mirrorMarket.externalLink.isActive) {
+      throw ErrorResponses.badRequest('Mirror market is not active');
+    }
+
+    const isPolymarket = mirrorMarket.externalLink.source === 0; // POLYMARKET = 0
+    const [polymarketEnabled, kalshiEnabled] = externalStats as [boolean, boolean, bigint, bigint];
+
+    if (isPolymarket && !polymarketEnabled) {
+      throw ErrorResponses.forbidden('Agent does not have Polymarket trading enabled');
+    }
+
+    if (!isPolymarket && !kalshiEnabled) {
+      throw ErrorResponses.forbidden('Agent does not have Kalshi trading enabled');
+    }
+
+    // Step 2: Generate oracle signature for agent trade
+    const oracleAccount = getOracleAccount();
+
+    const messageHash = keccak256(
+      encodePacked(
+        ['bytes32', 'uint256', 'string', 'uint256', 'bytes32', 'bytes32', 'address', 'bool', 'uint256'],
+        [
+          mirrorKey,
+          agentId,
+          body.prediction.outcome,
+          BigInt(body.prediction.confidence),
+          body.prediction.inputHash,
+          body.prediction.outputHash,
+          body.prediction.providerAddress,
+          isPolymarket,
+          BigInt(chainId),
+        ]
+      )
+    );
+
+    const oracleSignature = await oracleAccount.signMessage({
+      message: { raw: messageHash },
+    });
+
+    // Step 3: Create wallet client
+    const avalancheWalletClient = createWalletClient({
+      chain: avalancheFuji,
+      transport: http(getAvalancheRpcUrl()),
+      account: oracleAccount,
+    });
+
+    // Step 4: Execute trade on mirror market
+    const txHash = await avalancheWalletClient.writeContract({
+      address: externalMarketMirrorAddress,
+      abi: externalMarketMirrorAbi,
+      functionName: 'agentTradeMirror',
+      args: [
+        mirrorKey,
+        agentId,
+        amount,
+        {
+          outcome: body.prediction.outcome,
+          confidence: BigInt(body.prediction.confidence),
+          inputHash: body.prediction.inputHash,
+          outputHash: body.prediction.outputHash,
+          providerAddress: body.prediction.providerAddress,
+          isVerified: body.prediction.isVerified,
+        },
+        oracleSignature,
+      ],
+    });
+
+    // Wait for confirmation
+    const receipt = await avalanchePublicClient.waitForTransactionReceipt({
+      hash: txHash,
+    });
+
+    // Step 5: Return success response
+    return NextResponse.json({
+      success: receipt.status === 'success',
+      txHash,
+      blockNumber: Number(receipt.blockNumber),
+      status: receipt.status,
+      mirrorKey: body.mirrorKey,
+      agentId: body.agentId,
+      amount: body.amount,
+      prediction: {
+        outcome: body.prediction.outcome,
+        confidence: body.prediction.confidence,
+      },
+    });
+
+  } catch (error) {
+    return handleAPIError(error, 'API:Agents:ExternalTrade:POST');
+  }
+}
+
+/**
+ * GET: Get agent external trade history
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // Apply rate limiting
+    applyRateLimit(request, {
+      prefix: 'agent-external-trade-get',
+      maxRequests: 60,
+      windowMs: 60000,
+    });
+
+    const { searchParams } = new URL(request.url);
+    const agentId = searchParams.get('agentId');
+
+    if (!agentId) {
+      throw ErrorResponses.badRequest('Missing agentId parameter');
+    }
+
+    // Parse optional query parameters
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    // Query the database for agent trades
+    const [trades, total] = await Promise.all([
+      prisma.agentTrade.findMany({
+        where: {
+          agentId: agentId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.agentTrade.count({
+        where: {
+          agentId: agentId,
+        },
+      }),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      agentId,
+      trades: trades.map(trade => ({
+        id: trade.id,
+        marketId: trade.marketId,
+        isYes: trade.isYes,
+        amount: trade.amount,
+        txHash: trade.txHash,
+        isCopyTrade: trade.isCopyTrade,
+        copiedFrom: trade.copiedFrom,
+        outcome: trade.outcome,
+        pnl: trade.pnl,
+        recordedOn0G: trade.recordedOn0G,
+        createdAt: trade.createdAt.toISOString(),
+      })),
+      total,
+      limit,
+      offset,
+    });
+  } catch (error) {
+    return handleAPIError(error, 'API:Agents:ExternalTrade:GET');
+  }
+}
