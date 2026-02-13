@@ -1,0 +1,584 @@
+/* Light Theme Overrides for Home Page */
+/* Force override all dark theme styles */
+.home-page {
+  /* Override the dark background */
+  background: transparent !important;
+  color: #2d3748 !important;
+}
+
+/* Stronger overrides for body styling on home page */
+.home-page body,
+.home-page *:not(.arcade-button):not(button) {
+  color: #2d3748 !important;
+}
+
+/* Override global arcade text effects for light theme */
+.home-page .arcade-glow {
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 3px currentColor,
+    0 0 6px rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Light theme text colors with higher specificity */
+.home-page .text-yellow-400,
+.home-page .text-yellow-300,
+.home-page .text-yellow-200,
+.home-page h1.text-yellow-400,
+.home-page p.text-yellow-300,
+.home-page p.text-yellow-200 {
+  color: #2d5a27 !important; /* Dark green for main titles */
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 3px rgba(255, 255, 255, 0.6) !important;
+}
+
+.home-page .text-red-400,
+.home-page .text-red-200,
+.home-page .text-red-300,
+.home-page .text-red-500,
+.home-page p.text-red-400,
+.home-page p.text-red-200,
+.home-page p.text-red-300,
+.home-page p.text-red-500 {
+  color: #c53030 !important; /* Rich red */
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 2px rgba(255, 255, 255, 0.4) !important;
+}
+
+.home-page .text-blue-400,
+.home-page .text-blue-200,
+.home-page .text-blue-500,
+.home-page h2.text-blue-400,
+.home-page p.text-blue-200,
+.home-page p.text-blue-500 {
+  color: #1e4d72 !important; /* Darker ocean blue */
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 2px rgba(255, 255, 255, 0.4) !important;
+}
+
+.home-page .text-orange-400,
+.home-page .text-orange-200,
+.home-page .text-orange-500,
+.home-page h2.text-orange-400,
+.home-page p.text-orange-200,
+.home-page p.text-orange-500 {
+  color: #dd6b20 !important; /* Warm orange */
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 2px rgba(255, 255, 255, 0.4) !important;
+}
+
+.home-page .text-green-400 {
+  color: #38a169 !important; /* Forest green */
+}
+
+.home-page .text-gray-400,
+.home-page .text-gray-300 {
+  color: #4a5568 !important; /* Dark gray for contrast */
+}
+
+/* Light theme card backgrounds */
+.home-page .arcade-card {
+  background: 
+    radial-gradient(circle at top left, rgba(120, 160, 200, 0.15), rgba(100, 140, 180, 0.1) 50%),
+    linear-gradient(135deg, rgba(120, 160, 200, 0.2) 0%, rgba(100, 140, 180, 0.15) 30%, rgba(120, 160, 200, 0.2) 100%) !important;
+  border: 3px solid !important;
+  border-image: linear-gradient(45deg, #2d5a27, #38a169) 1 !important;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 0 8px rgba(45, 90, 39, 0.2) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+.home-page .arcade-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 
+    0 8px 20px rgba(0, 0, 0, 0.15),
+    0 0 16px rgba(45, 90, 39, 0.3) !important;
+  border-image: linear-gradient(45deg, #2d5a27, #2b6cb0) 1 !important;
+}
+
+/* Light theme for special warning card */
+.home-page .bg-red-900\/20 {
+  background: rgba(255, 182, 193, 0.2) !important; /* Light red background with more transparency */
+  border-color: #e53e3e !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+}
+
+/* Light theme for input fields and containers */
+.home-page .bg-stone-800,
+.home-page .bg-stone-700 {
+  background: rgba(120, 160, 200, 0.2) !important;
+  border-color: #2d5a27 !important;
+  color: #2d3748 !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.home-page .bg-stone-800 input,
+.home-page .bg-stone-700 input {
+  background: transparent !important;
+  color: #2d3748 !important;
+}
+
+.home-page input::placeholder {
+  color: #718096 !important;
+}
+
+/* Light theme buttons */
+.home-page .arcade-button {
+  background: linear-gradient(135deg, #2d5a27 0%, #38a169 50%, #2d5a27 100%) !important;
+  border: 2px solid #2b6cb0 !important;
+  color: white !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 0 8px rgba(45, 90, 39, 0.2) !important;
+}
+
+.home-page .arcade-button:hover {
+  background: linear-gradient(135deg, #38a169 0%, #48bb78 50%, #38a169 100%) !important;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 0 16px rgba(45, 90, 39, 0.4) !important;
+  transform: scale(1.02);
+}
+
+.home-page .bg-green-600 {
+  background: linear-gradient(135deg, #38a169, #48bb78) !important;
+}
+
+.home-page .bg-red-600 {
+  background: linear-gradient(135deg, #e53e3e, #f56565) !important;
+}
+
+/* Light theme for weapon containers */
+.home-page .weapon-container {
+  background: radial-gradient(circle, rgba(120, 160, 200, 0.25), rgba(100, 140, 180, 0.15)) !important;
+  border: 2px solid #2d5a27 !important;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 0 4px rgba(45, 90, 39, 0.2) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Enhance floating elements for light background */
+.home-page .floating-element {
+  opacity: 0.4 !important;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2)) !important;
+}
+
+/* Light theme for gradient lines */
+.home-page .bg-gradient-to-r.from-transparent.via-yellow-600.to-transparent {
+  background: linear-gradient(to right, transparent, rgba(45, 90, 39, 0.6), transparent) !important;
+}
+
+.home-page .bg-gradient-to-r.from-transparent.via-red-600.to-transparent {
+  background: linear-gradient(to right, transparent, rgba(229, 62, 62, 0.6), transparent) !important;
+}
+
+/* Improve contrast for borders */
+.home-page .border-yellow-600,
+.home-page .border-yellow-400 {
+  border-color: #2d5a27 !important;
+}
+
+.home-page .border-red-600,
+.home-page .border-red-400 {
+  border-color: #e53e3e !important;
+}
+
+.home-page .border-blue-400 {
+  border-color: #1e4d72 !important;
+}
+
+.home-page .border-orange-400 {
+  border-color: #dd6b20 !important;
+}
+
+.home-page .border-gray-600 {
+  border-color: #4a5568 !important;
+}
+
+/* Ensure good contrast for disabled states */
+.home-page .opacity-50 {
+  opacity: 0.6 !important;
+  color: #718096 !important;
+}
+
+/* Enhance the glow effects for light theme */
+.home-page .arcade-glow {
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 3px currentColor,
+    0 0 6px rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Make sure emojis are visible */
+.home-page .filter.drop-shadow-lg {
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3)) !important;
+}
+
+/* Light theme for the main title/destiny box */
+.home-page .arcade-border,
+.home-page div.arcade-border {
+  background: 
+    radial-gradient(circle at top left, rgba(120, 160, 200, 0.15), rgba(100, 140, 180, 0.1) 50%),
+    linear-gradient(135deg, rgba(120, 160, 200, 0.2) 0%, rgba(100, 140, 180, 0.15) 30%, rgba(120, 160, 200, 0.2) 100%) !important;
+  border: 2px solid #2d5a27 !important;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 0 8px rgba(45, 90, 39, 0.2) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+/* Specific override for "ENTER THE ULTIMATE BATTLEGROUND" text */
+.home-page .arcade-border p.text-yellow-400.metal-text {
+  color: #2d5a27 !important; /* Same dark green as main CRwN heading */
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 3px rgba(255, 255, 255, 0.6) !important;
+  background: none !important;
+  -webkit-text-fill-color: #2d5a27 !important;
+}
+
+/* Light theme overrides for grey header and footer */
+.home-page .arcade-header-grey {
+  background: 
+    radial-gradient(circle at top left, rgba(120, 160, 200, 0.2), rgba(100, 140, 180, 0.1) 50%),
+    linear-gradient(135deg, rgba(120, 160, 200, 0.25) 0%, rgba(100, 140, 180, 0.2) 30%, rgba(120, 160, 200, 0.25) 100%) !important;
+  border-bottom: 3px solid rgba(45, 90, 39, 0.4) !important;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.15),
+    0 0 12px rgba(45, 90, 39, 0.2) !important;
+}
+
+.home-page .arcade-header-grey::before {
+  background: rgba(45, 90, 39, 0.05) !important;
+}
+
+.home-page .arcade-footer-grey {
+  background: 
+    radial-gradient(circle at bottom right, rgba(120, 160, 200, 0.2), rgba(100, 140, 180, 0.1) 50%),
+    linear-gradient(135deg, rgba(120, 160, 200, 0.25) 0%, rgba(100, 140, 180, 0.2) 30%, rgba(120, 160, 200, 0.25) 100%) !important;
+  border-top: 3px solid rgba(45, 90, 39, 0.4) !important;
+  box-shadow: 
+    0 -4px 20px rgba(0, 0, 0, 0.15),
+    0 0 12px rgba(45, 90, 39, 0.2) !important;
+}
+
+.home-page .arcade-footer-grey::before {
+  background: rgba(45, 90, 39, 0.05) !important;
+}
+
+.home-page .footer-title {
+  color: #2d5a27 !important;
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 4px rgba(255, 255, 255, 0.4) !important;
+}
+
+.home-page .footer-subtitle {
+  color: #2d3748 !important;
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.6),
+    0 0 2px rgba(255, 255, 255, 0.2) !important;
+}
+
+.home-page .footer-links {
+  color: #2d3748 !important;
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.6) !important;
+}
+
+.home-page .footer-link {
+  color: #2d5a27 !important;
+}
+
+.home-page .footer-link:hover {
+  color: #1a4e1a !important;
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 6px rgba(255, 255, 255, 0.4) !important;
+}
+
+.home-page .footer-link-text {
+  color: #2d5a27 !important;
+  border-bottom-color: rgba(45, 90, 39, 0.6) !important;
+}
+
+.home-page .footer-link-text:hover {
+  color: #1a4e1a !important;
+  border-bottom-color: rgba(26, 78, 26, 0.8) !important;
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 4px rgba(255, 255, 255, 0.3) !important;
+}
+
+.home-page .footer-team {
+  color: #2d3748 !important;
+}
+
+/* Light theme overrides for red header elements */
+.home-page .text-red-400,
+.home-page .text-red-300,
+.home-page h1.text-red-400,
+.home-page h5.text-red-300 {
+  color: #dc2626 !important;
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 3px rgba(255, 255, 255, 0.6) !important;
+}
+
+.home-page .border-red-500 {
+  border-color: #dc2626 !important;
+}
+
+.home-page .arcade-card-red {
+  background: 
+    radial-gradient(circle at top left, rgba(220, 38, 38, 0.15), rgba(185, 28, 28, 0.1) 50%),
+    linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(185, 28, 28, 0.15) 30%, rgba(220, 38, 38, 0.2) 100%) !important;
+  border: 2px solid !important;
+  border-image: linear-gradient(45deg, #dc2626, #ef4444) 1 !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+}
+
+.home-page .bg-red-900\/20 {
+  background: rgba(220, 38, 38, 0.1) !important;
+  border-color: #dc2626 !important;
+}
+
+.home-page .footer-title-red {
+  color: #dc2626 !important;
+  text-shadow: 
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 4px rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Light theme for red arcade buttons */
+.home-page .arcade-button-red {
+  background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+  border: 2px solid #dc2626 !important;
+  color: #ffffff !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 0 8px rgba(220, 38, 38, 0.2) !important;
+}
+
+.home-page .arcade-button-red:hover {
+  background: linear-gradient(135deg, #ef4444, #f87171) !important;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 0 16px rgba(220, 38, 38, 0.4) !important;
+}
+
+.home-page .arcade-button-red-small {
+  background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+  border: 2px solid #dc2626 !important;
+  color: #ffffff !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 0 6px rgba(220, 38, 38, 0.2) !important;
+}
+
+.home-page .arcade-button-red-small:hover {
+  background: linear-gradient(135deg, #ef4444, #f87171) !important;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 0 12px rgba(220, 38, 38, 0.4) !important;
+}
+
+/* Light theme overrides for slate header elements */
+.home-page .arcade-card-slate {
+  background: 
+    radial-gradient(circle at top left, rgba(120, 160, 200, 0.2), rgba(100, 140, 180, 0.15) 50%),
+    linear-gradient(135deg, rgba(120, 160, 200, 0.25) 0%, rgba(100, 140, 180, 0.2) 30%, rgba(120, 160, 200, 0.25) 100%) !important;
+  border: 2px solid !important;
+  border-image: linear-gradient(45deg, #2d5a27, #38a169) 1 !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  border-radius: 12px !important;
+  border-image: none !important;
+  border-color: #2d5a27 !important;
+}
+
+.home-page .bg-slate-900\/20 {
+  background: rgba(120, 160, 200, 0.15) !important;
+  border-color: #2d5a27 !important;
+}
+
+/* White color for CRwN token amount on light theme */
+.home-page .arcade-card-slate .text-red-400:last-child {
+  color: #ffffff !important;
+  text-shadow: 
+    1px 1px 2px rgba(0, 0, 0, 0.8),
+    0 0 4px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Light theme for slate arcade buttons */
+.home-page .arcade-button-slate {
+  background: linear-gradient(135deg, #2d5a27, #38a169) !important;
+  border: 2px solid #2d5a27 !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  min-height: 48px !important;
+  font-size: 14px !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 0 8px rgba(45, 90, 39, 0.2) !important;
+}
+
+.home-page .arcade-button-slate:hover {
+  background: linear-gradient(135deg, #38a169, #48bb78) !important;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 0 16px rgba(45, 90, 39, 0.4) !important;
+  border-color: #48bb78 !important;
+}
+
+/* Light theme for slate arcade error buttons (wrong network) */
+.home-page .arcade-button-slate-error {
+  background: linear-gradient(135deg, #c53030, #e53e3e) !important;
+  border: 2px solid #c53030 !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  min-height: 48px !important;
+  font-size: 14px !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 0 8px rgba(197, 48, 48, 0.2) !important;
+}
+
+.home-page .arcade-button-slate-error:hover {
+  background: linear-gradient(135deg, #e53e3e, #f56565) !important;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 0 16px rgba(197, 48, 48, 0.4) !important;
+  border-color: #f56565 !important;
+}
+
+/* Force styling for token exchange and leaderboard cards */
+.home-page .home-token-card,
+.home-page .home-token-card.arcade-card,
+div.home-page .home-token-card.arcade-card,
+.home-page div.home-token-card.arcade-card {
+  background: radial-gradient(circle at top left, rgba(120, 160, 200, 0.15), rgba(100, 140, 180, 0.1) 50%), linear-gradient(135deg, rgba(120, 160, 200, 0.2) 0%, rgba(100, 140, 180, 0.15) 30%, rgba(120, 160, 200, 0.2) 100%) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 8px rgba(45, 90, 39, 0.2) !important;
+  border-radius: 16px !important;
+  border-image: none !important;
+  border-image-source: none !important;
+  border-image-slice: initial !important;
+  border-image-width: initial !important;
+  border-image-outset: initial !important;
+  border-image-repeat: initial !important;
+}
+
+.home-page .home-token-card.border-green-500,
+.home-page div.home-token-card.border-green-500 {
+  border: 3px solid #38a169 !important;
+  border-image: none !important;
+}
+
+.home-page .home-token-card.border-red-500,
+.home-page div.home-token-card.border-red-500 {
+  border: 3px solid #e53e3e !important;
+  border-image: none !important;
+}
+
+.home-page .home-leaderboard-card,
+.home-page .home-leaderboard-card.arcade-card,
+div.home-page .home-leaderboard-card.arcade-card,
+.home-page div.home-leaderboard-card.arcade-card {
+  background: radial-gradient(circle at top left, rgba(120, 160, 200, 0.15), rgba(100, 140, 180, 0.1) 50%), linear-gradient(135deg, rgba(120, 160, 200, 0.2) 0%, rgba(100, 140, 180, 0.15) 30%, rgba(120, 160, 200, 0.2) 100%) !important;
+  border: 3px solid #2d5a27 !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 8px rgba(45, 90, 39, 0.2) !important;
+  border-radius: 16px !important;
+  border-image: none !important;
+  border-image-source: none !important;
+  border-image-slice: initial !important;
+  border-image-width: initial !important;
+  border-image-outset: initial !important;
+  border-image-repeat: initial !important;
+}
+
+/* Global styles for header elements when on home page */
+/* These styles will apply to header elements regardless of page scope */
+
+/* Global rounded header token display */
+.arcade-card-slate {
+  border-radius: 12px !important;
+  border-image: none !important;
+}
+
+/* Global rounded header buttons */
+.arcade-button-slate {
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  min-height: 48px !important;
+  font-size: 14px !important;
+}
+
+.arcade-button-slate-medium {
+  border-radius: 12px !important;
+  padding: 8px 16px !important;
+  min-height: 40px !important;
+}
+
+.arcade-button-slate-error {
+  background: linear-gradient(135deg, #c53030, #e53e3e) !important;
+  border: 2px solid #c53030 !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  min-height: 48px !important;
+  font-size: 14px !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 0 8px rgba(197, 48, 48, 0.2) !important;
+}
+
+.arcade-button-slate-error:hover {
+  background: linear-gradient(135deg, #e53e3e, #f56565) !important;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 0 16px rgba(197, 48, 48, 0.4) !important;
+  border-color: #f56565 !important;
+}
+
+/* Specific overrides for main headings to show in red */
+.home-page h1.text-red-400,
+.home-page h2.text-red-400 {
+  color: #f87171 !important; /* Light red for better visibility */
+  text-shadow: 
+    1px 1px 2px rgba(0, 0, 0, 0.8),
+    0 0 3px currentColor !important;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #374151;
+  border-top: 4px solid #fbbf24;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
