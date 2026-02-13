@@ -1,0 +1,50 @@
+# Compiler files
+cache/
+out/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Docs
+docs/
+
+# Dotenv files (contain secrets/private keys)
+.env
+.env.local
+.env*.local
+frontend/.env
+frontend/.env.local
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build artifacts
+dist/
+**/dist/
+.next/
+**/.next/
+build/
+
+# IDE / OS
+.DS_Store
+**/.DS_Store
+.claude/
+
+# Package locks (optional - can be added if needed)
+# package-lock.json
+
+# Vercel
+.vercel/
+**/.vercel/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Prisma dev database
+*.db
+
+# Broadcast logs
+broadcast/
