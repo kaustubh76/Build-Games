@@ -157,7 +157,7 @@ contract AIDebateOracle is Ownable, ReentrancyGuard {
 
     uint256 public constant MIN_CONSENSUS_CONFIDENCE = 6000;    // 60%
     uint256 public constant MIN_AGENTS_FOR_CONSENSUS = 2;
-    uint256 public constant MIN_DISPUTE_STAKE = 10 ether;       // 10 CRwN
+    uint256 public constant MIN_DISPUTE_STAKE = 0.1 ether;      // 0.1 CRwN
 
     uint256 public constant FEE_DENOMINATOR = 10000;
 
