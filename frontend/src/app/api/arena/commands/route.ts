@@ -1,5 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+
+// Try to import prisma, but gracefully handle if DB is not configured
+let prisma: any = null;
+try {
+  prisma = require('@/lib/prisma').prisma;
+} catch {
+  // DB not available
+}
+
+// Helper to check if DB is available
+async function getDb() {
+  if (!prisma) return null;
+  try {
+    // Test the connection with a simple query
+    await prisma.$queryRaw`SELECT 1`;
+    return prisma;
+  } catch {
+    return null;
+  }
+}
 
 // Helper to format DB state into the shape the frontend expects
 function formatState(state: {
@@ -42,8 +61,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Battle ID is required' }, { status: 400 });
   }
 
+  const db = await getDb();
+  if (!db) {
+    // No database configured — return graceful default
+    return NextResponse.json({ hasCommand: false, gameState: null, dbStatus: 'not_configured' });
+  }
+
   try {
-    const state = await prisma.arenaGameState.findUnique({
+    const state = await db.arenaGameState.findUnique({
       where: { id: battleId },
     });
 
@@ -59,7 +84,7 @@ export async function GET(request: NextRequest) {
     if (timeRemaining <= 0 && state.gameState === 'playing') {
       if (state.phase === 'startGame') {
         // 70 seconds expired -> send startGame command
-        const updated = await prisma.arenaGameState.update({
+        const updated = await db.arenaGameState.update({
           where: { id: battleId, phase: 'startGame' }, // optimistic lock
           data: {
             phase: 'battle',
@@ -87,7 +112,7 @@ export async function GET(request: NextRequest) {
         const nextRound = state.currentRound + 1;
         const isFinished = nextRound > 5;
 
-        const updated = await prisma.arenaGameState.update({
+        const updated = await db.arenaGameState.update({
           where: { id: battleId, phase: 'battle', currentRound: state.currentRound }, // optimistic lock
           data: {
             currentRound: nextRound,
@@ -121,7 +146,7 @@ export async function GET(request: NextRequest) {
         round: state.pendingRound || undefined,
       };
 
-      await prisma.arenaGameState.update({
+      await db.arenaGameState.update({
         where: { id: battleId },
         data: { pendingAction: null, pendingActionAt: null, pendingRound: null },
       });
@@ -156,13 +181,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Battle ID is required' }, { status: 400 });
   }
 
+  const db = await getDb();
+  if (!db) {
+    return NextResponse.json(
+      { error: 'Database not configured. Arena automation requires PostgreSQL.', dbStatus: 'not_configured' },
+      { status: 503 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { action, warriors1Id, warriors2Id } = body;
 
     switch (action) {
       case 'initialize': {
-        const newState = await prisma.arenaGameState.upsert({
+        const newState = await db.arenaGameState.upsert({
           where: { id: battleId },
           create: {
             id: battleId,
@@ -200,16 +233,16 @@ export async function POST(request: NextRequest) {
       }
 
       case 'cleanup': {
-        await prisma.arenaGameState.deleteMany({ where: { id: battleId } });
+        await db.arenaGameState.deleteMany({ where: { id: battleId } });
         return NextResponse.json({ message: 'Command automation cleaned up' });
       }
 
       case 'resume': {
-        const existing = await prisma.arenaGameState.findUnique({ where: { id: battleId } });
+        const existing = await db.arenaGameState.findUnique({ where: { id: battleId } });
         if (!existing) {
           return NextResponse.json({ error: 'Battle not found' }, { status: 404 });
         }
-        await prisma.arenaGameState.update({
+        await db.arenaGameState.update({
           where: { id: battleId },
           data: { gameState: 'playing', lastUpdate: new Date() },
         });
@@ -217,11 +250,11 @@ export async function POST(request: NextRequest) {
       }
 
       case 'reset': {
-        const current = await prisma.arenaGameState.findUnique({ where: { id: battleId } });
+        const current = await db.arenaGameState.findUnique({ where: { id: battleId } });
         if (!current) {
           return NextResponse.json({ error: 'Battle not found' }, { status: 404 });
         }
-        const updated = await prisma.arenaGameState.update({
+        const updated = await db.arenaGameState.update({
           where: { id: battleId },
           data: {
             automationEnabled: false,

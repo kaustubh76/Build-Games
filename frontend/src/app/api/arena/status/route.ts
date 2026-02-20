@@ -1,5 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+
+// Try to import prisma, but gracefully handle if DB is not configured
+let prisma: any = null;
+try {
+  prisma = require('@/lib/prisma').prisma;
+} catch {
+  // DB not available
+}
+
+// Helper to check if DB is available
+async function getDb() {
+  if (!prisma) return null;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return prisma;
+  } catch {
+    return null;
+  }
+}
 
 // GET /api/arena/status?battleId=xxx
 export async function GET(request: NextRequest) {
@@ -10,8 +28,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Battle ID is required' }, { status: 400 });
   }
 
+  const db = await getDb();
+  if (!db) {
+    // No database configured — return graceful default
+    return NextResponse.json({ gameState: null, dbStatus: 'not_configured' });
+  }
+
   try {
-    const state = await prisma.arenaGameState.findUnique({
+    const state = await db.arenaGameState.findUnique({
       where: { id: battleId },
     });
 
