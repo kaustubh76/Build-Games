@@ -8,9 +8,6 @@ export const config = {
   // Storage Service URL (IPFS or other storage provider)
   storageApiUrl: process.env.NEXT_PUBLIC_STORAGE_API_URL || 'http://localhost:3001',
 
-  // Arena Backend Service URL
-  arenaBackendUrl: process.env.NEXT_PUBLIC_ARENA_BACKEND_URL || 'http://localhost:3002',
-
   // Base URL for this frontend application
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
 
@@ -46,11 +43,11 @@ export const getStorageUploadUrl = (): string => {
 };
 
 export const getArenaCommandsUrl = (battleId: string): string => {
-  return `${config.arenaBackendUrl}/api/arena/commands?battleId=${battleId}`;
+  return `/api/arena/commands?battleId=${battleId}`;
 };
 
 export const getArenaStatusUrl = (battleId: string): string => {
-  return `${config.arenaBackendUrl}/api/arena/status?battleId=${battleId}`;
+  return `/api/arena/status?battleId=${battleId}`;
 };
 
 // Check if we're in production
@@ -59,10 +56,6 @@ export const isProduction = process.env.NODE_ENV === 'production';
 // Check if external services are configured
 export const isStorageConfigured = (): boolean => {
   return config.storageApiUrl !== 'http://localhost:3001';
-};
-
-export const isBackendConfigured = (): boolean => {
-  return config.arenaBackendUrl !== 'http://localhost:3002';
 };
 
 // Validate required environment variables

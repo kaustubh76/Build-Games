@@ -85,11 +85,11 @@ class AIAgentINFTService {
 
   constructor() {
     // iNFT contracts are on Avalanche Fuji Testnet (43113)
-    const contracts = chainsToContracts[AVALANCHE_CHAIN_ID];
+    const contracts = chainsToContracts[AVALANCHE_CHAIN_ID] || chainsToContracts[43113];
     // Will be set after deployment
-    this.contractAddress = (contracts as any).aiAgentINFT || ZERO_ADDRESS;
+    this.contractAddress = (contracts as any)?.aiAgentINFT || ZERO_ADDRESS;
     // CrownToken on Avalanche for staking with iNFT
-    this.crownTokenAddress = contracts.crownToken as Address;
+    this.crownTokenAddress = (contracts?.crownToken as Address) || ZERO_ADDRESS;
 
     console.log('[iNFT Service] Initialized with:', {
       chainId: AVALANCHE_CHAIN_ID,

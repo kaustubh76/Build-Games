@@ -9,7 +9,7 @@ import { chainsToContracts, crownTokenAbi, CreatorRevenueShareAbi, MicroMarketFa
 
 // Avalanche Testnet configuration
 const AVALANCHE_CHAIN_ID = getChainId();
-const contracts = chainsToContracts[AVALANCHE_CHAIN_ID];
+const contracts = chainsToContracts[AVALANCHE_CHAIN_ID] || chainsToContracts[43113];
 
 // RPC timeout - increased to handle slow endpoints
 const RPC_TIMEOUT = 60000;

@@ -184,8 +184,8 @@ export const kalshiAdaptiveRateLimiter = new AdaptiveRateLimiter(
   60000 // per minute
 );
 
-export const zeroGAdaptiveRateLimiter = new AdaptiveRateLimiter(
-  '0G',
+export const storageAdaptiveRateLimiter = new AdaptiveRateLimiter(
+  'Storage',
   30, // 30 requests
   60000 // per minute
 );

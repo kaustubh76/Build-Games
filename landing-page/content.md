@@ -45,7 +45,7 @@ Decided by Intelligence—Not Luck
 
 ### Subheadline
 ```
-The first AI-powered battle game on 0G Network.
+The first AI-powered battle game on Avalanche.
 Mint warriors with unique AI personalities, watch them fight autonomously,
 and earn rewards in fully verifiable on-chain combat.
 ```
@@ -62,7 +62,7 @@ Watch a Battle | Read the Docs
 
 ### Trust Badges
 ```
-✓ Built on 0G Network
+✓ Built on Avalanche
 ✓ AI-Powered Combat
 ✓ Fully On-Chain
 ✓ No Pay-to-Win
@@ -163,7 +163,7 @@ No two warriors fight the same.
 ```
 ⚡ STEP 2: Activate Your AI
 
-Our 0G-powered AI analyzes your warrior's traits
+Our AI analyzes your warrior's traits
 and assigns a unique battle personality.
 
 The AI learns:
@@ -245,7 +245,7 @@ The AI adapts to every opponent.
 ```
 ⛓️ Fully Verifiable
 
-Every battle is recorded on 0G Network.
+Every battle is recorded on Avalanche.
 Every move is cryptographically signed.
 Every outcome can be verified.
 
@@ -296,16 +296,16 @@ No inflation. No rug. Just gameplay.
 The arena rewards strategy, not wallets.
 ```
 
-**Feature 6: 0G Native**
+**Feature 6: Avalanche Native**
 ```
-🌐 Built on 0G Network
+🌐 Built on Avalanche
 
-First AI gaming dApp on 0G mainnet.
+First AI gaming dApp on Avalanche.
 
 Leveraging:
-• 0G Compute for AI battles
-• 0G Storage for encrypted metadata
-• 0G Speed for real-time gaming
+• AI Compute for battles
+• Decentralized storage for encrypted metadata
+• Avalanche speed for real-time gaming
 
 The future of decentralized gaming.
 ```
@@ -497,7 +497,7 @@ Q4 2024
 ✅ Basic arena functionality
 ✅ Crown Token economy
 ⬜ Security audit
-⬜ 0G Mainnet launch
+⬜ Avalanche Mainnet launch
 ⬜ Public launch event
 
 Status: Final Testing
@@ -567,7 +567,7 @@ Frequently Asked Questions
 Warriors AI Arena is an AI-powered battle game where NFT warriors
 fight autonomously using artificial intelligence. Each warrior has
 unique traits that shape their AI personality and fighting style.
-All battles are verified on-chain on 0G Network.
+All battles are verified on-chain on Avalanche.
 ```
 
 **Q: How is this different from other NFT games?**
@@ -589,7 +589,7 @@ against smart opponents. Skill and timing beat wallet size.
 
 **Q: How much does it cost to mint?**
 ```
-Minting is FREE—you only pay gas fees on 0G Network.
+Minting is FREE—you only pay gas fees on Avalanche.
 Each mint gives you a unique warrior with AI-generated traits.
 ```
 
@@ -659,10 +659,10 @@ playing the game.
 
 **Q: What blockchain is this on?**
 ```
-Warriors AI Arena runs on 0G Network, leveraging:
-- 0G Compute for AI processing
-- 0G Storage for encrypted metadata
-- 0G's EVM compatibility for smart contracts
+Warriors AI Arena runs on Avalanche, leveraging:
+- AI compute for processing
+- Decentralized storage for encrypted metadata
+- Avalanche's EVM compatibility for smart contracts
 ```
 
 **Q: How can I verify battle results?**
@@ -674,7 +674,7 @@ All AI decisions are cryptographically signed.
 
 **Q: Is the AI centralized?**
 ```
-AI computation runs on 0G's decentralized compute network.
+AI computation runs on a decentralized compute network.
 The AI model itself is deterministic—given the same inputs,
 it produces the same outputs, ensuring verifiability.
 ```
@@ -712,7 +712,7 @@ Join 10,000+ Warriors
 
 "Finally an NFT game where skill actually matters" — @user1
 "The AI battles are insane to watch" — @user2
-"Best gaming experience on 0G" — @user3
+"Best gaming experience on Avalanche" — @user3
 
 [Join Discord]  [Follow Twitter]
 ```
@@ -722,7 +722,7 @@ Join 10,000+ Warriors
 The Future of Gaming is AI-Powered
 
 Warriors AI Arena
-Built on 0G Network
+Built on Avalanche
 
 [Enter the Arena →]
 ```
@@ -761,7 +761,7 @@ LEGAL
 ```
 © 2024 Warriors AI Arena. All rights reserved.
 
-Built with ⚔️ on 0G Network
+Built with ⚔️ on Avalanche
 
 [Discord] [Twitter] [GitHub]
 ```
@@ -772,17 +772,17 @@ Built with ⚔️ on 0G Network
 
 ### Page Title
 ```
-Warriors AI Arena | AI-Powered NFT Battle Game on 0G
+Warriors AI Arena | AI-Powered NFT Battle Game on Avalanche
 ```
 
 ### Meta Description
 ```
-The first AI-powered battle game on 0G Network. Mint unique warrior NFTs with AI personalities, watch them battle autonomously, and earn rewards in fully verifiable on-chain combat.
+The first AI-powered battle game on Avalanche. Mint unique warrior NFTs with AI personalities, watch them battle autonomously, and earn rewards in fully verifiable on-chain combat.
 ```
 
 ### Keywords
 ```
-AI NFT game, 0G Network, blockchain gaming, NFT battles,
+AI NFT game, Avalanche, blockchain gaming, NFT battles,
 AI warriors, Web3 gaming, play to earn, dynamic NFTs,
 on-chain gaming, crypto gaming
 ```
@@ -800,7 +800,7 @@ og:url: https://warriorsai.arena
 twitter:card: summary_large_image
 twitter:site: @WarriorsAIArena
 twitter:title: Warriors AI Arena
-twitter:description: The first AI-powered battle game on 0G Network
+twitter:description: The first AI-powered battle game on Avalanche
 twitter:image: [Card image]
 ```
 
@@ -810,7 +810,7 @@ twitter:image: [Card image]
   "@context": "https://schema.org",
   "@type": "VideoGame",
   "name": "Warriors AI Arena",
-  "description": "AI-powered NFT battle game on 0G Network",
+  "description": "AI-powered NFT battle game on Avalanche",
   "genre": ["Strategy", "Battle", "NFT"],
   "gamePlatform": ["Web Browser"],
   "applicationCategory": "Game",

@@ -273,7 +273,7 @@ export function hexToEncryptedData(hex: string): EncryptedData {
 
 /**
  * Re-encryption proof from TEE oracle
- * Must be obtained from the 0G TEE oracle service
+ * Must be obtained from the oracle service
  */
 export interface ReEncryptionProof {
   proof: Uint8Array;
@@ -284,7 +284,7 @@ export interface ReEncryptionProof {
 
 /**
  * Request re-encryption proof from the TEE oracle
- * This calls the actual 0G oracle service
+ * Re-encryption is not currently supported without a dedicated oracle service
  */
 export async function requestReEncryptionProof(
   tokenId: bigint,
@@ -292,34 +292,7 @@ export async function requestReEncryptionProof(
   newOwner: `0x${string}`,
   encryptedMetadataRef: string
 ): Promise<ReEncryptionProof> {
-  const response = await fetch('/api/0g/reencrypt', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tokenId: tokenId.toString(),
-      currentOwner,
-      newOwner,
-      encryptedMetadataRef
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to get re-encryption proof from oracle');
-  }
-
-  const result = await response.json();
-
-  if (!result.proof || !result.sealedKey) {
-    throw new Error('Invalid response from oracle: missing proof or sealed key');
-  }
-
-  return {
-    proof: new Uint8Array(Buffer.from(result.proof, 'hex')),
-    sealedKey: new Uint8Array(Buffer.from(result.sealedKey, 'hex')),
-    newMetadataHash: result.newMetadataHash,
-    oracleSignature: result.oracleSignature
-  };
+  throw new Error('Re-encryption is not currently supported. Oracle service not available.');
 }
 
 // ============================================================================

@@ -2,7 +2,7 @@
  * AI Agent Trading Service
  * Executes trades on prediction markets using AI inference
  *
- * Simplified for Avalanche-only architecture (0G removed)
+ * Simplified for Avalanche-only architecture
  * Predictions are generated locally and executed on-chain
  */
 
@@ -49,7 +49,7 @@ export interface AgentTradingConfig {
   maxTradeAmount: bigint;
   minConfidence: number;
   autoExecute: boolean;
-  onlyVerified: boolean;  // CRITICAL: Only trade with verified 0G predictions
+  onlyVerified: boolean;  // CRITICAL: Only trade with verified predictions
 }
 
 // ============================================================================
@@ -60,7 +60,7 @@ class AIAgentTradingService {
   private readonly minConfidenceThreshold = 60; // Minimum confidence to trade
 
   /**
-   * Generate AI prediction for a market using 0G Compute
+   * Generate AI prediction for a market
    * CRITICAL: Returns verification status - unverified predictions should NOT be traded
    */
   async generatePrediction(
@@ -110,7 +110,7 @@ class AIAgentTradingService {
       // Build battle data from market (handles warrior ID 0 gracefully)
       const battleData = await this.buildBattleData(market);
 
-      // Generate prediction locally (0G removed)
+      // Generate prediction locally
       const parsed = this.generateLocalPrediction(market, battleData, agent);
 
       return {
@@ -119,7 +119,7 @@ class AIAgentTradingService {
         isYes: parsed.outcome === 'yes',
         confidence: parsed.confidence,
         reasoning: parsed.reasoning,
-        isVerified: false, // No external verification without 0G
+        isVerified: false, // No external verification available
         chatId: `local_${Date.now()}`,
         proof: {
           inputHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -137,7 +137,7 @@ class AIAgentTradingService {
 
   /**
    * Validate a prediction before execution
-   * Simplified validation without 0G verification requirement
+   * Simplified validation without external verification requirement
    */
   validatePrediction(prediction: TradingPrediction): {
     valid: boolean;
@@ -262,12 +262,12 @@ class AIAgentTradingService {
   }
 
   /**
-   * Store prediction for audit trail (no-op with 0G removed)
+   * Store prediction for audit trail (local only)
    */
   async storePrediction(prediction: TradingPrediction): Promise<string | null> {
-    // Without 0G storage, predictions are not stored externally
+    // Predictions are stored locally only
     // They can be logged locally or stored in a database if needed
-    console.log('[Trading] Prediction stored locally (0G storage removed)', {
+    console.log('[Trading] Prediction stored locally', {
       marketId: prediction.marketId.toString(),
       agentId: prediction.agentId.toString(),
       isYes: prediction.isYes,
@@ -277,7 +277,7 @@ class AIAgentTradingService {
   }
 
   /**
-   * Generate prediction locally (0G compute removed)
+   * Generate prediction locally
    */
   private generateLocalPrediction(
     market: Market,

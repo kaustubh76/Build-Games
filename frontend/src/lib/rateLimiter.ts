@@ -212,7 +212,7 @@ export const kalshiCircuit = new CircuitBreaker('kalshi', {
   halfOpenRequests: 3,
 });
 
-export const zeroGCircuit = new CircuitBreaker('0g', {
+export const storageCircuit = new CircuitBreaker('storage', {
   failureThreshold: 3,
   resetTimeout: 60000,
   halfOpenRequests: 2,

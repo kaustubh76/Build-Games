@@ -56,8 +56,8 @@ function setCachedMetadata(key: string, value: NFTMetadata): void {
   metadataCache.set(key, value);
 }
 
-// 0G Storage service configuration - use environment variable
-const ZG_STORAGE_API_URL = getStorageApiUrl();
+// Storage service configuration - use environment variable
+const STORAGE_API_URL = getStorageApiUrl();
 
 // Chunked processing configuration
 const CHUNK_SIZE = 3; // Process 3 NFTs in parallel
@@ -69,19 +69,17 @@ const clearMetadataCache = () => {
   logger.debug('Metadata cache cleared');
 };
 
-// Helper function to convert IPFS URI or 0G root hash to proper image URL
+// Helper function to convert IPFS URI or storage root hash to proper image URL
 const convertIpfsToProxyUrl = (imageUrl: string) => {
-  // Handle 0G storage URIs (0g://0x...)
-  if (imageUrl.startsWith('0g://')) {
-    // Extract the root hash from the 0G URI
-    const rootHash = imageUrl.replace('0g://', '').split(':')[0];
-    return `${ZG_STORAGE_API_URL}/download/${rootHash}`;
+  // Handle storage URIs (storage://0x... or legacy 0g://0x...)
+  if (imageUrl.startsWith('storage://') || imageUrl.startsWith('0g://')) {
+    const rootHash = imageUrl.replace('storage://', '').replace('0g://', '').split(':')[0];
+    return `${STORAGE_API_URL}/download/${rootHash}`;
   }
 
-  // Handle 0G storage root hashes (direct 0x format)
+  // Handle storage root hashes (direct 0x format)
   if (imageUrl.startsWith('0x')) {
-    // Convert 0G root hash to download URL
-    return `${ZG_STORAGE_API_URL}/download/${imageUrl}`;
+    return `${STORAGE_API_URL}/download/${imageUrl}`;
   }
   
   // Handle IPFS URLs
@@ -100,18 +98,18 @@ const convertIpfsToProxyUrl = (imageUrl: string) => {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * Fetch metadata from 0G Storage using root hash
- * @param rootHash - The 0G storage root hash
+ * Fetch metadata from Storage using root hash
+ * @param rootHash - The storage root hash
  * @param tokenId - Optional token ID for logging
  * @param externalSignal - Optional AbortSignal to cancel the fetch
  */
-const fetchMetadataFrom0G = async (
+const fetchMetadataFromStorage = async (
   rootHash: string,
   tokenId?: string,
   externalSignal?: AbortSignal
 ): Promise<NFTMetadata | null> => {
   try {
-    logger.debug(`🔗 Token ${tokenId || 'unknown'}: Fetching metadata from 0G Storage`);
+    logger.debug(`🔗 Token ${tokenId || 'unknown'}: Fetching metadata from Storage`);
     logger.debug(`🔑 Root Hash: ${rootHash}`);
 
     const controller = new AbortController();
@@ -128,7 +126,7 @@ const fetchMetadataFrom0G = async (
     externalSignal?.addEventListener('abort', abortHandler);
 
     try {
-      const response = await fetch(`${ZG_STORAGE_API_URL}/download/${rootHash}`, {
+      const response = await fetch(`${STORAGE_API_URL}/download/${rootHash}`, {
         signal: controller.signal,
         headers: {
           'Accept': 'application/json',
@@ -138,11 +136,11 @@ const fetchMetadataFrom0G = async (
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`0G Storage API returned ${response.status}: ${response.statusText}`);
+        throw new Error(`Storage API returned ${response.status}: ${response.statusText}`);
       }
 
       const metadata = await response.json();
-      logger.debug(`✅ Token ${tokenId || 'unknown'}: Successfully fetched metadata from 0G Storage`);
+      logger.debug(`✅ Token ${tokenId || 'unknown'}: Successfully fetched metadata from Storage`);
 
       return metadata;
     } finally {
@@ -152,9 +150,9 @@ const fetchMetadataFrom0G = async (
   } catch (error) {
     // Don't log abort errors as errors, they're expected
     if (error instanceof Error && error.name === 'AbortError') {
-      logger.debug(`⏹️ Token ${tokenId || 'unknown'}: 0G Storage fetch aborted`);
+      logger.debug(`⏹️ Token ${tokenId || 'unknown'}: Storage fetch aborted`);
     } else {
-      logger.error(`❌ Token ${tokenId || 'unknown'}: 0G Storage fetch failed:`, error instanceof Error ? error.message : 'Unknown error');
+      logger.error(`❌ Token ${tokenId || 'unknown'}: Storage fetch failed:`, error instanceof Error ? error.message : 'Unknown error');
     }
     return null;
   }
@@ -183,7 +181,7 @@ const fetchMetadataFromIPFS = async (
 
   const cid = tokenURI.replace('ipfs://', '');
 
-  // Use multiple gateways with different characteristics (using 0G Storage)
+  // Use multiple gateways with different characteristics
   const gateways = [
     { url: 'https://ipfs.io/ipfs/', name: 'ipfs.io', timeout: 10000 },
     { url: 'https://dweb.link/ipfs/', name: 'dweb.link', timeout: 12000 },
@@ -264,8 +262,8 @@ const fetchMetadataFromIPFS = async (
 };
 
 /**
- * Unified metadata fetching function that handles both 0G Storage and IPFS
- * @param tokenURI - The token URI (0G hash or IPFS URI)
+ * Unified metadata fetching function that handles both Storage and IPFS
+ * @param tokenURI - The token URI (storage hash or IPFS URI)
  * @param tokenId - Optional token ID for logging
  * @param signal - Optional AbortSignal to cancel the fetch
  */
@@ -291,10 +289,10 @@ const fetchMetadata = async (
 
   let metadata: NFTMetadata | null = null;
 
-  // Check if tokenURI is a 0G root hash (starts with 0x)
+  // Check if tokenURI is a storage root hash (starts with 0x)
   if (tokenURI.startsWith('0x')) {
-    logger.debug(`🔗 Token ${tokenId || 'unknown'}: Detected 0G root hash format`);
-    metadata = await fetchMetadataFrom0G(tokenURI, tokenId, signal);
+    logger.debug(`Token ${tokenId || 'unknown'}: Detected storage root hash format`);
+    metadata = await fetchMetadataFromStorage(tokenURI, tokenId, signal);
   }
   // Check if tokenURI is an IPFS CID
   else if (tokenURI.startsWith('ipfs://') || tokenURI.includes('/ipfs/')) {
@@ -303,8 +301,8 @@ const fetchMetadata = async (
   }
   // Try both methods if format is unclear
   else {
-    logger.debug(`🔗 Token ${tokenId || 'unknown'}: Unclear format, trying 0G first then IPFS`);
-    metadata = await fetchMetadataFrom0G(tokenURI, tokenId, signal);
+    logger.debug(`Token ${tokenId || 'unknown'}: Unclear format, trying storage first then IPFS`);
+    metadata = await fetchMetadataFromStorage(tokenURI, tokenId, signal);
     if (!metadata && !signal?.aborted) {
       metadata = await fetchMetadataFromIPFS(tokenURI, tokenId, signal);
     }
@@ -474,7 +472,7 @@ export const useUserNFTs = (isActive: boolean = false, chainId: number = getChai
       const ranking = rankingResult?.success ? rankingResult.result : 0;
       const winnings = winningsResult?.success ? winningsResult.result : '0';
 
-      // Use encrypted URI (where the actual 0G storage root hash is stored)
+      // Use encrypted URI (where the actual storage root hash is stored)
       const tokenURI = encryptedURI as string | null;
 
       // Log the responses for debugging
@@ -494,7 +492,7 @@ export const useUserNFTs = (isActive: boolean = false, chainId: number = getChai
         logger.error(`Failed to get winnings for ${tokenId}:`, winningsResult.error);
       }
 
-      // Fetch metadata from 0G Storage or IPFS if we have a tokenURI
+      // Fetch metadata from Storage or IPFS if we have a tokenURI
       let metadata: NFTMetadata | null = null;
       if (tokenURI) {
         logger.debug(`🔍 Fetching metadata for token ${tokenId} from:`, tokenURI);

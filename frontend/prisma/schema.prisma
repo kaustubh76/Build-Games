@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -874,4 +874,34 @@ model MatchedMarketPair {
   @@unique([polymarketId, kalshiId])
   @@index([hasArbitrage])
   @@index([similarity])
+}
+
+// ============================================
+// ARENA GAME STATE (Serverless battle automation)
+// Replaces arena-backend in-memory state for Vercel deployment
+// ============================================
+
+model ArenaGameState {
+  id                String   @id // battleId (contract address)
+  gameState         String   @default("idle") // 'idle' | 'playing' | 'finished' | 'stopped'
+  phase             String   @default("startGame") // 'startGame' | 'battle'
+  timeRemaining     Int      @default(70)
+  totalTime         Int      @default(70)
+  lastUpdate        DateTime @default(now())
+  currentRound      Int      @default(0)
+  totalRounds       Int      @default(5)
+  warriors1Id       Int?
+  warriors2Id       Int?
+  automationEnabled Boolean  @default(true)
+  type              String   @default("command-based")
+
+  // Command queue (replaces in-memory commandQueue Map)
+  pendingAction     String?  // 'startGame' | 'nextRound' | null
+  pendingActionAt   DateTime?
+  pendingRound      Int?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([gameState])
 }

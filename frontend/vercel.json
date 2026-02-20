@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "devCommand": "npm run dev:next",
+  "devCommand": "npm run dev",
   "outputDirectory": ".next",
   "regions": ["iad1"],
   "functions": {

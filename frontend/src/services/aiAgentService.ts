@@ -48,7 +48,7 @@ class AIAgentService {
   private chainId: number = getChainId(); // Avalanche Fuji Testnet
 
   constructor() {
-    const contracts = chainsToContracts[this.chainId];
+    const contracts = chainsToContracts[this.chainId] || chainsToContracts[43113];
     this.aiAgentRegistryAddress = contracts.aiAgentRegistry as Address;
     this.crownTokenAddress = contracts.crownToken as Address;
   }

@@ -33,7 +33,7 @@ export function AIDebatePanel({
         </h3>
         {debate?.isVerified && (
           <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-sm text-green-400">
-            ✓ 0G Verified
+            ✓ AI Verified
           </span>
         )}
       </div>

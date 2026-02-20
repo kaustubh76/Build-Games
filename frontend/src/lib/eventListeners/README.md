@@ -22,7 +22,7 @@ Complete event tracking implementation for ExternalMarketMirror contract on Aval
 | `MirrorResolved` | Market resolved with outcome | Marks market/trades as resolved |
 | `AgentTradeExecuted` | AI agent executed trade | Creates agent trade record |
 | `VRFCopyTradeExecuted` | VRF copy trade completed | Updates pending copy trade status |
-| `PredictionStored` | 0G verified prediction stored | Stores prediction metadata |
+| `PredictionStored` | Verified prediction stored | Stores prediction metadata |
 | `OracleUpdated` | Oracle address changed | Logs to audit table, sends alert |
 | `AgentContractUpdated` | Agent contract changed | Logs to audit table |
 | `MirrorMarketRequested` | Market creation requested (VRF) | Informational logging |

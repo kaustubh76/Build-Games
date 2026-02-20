@@ -22,7 +22,7 @@ export interface WarriorsUploadResult {
 }
 
 export class IPFSService {
-  // Upload Warriors NFT data to 0G Storage
+  // Upload Warriors NFT data to Storage
   async uploadWarriorsNFT(formData: WarriorsFormData): Promise<WarriorsUploadResult> {
     // Validate file before upload
     const validation = IPFSService.validateImageFile(formData.image);
@@ -79,8 +79,8 @@ export class IPFSService {
       };
 
     } catch (error) {
-      console.error('❌ Error uploading Warriors NFT to 0G Storage:', error);
-      throw new Error(`0G Storage upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error uploading Warriors NFT to Storage:', error);
+      throw new Error(`Storage upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -103,9 +103,9 @@ export class IPFSService {
     };
   }
 
-  // Helper method to get 0G Storage URL from root hash
-  static get0GStorageUrl(rootHash: string): string {
-    return `0g://${rootHash}`;
+  // Helper method to get storage URL from root hash
+  static getStorageUrl(rootHash: string): string {
+    return `storage://${rootHash}`;
   }
 
   // Helper method to validate image file

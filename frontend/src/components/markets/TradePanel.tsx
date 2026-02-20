@@ -427,7 +427,7 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
                   <span className="text-sm font-medium text-white">Prediction</span>
                   {prediction.isVerified ? (
                     <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full flex items-center gap-1">
-                      ✓ 0G Verified
+                      ✓ AI Verified
                     </span>
                   ) : (
                     <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full">

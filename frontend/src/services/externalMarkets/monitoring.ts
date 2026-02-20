@@ -20,7 +20,7 @@ import {
 // TYPES
 // ============================================
 
-export type ExternalService = 'polymarket' | 'kalshi' | '0g' | 'opinion';
+export type ExternalService = 'polymarket' | 'kalshi' | 'storage' | 'opinion';
 
 export interface MetricEvent {
   service: ExternalService;

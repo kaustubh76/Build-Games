@@ -10,7 +10,7 @@ export interface WarriorsTraits {
   luck: number;
 }
 
-// Metadata structure from 0G Storage or IPFS
+// Metadata structure from Storage or IPFS
 export interface WarriorsMetadata {
   name: string;
   description: string;
@@ -44,8 +44,8 @@ export interface WarriorsDetails {
 // Cache for metadata to avoid repeated calls
 const metadataCache = new Map<string, WarriorsMetadata>();
 
-// 0G Storage service configuration - use environment variable
-const ZG_STORAGE_API_URL = process.env.NEXT_PUBLIC_STORAGE_API_URL || 'http://localhost:3001';
+// Storage service configuration - use environment variable
+const STORAGE_API_URL = process.env.NEXT_PUBLIC_STORAGE_API_URL || 'http://localhost:3001';
 
 // Legacy IPFS gateways (fallback only)
 const IPFS_GATEWAYS = [
@@ -56,36 +56,36 @@ const IPFS_GATEWAYS = [
 ];
 
 /**
- * Fetch metadata from 0G Storage using root hash
+ * Fetch metadata from Storage using root hash
  */
-const fetchMetadataFrom0G = async (rootHash: string, tokenId: number): Promise<WarriorsMetadata | null> => {
+const fetchMetadataFromStorage = async (rootHash: string, tokenId: number): Promise<WarriorsMetadata | null> => {
   try {
-    console.log(`🔗 Warriors ${tokenId}: Fetching metadata from 0G Storage`);
-    console.log(`🔑 Root Hash: ${rootHash}`);
-    
+    console.log(`Warriors ${tokenId}: Fetching metadata from Storage`);
+    console.log(`Root Hash: ${rootHash}`);
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-    
-    const response = await fetch(`${ZG_STORAGE_API_URL}/download/${rootHash}`, {
+
+    const response = await fetch(`${STORAGE_API_URL}/download/${rootHash}`, {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
       }
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
-      throw new Error(`0G Storage API returned ${response.status}: ${response.statusText}`);
+      throw new Error(`Storage API returned ${response.status}: ${response.statusText}`);
     }
-    
+
     const metadata = await response.json() as WarriorsMetadata;
-    console.log(`✅ Warriors ${tokenId}: Successfully fetched metadata from 0G Storage`);
-    
+    console.log(`Warriors ${tokenId}: Successfully fetched metadata from Storage`);
+
     return metadata;
-    
+
   } catch (error) {
-    console.error(`❌ Warriors ${tokenId}: 0G Storage fetch failed:`, error instanceof Error ? error.message : 'Unknown error');
+    console.error(`Warriors ${tokenId}: Storage fetch failed:`, error instanceof Error ? error.message : 'Unknown error');
     return null;
   }
 };
@@ -151,7 +151,7 @@ const fetchMetadataFromIPFS = async (tokenURI: string, tokenId: number): Promise
 };
 
 /**
- * Unified metadata fetching function that handles both 0G Storage and IPFS
+ * Unified metadata fetching function that handles both Storage and IPFS
  */
 const fetchMetadata = async (tokenURI: string, tokenId: number): Promise<WarriorsMetadata> => {
   // Check cache first
@@ -162,10 +162,10 @@ const fetchMetadata = async (tokenURI: string, tokenId: number): Promise<Warrior
 
   let metadata: WarriorsMetadata | null = null;
 
-  // Check if tokenURI is a 0G root hash (starts with 0x)
+  // Check if tokenURI is a storage root hash (starts with 0x)
   if (tokenURI.startsWith('0x')) {
-    console.log(`🔗 Warriors ${tokenId}: Detected 0G root hash format`);
-    metadata = await fetchMetadataFrom0G(tokenURI, tokenId);
+    console.log(`Warriors ${tokenId}: Detected storage root hash format`);
+    metadata = await fetchMetadataFromStorage(tokenURI, tokenId);
   } 
   // Check if tokenURI is an IPFS CID
   else if (tokenURI.startsWith('ipfs://') || tokenURI.includes('/ipfs/')) {
@@ -174,8 +174,8 @@ const fetchMetadata = async (tokenURI: string, tokenId: number): Promise<Warrior
   }
   // Try both methods if format is unclear
   else {
-    console.log(`🔗 Warriors ${tokenId}: Unclear format, trying 0G first then IPFS`);
-    metadata = await fetchMetadataFrom0G(tokenURI, tokenId);
+    console.log(`Warriors ${tokenId}: Unclear format, trying storage first then IPFS`);
+    metadata = await fetchMetadataFromStorage(tokenURI, tokenId);
     if (!metadata) {
       metadata = await fetchMetadataFromIPFS(tokenURI, tokenId);
     }
@@ -208,7 +208,7 @@ const fetchMetadata = async (tokenURI: string, tokenId: number): Promise<Warrior
 };
 
 /**
- * Process image URI from metadata and convert 0G storage URIs to proper URLs
+ * Process image URI from metadata and convert storage URIs to proper URLs
  */
 export const processImageURI = (imageURI: string): string => {
   // If it's already a regular URL (http/https) or relative path, return as-is
@@ -216,11 +216,10 @@ export const processImageURI = (imageURI: string): string => {
     return imageURI;
   }
   
-  // If it's a 0G storage URI, convert it to the proper API endpoint
-  if (imageURI.startsWith('0g://')) {
-    // Extract the root hash from the 0G URI
-    const rootHash = imageURI.replace('0g://', '').split(':')[0];
-    return `${ZG_STORAGE_API_URL}/download/${rootHash}`;
+  // If it's a storage URI, convert it to the proper API endpoint
+  if (imageURI.startsWith('storage://') || imageURI.startsWith('0g://')) {
+    const rootHash = imageURI.replace('storage://', '').replace('0g://', '').split(':')[0];
+    return `${STORAGE_API_URL}/download/${rootHash}`;
   }
   
   // If it's an IPFS URI, use the first IPFS gateway
@@ -229,9 +228,9 @@ export const processImageURI = (imageURI: string): string => {
     return `${IPFS_GATEWAYS[0]}${ipfsHash}`;
   }
   
-  // If format is unclear, assume it's a root hash and try 0G storage
+  // If format is unclear, assume it's a root hash and try storage
   if (imageURI.startsWith('0x')) {
-    return `${ZG_STORAGE_API_URL}/download/${imageURI}`;
+    return `${STORAGE_API_URL}/download/${imageURI}`;
   }
   
   // Fallback to the original URI
@@ -252,7 +251,7 @@ const rankingToString = (rankValue: number): 'unranked' | 'bronze' | 'silver' | 
 
 export const warriorsNFTService = {
   /**
-   * Fetch complete Warriors details including metadata from 0G Storage or IPFS
+   * Fetch complete Warriors details including metadata from Storage or IPFS
    */
   async getWarriorsDetails(tokenId: number): Promise<WarriorsDetails> {
     try {
@@ -295,13 +294,13 @@ export const warriorsNFTService = {
         })
       ]);
 
-      // Use encrypted URI (where the actual 0G storage root hash is stored)
+      // Use encrypted URI (where the actual storage root hash is stored)
       const tokenURI = encryptedURI as string;
 
       console.log(`🔍 Warriors ${tokenId}: Encrypted URI: "${encryptedURI}"`);
       console.log(`🎯 Warriors ${tokenId}: Using URI: "${tokenURI}"`);
 
-      // Fetch metadata from 0G Storage or IPFS
+      // Fetch metadata from Storage or IPFS
       const metadata = await fetchMetadata(tokenURI, tokenId);
       
       // Use traits from contract instead of metadata, divide by 100 for display

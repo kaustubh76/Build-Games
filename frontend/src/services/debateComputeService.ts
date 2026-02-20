@@ -1,10 +1,10 @@
 /**
  * Debate Compute Service
  * Handles AI reasoning generation for debates
- * Simplified for Avalanche-only architecture (0G Compute removed)
+ * Simplified for Avalanche-only architecture
  */
 
-// Local type definitions (previously from types/zeroG)
+// Local type definitions
 export interface WarriorTraits {
   strength: number;
   wit: number;
@@ -114,7 +114,7 @@ class DebateComputeService {
   /**
    * Generate AI prediction for a debate
    * Called during PREDICTION phase
-   * Simplified implementation without 0G - uses local computation
+   * Simplified implementation - uses local computation
    */
   async generatePrediction(
     debateId: bigint,
@@ -200,7 +200,7 @@ class DebateComputeService {
   /**
    * Generate evidence-backed reasoning for a prediction
    * Called during EVIDENCE phase
-   * Simplified implementation without 0G
+   * Simplified implementation
    */
   async generateEvidence(
     debateId: bigint,
@@ -243,7 +243,7 @@ class DebateComputeService {
   /**
    * Generate rebuttal against another agent's prediction
    * Called during REBUTTAL phase
-   * Simplified implementation without 0G
+   * Simplified implementation
    */
   async generateRebuttal(
     debateId: bigint,
@@ -281,14 +281,14 @@ class DebateComputeService {
 
   /**
    * Verify reasoning proof
-   * With 0G removed, always returns false (no verified proofs)
+   * Always returns false (no verified proofs available)
    */
   async verifyReasoningProof(
     chatId: string,
     proof: InferenceProof
   ): Promise<boolean> {
-    // Without 0G, we cannot verify proofs
-    console.warn('Proof verification unavailable: 0G compute removed');
+    // Proof verification unavailable
+    console.warn('Proof verification not available');
     return false;
   }
 
@@ -338,9 +338,9 @@ class DebateComputeService {
   }
 
   /**
-   * Check if compute is enabled (always false with 0G removed)
+   * Check if external compute is enabled
    */
-  is0GEnabled(): boolean {
+  isExternalComputeEnabled(): boolean {
     return false;
   }
 }

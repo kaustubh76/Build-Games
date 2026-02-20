@@ -142,7 +142,7 @@ class AIDebateService {
           confidence: finalPrediction.confidence,
           keyFactors: JSON.stringify(keyFactors),
           sources: JSON.stringify(allSources),
-          // Verification not available (0G compute removed)
+          // Verification not available
           isVerified: false,
         },
       });
@@ -217,7 +217,7 @@ class AIDebateService {
     research: ResearchResult,
     previousRounds: DebateRound[]
   ): Promise<DebateAgentResponse> {
-    // In production, this would call OpenAI/Claude/0G Compute
+    // In production, this would call OpenAI/Claude
     // For now, generate a simulated response
 
     const roleConfig = {

@@ -7,7 +7,7 @@ This document describes the private keys used in the WarriorsAI-rena project, th
 ## Private Keys in Use
 
 ### 1. PRIVATE_KEY
-**Purpose**: General execution key for Avalanche operations and 0G storage
+**Purpose**: General execution key for Avalanche operations and storage
 **Used In**:
 - `/app/api/agents/external-trade/route.ts` - External trading
 - `/app/api/agents/execute-trade/route.ts` - Agent trade execution
@@ -81,7 +81,7 @@ Instead of multiple separate keys, consider using HD wallet derivation:
 ```typescript
 // Example HD derivation paths
 const DERIVATION_PATHS = {
-  storage: "m/44'/60'/0'/0/0",      // 0G storage operations
+  storage: "m/44'/60'/0'/0/0",      // Storage operations
   gameMaster: "m/44'/60'/0'/0/1",   // Game master signing
   oracle: "m/44'/60'/0'/0/2",       // Oracle resolution
   aiAgent: "m/44'/60'/0'/0/3",      // AI agent operations

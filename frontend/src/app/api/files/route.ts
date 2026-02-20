@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       life_history: life_history || "History unknown",
       personality: adjectives ? adjectives.split(', ').map(trait => trait.trim()) : ["Brave", "Skilled"],
       knowledge_areas: knowledge_areas ? knowledge_areas.split(', ').map(area => area.trim()) : ["Combat", "Strategy"],
-      image: `0g://${imageRootHash}`, // Using 0G storage reference
+      image: `storage://${imageRootHash}`, // Using storage reference
       image_root_hash: imageRootHash, // Store the root hash for direct access
       image_transaction_hash: imageTransactionHash
     };
@@ -111,8 +111,8 @@ export async function POST(request: NextRequest) {
       // Legacy compatibility fields (using root hashes as CIDs)
       imageCid: imageRootHash,
       metadataCid: metadataRootHash,
-      imageUrl: `0g://${imageRootHash}`,
-      metadataUrl: `0g://${metadataRootHash}`
+      imageUrl: `storage://${imageRootHash}`,
+      metadataUrl: `storage://${metadataRootHash}`
     }, { status: 200 });
     
   } catch (error) {

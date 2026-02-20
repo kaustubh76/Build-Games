@@ -31,7 +31,7 @@ interface BattleDataSyncState {
 
 /**
  * Hook to track battle data when battles finish
- * Simplified for Avalanche-only architecture (0G Storage removed)
+ * Simplified for Avalanche-only architecture
  */
 export function useBattleDataSync({
   arenaAddress,
@@ -50,7 +50,7 @@ export function useBattleDataSync({
   });
 
   /**
-   * Store battle data to 0G Storage
+   * Store battle data
    */
   const storeBattleData = useCallback(async (
     battleId: string,
@@ -100,10 +100,10 @@ export function useBattleDataSync({
         totalRounds: 5
       };
 
-      // Store locally (0G storage removed)
+      // Store locally
       // In production, this could be stored in a database or local storage
       console.log('[BattleSync] Battle data tracked:', battleId);
-      const rootHash = null; // No external storage without 0G
+      const rootHash = null; // No external storage available
 
       setState(prev => ({
         ...prev,
@@ -249,7 +249,7 @@ export function useBattleHistorySync(arenaAddress?: Address, chainId: number = g
         if (warrior1Id && warrior2Id) {
           const battleId = `battle_${warrior1Id}_${warrior2Id}_${log.blockNumber}`;
 
-          // Log battle data locally (0G storage removed)
+          // Log battle data locally
           console.log('[BattleHistorySync] Battle tracked:', {
             battleId,
             warrior1Id: warrior1Id.toString(),

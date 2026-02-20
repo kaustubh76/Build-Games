@@ -1,6 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getApiBaseUrl } from '../../constants';
+import OpenAI from 'openai';
 import { logger } from '../../lib/logger';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export default async function handler(
   req: NextApiRequest,
@@ -19,12 +23,12 @@ export default async function handler(
 
     logger.debug('Generating warrior attributes');
 
-    // Call the 0G AI inference API
-    const inferenceResponse = await fetch(`${getApiBaseUrl()}/api/0g/inference`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: `You are a creative game character designer for a blockchain warrior battle game. Create a unique warrior character based on this description: ${prompt}
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'user',
+          content: `You are a creative game character designer for a blockchain warrior battle game. Create a unique warrior character based on this description: ${prompt}
 
 Generate a COMPLETE warrior profile as JSON with this EXACT format:
 {
@@ -42,42 +46,24 @@ IMPORTANT:
 - Make the character unique and interesting
 
 Respond with valid JSON only, no explanation.`,
-        // Let 0G use the provider's available model
-        maxTokens: 600,
-        temperature: 0.8
-      })
+        },
+      ],
+      max_tokens: 600,
+      temperature: 0.8,
     });
 
-    if (!inferenceResponse.ok) {
-      const errorText = await inferenceResponse.text();
-      logger.error('0G inference failed:', errorText);
-      throw new Error(`0G inference failed: ${inferenceResponse.statusText}`);
+    const attributesJson = completion.choices[0]?.message?.content;
+
+    if (!attributesJson) {
+      throw new Error('AI returned empty response');
     }
-
-    const inferenceResult = await inferenceResponse.json();
-
-    // Check if inference is verified (real 0G, not fallback)
-    if (inferenceResult.fallbackMode === true || inferenceResult.isVerified === false) {
-      logger.warn('0G inference returned unverified result - blocking for testnet');
-      return res.status(503).json({
-        success: false,
-        error: '0G Compute services unavailable. Cannot generate verified character.',
-        fallbackMode: true,
-        isVerified: false,
-        message: 'Character generation requires verified 0G inference. Please try again later.'
-      });
-    }
-
-    const attributesJson = inferenceResult.content || inferenceResult.response;
 
     logger.debug('Generated warrior attributes');
 
     // Parse and validate attributes
     let attributes;
     try {
-      attributes = typeof attributesJson === 'string'
-        ? JSON.parse(attributesJson)
-        : attributesJson;
+      attributes = JSON.parse(attributesJson);
     } catch (parseError) {
       logger.error('Failed to parse AI response:', attributesJson);
       throw new Error('AI returned invalid JSON format');

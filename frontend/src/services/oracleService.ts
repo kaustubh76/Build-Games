@@ -1,13 +1,13 @@
 /**
  * Oracle Service
  * Handles AI-powered battle resolution and verification
- * Simplified for Avalanche-only architecture (0G compute removed)
+ * Simplified for Avalanche-only architecture
  */
 
 import { encodePacked, keccak256, type Address } from 'viem';
 import { logger } from '../lib/logger';
 
-// Local type definitions (previously from types/zeroG.ts)
+// Local type definitions
 export interface WarriorTraits {
   strength: number;
   wit: number;
@@ -77,7 +77,7 @@ class OracleService {
 
   /**
    * Initialize local simulation providers
-   * With 0G removed, we use local deterministic resolution
+   * Uses local deterministic resolution
    */
   private initializeLocalProviders(): void {
     this.aiProviders = [
@@ -110,7 +110,7 @@ class OracleService {
   }
 
   /**
-   * Load AI providers (no-op with 0G removed, uses local providers)
+   * Load AI providers (uses local providers)
    */
   async loadProviders(): Promise<void> {
     if (!this.providersLoaded) {
@@ -120,7 +120,7 @@ class OracleService {
 
   /**
    * Request battle resolution from oracle
-   * Uses local deterministic resolution with 0G removed
+   * Uses local deterministic resolution
    */
   async requestResolution(battleResult: BattleResult): Promise<ResolutionProof> {
     logger.info('Requesting resolution for battle:', battleResult.battleId.toString());
@@ -282,7 +282,7 @@ class OracleService {
 
   /**
    * Get battle prediction
-   * Uses local calculation with 0G removed
+   * Uses local calculation
    */
   async predictBattleOutcome(
     warrior1Id: bigint,

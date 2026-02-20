@@ -1,9 +1,6 @@
 // Frontend service to sync with command-based arena automation
 import { useState, useEffect, useCallback } from 'react';
 
-// Arena Backend URL - configured via environment variable
-const ARENA_BACKEND_URL = process.env.NEXT_PUBLIC_ARENA_BACKEND_URL || 'http://localhost:3002';
-
 interface ArenaGameState {
   battleId: string | null;
   gameState: 'idle' | 'playing' | 'finished';
@@ -29,7 +26,7 @@ export const useArenaSync = (battleId: string | null) => {
     if (!battleId) return;
 
     try {
-      const response = await fetch(`${ARENA_BACKEND_URL}/api/arena/status?battleId=${battleId}`);
+      const response = await fetch(`/api/arena/status?battleId=${battleId}`);
       if (response.ok) {
         const data = await response.json();
         // Handle both existing gameState and null gameState gracefully
@@ -61,7 +58,7 @@ export const useArenaSync = (battleId: string | null) => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${ARENA_BACKEND_URL}/api/arena/commands?battleId=${battleId}`, {
+      const response = await fetch(`/api/arena/commands?battleId=${battleId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,7 +116,7 @@ export const useArenaSync = (battleId: string | null) => {
     if (!battleId) return;
 
     try {
-      await fetch(`${ARENA_BACKEND_URL}/api/arena/commands?battleId=${battleId}`, {
+      await fetch(`/api/arena/commands?battleId=${battleId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

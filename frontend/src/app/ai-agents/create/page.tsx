@@ -15,11 +15,11 @@ export default function CreateAgentPage() {
   const router = useRouter();
   const { isConnected, address } = useAccount();
   const { balance, balanceFormatted } = useAgentTokenBalance(); // CRwN (for trading)
-  const { balance: zeroGBalance, balanceFormatted: zeroGBalanceFormatted, loading: zeroGBalanceLoading } = useCRwNBalance(); // CRwN (for iNFT staking)
+  const { balance: crwnBalance, balanceFormatted: crwnBalanceFormatted, loading: crwnBalanceLoading } = useCRwNBalance(); // CRwN (for iNFT staking)
   const { requirementsFormatted } = useMinStakeRequirements();
   const { mint: mintINFT, isMinting, error: mintError } = useMintINFT();
   const { mintCRwN, isMinting: isMintingCRwN, error: mintCRwNError } = useMintCRwN();
-  const { refetch: refetchZeroGBalance } = useCRwNBalance();
+  const { refetch: refetchCrwnBalance } = useCRwNBalance();
 
   // Registry contract addresses
   const chainId = getChainId();
@@ -151,7 +151,7 @@ export default function CreateAgentPage() {
       alert(`CRwN mint transaction submitted!\n\nTx: ${hash}\n\nPlease wait for confirmation, then your balance will update.`);
       // Refetch balance after a short delay
       setTimeout(() => {
-        refetchZeroGBalance();
+        refetchCrwnBalance();
       }, 5000);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error';
@@ -162,19 +162,19 @@ export default function CreateAgentPage() {
   // Check if user has enough CRwN for staking
   // Don't show error while balance is still loading
   const stakeAmountWei = BigInt(Math.floor(parseFloat(formData.stakeAmount || '0') * 1e18));
-  const hasEnoughBalance = zeroGBalance >= stakeAmountWei;
-  const insufficientBalanceError = formData.mintAsINFT && !zeroGBalanceLoading && !hasEnoughBalance && parseFloat(formData.stakeAmount) > 0;
+  const hasEnoughBalance = crwnBalance >= stakeAmountWei;
+  const insufficientBalanceError = formData.mintAsINFT && !crwnBalanceLoading && !hasEnoughBalance && parseFloat(formData.stakeAmount) > 0;
 
   const handleCreate = async () => {
     if (formData.mintAsINFT) {
       // Wait for balance to load before validating
-      if (zeroGBalanceLoading) {
+      if (crwnBalanceLoading) {
         alert('Please wait for balance to load...');
         return;
       }
       // Validate CRwN balance before attempting mint
       if (!hasEnoughBalance) {
-        alert(`Insufficient CRwN!\n\nYou have: ${zeroGBalanceFormatted} CRwN\nRequired: ${formData.stakeAmount} CRwN\n\nPlease get more CRwN tokens.`);
+        alert(`Insufficient CRwN!\n\nYou have: ${crwnBalanceFormatted} CRwN\nRequired: ${formData.stakeAmount} CRwN\n\nPlease get more CRwN tokens.`);
         return;
       }
 
@@ -626,7 +626,7 @@ export default function CreateAgentPage() {
                   <div className="mt-2 space-y-2">
                     <div className="flex items-center justify-between">
                       <p className={`text-xs ${insufficientBalanceError ? 'text-red-400' : 'text-gray-500'}`}>
-                        Token Balance: {zeroGBalanceLoading ? 'Loading...' : `${zeroGBalanceFormatted} CRwN`} {insufficientBalanceError && '(Insufficient!)'}
+                        Token Balance: {crwnBalanceLoading ? 'Loading...' : `${crwnBalanceFormatted} CRwN`} {insufficientBalanceError && '(Insufficient!)'}
                       </p>
                       <button
                         type="button"

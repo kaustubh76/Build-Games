@@ -1,7 +1,7 @@
 /**
  * Chain Service
  * Simplified for Avalanche-only architecture
- * Previously handled cross-chain coordination between 0G and Flow
+ * Previously handled cross-chain coordination
  * Now only manages Avalanche chain interactions
  */
 

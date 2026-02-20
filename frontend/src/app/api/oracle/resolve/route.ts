@@ -230,10 +230,10 @@ async function submitToContract(
   };
 
   // Oracle contract address - falls back to deployed MockOracle on Avalanche Fuji
-  const oracleAddress = (process.env.ZERO_G_ORACLE_ADDRESS || getContracts().mockOracle) as Address;
+  const oracleAddress = (process.env.ORACLE_ADDRESS || getContracts().mockOracle) as Address;
 
   if (!oracleAddress || oracleAddress === '0x0000000000000000000000000000000000000000') {
-    throw new Error('Oracle address not configured. Set ZERO_G_ORACLE_ADDRESS or ensure mockOracle is deployed.');
+    throw new Error('Oracle address not configured. Set ORACLE_ADDRESS or ensure mockOracle is deployed.');
   }
 
   // Convert signatures to bytes

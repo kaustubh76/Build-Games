@@ -1,6 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getApiBaseUrl } from '../../constants';
+import OpenAI from 'openai';
 import { logger } from '../../lib/logger';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export default async function handler(
   req: NextApiRequest,
@@ -19,12 +23,12 @@ export default async function handler(
 
     logger.debug('Generating warrior traits and moves');
 
-    // Call the 0G AI inference API
-    const inferenceResponse = await fetch(`${getApiBaseUrl()}/api/0g/inference`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: `You are a game character designer for a blockchain warrior battle game. Based on these personality attributes, generate warrior traits and special moves.
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'user',
+          content: `You are a game character designer for a blockchain warrior battle game. Based on these personality attributes, generate warrior traits and special moves.
 
 Personality: ${JSON.stringify(personalityAttributes)}
 
@@ -49,42 +53,24 @@ IMPORTANT:
 - Base traits on personality (e.g., aggressive = high Strength, clever = high Wit)
 
 Respond with valid JSON only, no explanation.`,
-        // Let 0G use the provider's available model
-        maxTokens: 400,
-        temperature: 0.7
-      })
+        },
+      ],
+      max_tokens: 400,
+      temperature: 0.7,
     });
 
-    if (!inferenceResponse.ok) {
-      const errorText = await inferenceResponse.text();
-      logger.error('0G inference failed:', errorText);
-      throw new Error(`0G inference failed: ${inferenceResponse.statusText}`);
+    const traitsMovesJson = completion.choices[0]?.message?.content;
+
+    if (!traitsMovesJson) {
+      throw new Error('AI returned empty response');
     }
-
-    const inferenceResult = await inferenceResponse.json();
-
-    // Check if inference is verified (real 0G, not fallback)
-    if (inferenceResult.fallbackMode === true || inferenceResult.isVerified === false) {
-      logger.warn('0G inference returned unverified result - blocking for testnet');
-      return res.status(503).json({
-        success: false,
-        error: '0G Compute services unavailable. Cannot generate verified traits.',
-        fallbackMode: true,
-        isVerified: false,
-        message: 'Warrior trait generation requires verified 0G inference. Please try again later.'
-      });
-    }
-
-    const traitsMovesJson = inferenceResult.content || inferenceResult.response;
 
     logger.debug('Generated warrior traits and moves');
 
-    // Parse the response - it should already be in the correct format
+    // Parse the response
     let traitsAndMoves;
     try {
-      traitsAndMoves = typeof traitsMovesJson === 'string'
-        ? JSON.parse(traitsMovesJson)
-        : traitsMovesJson;
+      traitsAndMoves = JSON.parse(traitsMovesJson);
     } catch (parseError) {
       logger.error('Failed to parse AI response:', traitsMovesJson);
       throw new Error('AI returned invalid JSON format');

@@ -2,7 +2,7 @@
  * AI Agent Trading Hook
  * Provides verified AI trading capabilities for prediction markets
  *
- * CRITICAL: All trades are validated against 0G verification before execution
+ * CRITICAL: All trades are validated before execution
  */
 
 import { useState, useCallback } from 'react';
@@ -90,7 +90,7 @@ export function useAIAgentTrading(agentId: bigint | null) {
         validation
       }));
 
-      // Store prediction on 0G for audit trail
+      // Store prediction for audit trail
       if (prediction.isVerified) {
         await aiAgentTradingService.storePrediction(prediction);
       }
@@ -132,14 +132,14 @@ export function useAIAgentTrading(agentId: bigint | null) {
     if (!prediction.isVerified) {
       return {
         success: false,
-        error: 'Cannot execute trade: Prediction is not verified by 0G Compute'
+        error: 'Cannot execute trade: Prediction is not verified'
       };
     }
 
     if (prediction.fallbackMode) {
       return {
         success: false,
-        error: 'Cannot execute trade: Prediction is in fallback mode (not from real 0G provider)'
+        error: 'Cannot execute trade: Prediction is in fallback mode'
       };
     }
 
@@ -232,7 +232,7 @@ export function useAIAgentTrading(agentId: bigint | null) {
 // ============================================================================
 
 /**
- * Enhanced copy trade hook that requires 0G verification
+ * Enhanced copy trade hook that requires verification
  */
 export function useVerifiedCopyTrade(agentId: bigint | null) {
   const { address } = useAccount();
@@ -246,7 +246,7 @@ export function useVerifiedCopyTrade(agentId: bigint | null) {
 
   /**
    * Execute copy trade with verification
-   * CRITICAL: Requires verified 0G prediction
+   * CRITICAL: Requires verified prediction
    */
   const executeCopyTrade = useCallback(async (
     marketId: bigint,
@@ -264,7 +264,7 @@ export function useVerifiedCopyTrade(agentId: bigint | null) {
     }
 
     if (!prediction.isVerified) {
-      setError('Cannot copy trade: AI prediction is not verified by 0G Compute');
+      setError('Cannot copy trade: AI prediction is not verified');
       return false;
     }
 

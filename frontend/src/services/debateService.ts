@@ -50,7 +50,7 @@ class DebateService {
   private chainId: number = getChainId();
 
   constructor() {
-    const contracts = chainsToContracts[this.chainId];
+    const contracts = chainsToContracts[this.chainId] || chainsToContracts[43113];
     this.debateOracleAddress = contracts.aiDebateOracle as Address;
     this.crownTokenAddress = contracts.crownToken as Address;
   }

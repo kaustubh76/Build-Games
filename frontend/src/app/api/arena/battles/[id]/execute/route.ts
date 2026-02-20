@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 /**
  * Store completed battle to Storage
  */
-async function storeBattleTo0G(
+async function storeBattleData(
   battle: any,
   rounds: any[],
   w1Traits: WarriorTraits,
@@ -219,7 +219,7 @@ export async function POST(
       // Store battle record to Storage
       let storageResult = null;
       try {
-        storageResult = await storeBattleTo0G(
+        storageResult = await storeBattleData(
           updatedBattle,
           updatedBattle.rounds,
           w1Traits,
@@ -328,7 +328,7 @@ export async function POST(
 
       // Store battle record to Storage
       try {
-        storageResult = await storeBattleTo0G(
+        storageResult = await storeBattleData(
           updatedBattle,
           updatedBattle.rounds,
           w1Traits,

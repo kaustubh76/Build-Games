@@ -293,7 +293,7 @@ export function useMintINFT(): UseMintINFTResult {
               } else {
                 console.log('Successfully uploaded to IPFS:', result.rootHash);
               }
-              return `0g://${result.rootHash}`;
+              return `storage://${result.rootHash}`;
             } catch (error) {
               const errorMsg = error instanceof Error ? error.message : 'Unknown error';
               console.warn('IPFS upload failed, using local hash fallback:', errorMsg);
@@ -582,8 +582,8 @@ export function useDecryptedMetadata(
         // 2. Fetch encrypted data from IPFS via internal API
         let encryptedBytes: Uint8Array;
 
-        if (metadataRef.startsWith('0g://')) {
-          const rootHash = metadataRef.replace('0g://', '');
+        if (metadataRef.startsWith('storage://') || metadataRef.startsWith('0g://')) {
+          const rootHash = metadataRef.replace('storage://', '').replace('0g://', '');
           console.log('Fetching encrypted metadata from IPFS:', rootHash);
 
           // Use internal API route for downloading
@@ -655,7 +655,7 @@ const CRWN_TOKEN_ABI = [
 ] as const;
 
 // Avalanche CRwN Token address
-const ZEROG_CRWN_ADDRESS = '0xC13f60749ECfCDE5f79689dd2E5A361E9210f153' as const;
+const CRWN_ADDRESS = '0xC13f60749ECfCDE5f79689dd2E5A361E9210f153' as const;
 
 interface UseMintCRwNResult {
   mintCRwN: (amount: string) => Promise<string>;
@@ -703,7 +703,7 @@ export function useMintCRwN(): UseMintCRwNResult {
 
         // Call mint function with native Avalanche tokens as value
         const hash = await walletClient.writeContract({
-          address: ZEROG_CRWN_ADDRESS,
+          address: CRWN_ADDRESS,
           abi: CRWN_TOKEN_ABI,
           functionName: 'mint',
           args: [amountWei],

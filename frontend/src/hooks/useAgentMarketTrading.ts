@@ -3,8 +3,8 @@
  * Enables AI agents to trade on prediction markets
  *
  * Features:
- * - Agent selection (iNFT agents from 0G chain)
- * - Prediction generation via 0G Compute
+ * - Agent selection (iNFT agents)
+ * - Prediction generation via AI Compute
  * - Verification status tracking
  * - Auto-execute mode toggle
  */
@@ -116,7 +116,7 @@ export function useAgentMarketTrading(marketId: bigint): UseAgentMarketTradingRe
     try {
       console.log(`[AgentTrading] Generating prediction for agent #${selectedAgent.id} on market #${marketId}`);
 
-      // Generate prediction via 0G Compute
+      // Generate prediction via AI Compute
       const pred = await aiAgentTradingService.generatePrediction(
         marketId,
         selectedAgent.id
@@ -144,10 +144,10 @@ export function useAgentMarketTrading(marketId: bigint): UseAgentMarketTradingRe
       setPrediction(pred);
       setPredictionResult(result);
 
-      // Store prediction on 0G for audit trail
+      // Store prediction for audit trail
       if (pred.isVerified) {
         aiAgentTradingService.storePrediction(pred).catch(err => {
-          console.warn('Failed to store prediction on 0G:', err);
+          console.warn('Failed to store prediction:', err);
         });
       }
 

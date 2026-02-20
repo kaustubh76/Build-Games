@@ -1,6 +1,6 @@
 /**
  * Arena Storage Service
- * Handles storing and retrieving prediction battle records via 0G Storage
+ * Handles storing and retrieving prediction battle records via Storage
  */
 
 import {
@@ -91,7 +91,7 @@ export interface StorageResponse {
 // ============================================
 
 /**
- * Store a completed battle record to 0G Storage
+ * Store a completed battle record to Storage
  */
 export async function storeBattleRecord(
   battle: PredictionBattle,
@@ -167,10 +167,10 @@ export async function storeBattleRecord(
       stakes: battle.stakes,
       betting: bettingData,
 
-      dataHash: '', // Will be set by 0G Storage
+      dataHash: '', // Will be set by Storage
     };
 
-    // Store via 0G API
+    // Store via storage API
     const response = await fetch('/api/arena/storage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -195,7 +195,7 @@ export async function storeBattleRecord(
 }
 
 /**
- * Retrieve a battle record from 0G Storage
+ * Retrieve a battle record from Storage
  */
 export async function retrieveBattleRecord(
   rootHash: string

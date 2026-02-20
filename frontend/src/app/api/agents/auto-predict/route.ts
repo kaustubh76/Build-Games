@@ -176,15 +176,16 @@ export async function POST(request: NextRequest) {
     // Fetch agent metadata from storage
     let agentMetadata: AgentMetadata | null = null;
     try {
-      // The metadata ref format is "0g://0x..." - extract the hash
-      const metadataHash = encryptedMetadataRef.replace('0g://', '');
+      // The metadata ref format is "storage://0x..." - extract the hash
+      const metadataHash = encryptedMetadataRef.replace('storage://', '').replace('0g://', '');
 
       // Try to fetch from Storage API
-      const storageResponse = await fetch(`${getApiBaseUrl()}/api/0g/query?hash=${metadataHash}`);
+      const storageApiUrl = process.env.NEXT_PUBLIC_STORAGE_API_URL || 'http://localhost:3001';
+      const storageResponse = await fetch(`${storageApiUrl}/download?hash=${metadataHash}`);
       if (storageResponse.ok) {
         const storageData = await storageResponse.json();
-        if (storageData.success && storageData.data) {
-          agentMetadata = storageData.data;
+        if (storageData) {
+          agentMetadata = storageData;
         }
       }
     } catch (err) {
@@ -231,38 +232,29 @@ export async function POST(request: NextRequest) {
       Number(agentData.tier)
     );
 
-    console.log(`🧠 [Auto-Predict] Sending to AI Compute...`);
+    console.log(`[Auto-Predict] Sending to AI Compute...`);
 
-    // Call AI Compute for prediction
-    const inferenceResponse = await fetch(
-      `${getApiBaseUrl()}/api/0g/inference`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          maxTokens: 500,
-          temperature: 0.3, // Lower temperature for more consistent predictions
-          battleData: {
-            marketId,
-            question: market.question,
-            yesPrice: ethers.formatEther(prices.yesPrice),
-            noPrice: ethers.formatEther(prices.noPrice),
-            warrior1Id: Number(market.warrior1Id),
-            warrior2Id: Number(market.warrior2Id)
-          }
-        })
-      }
-    );
+    // Call OpenAI for prediction
+    const { default: OpenAI } = await import('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const inferenceData = await inferenceResponse.json();
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 500,
+      temperature: 0.3,
+    });
 
-    if (!inferenceData.success) {
+    const aiResponse = completion.choices[0]?.message?.content;
+
+    if (!aiResponse) {
       return NextResponse.json({
         success: false,
-        error: `AI Compute failed: ${inferenceData.error}`
+        error: 'AI Compute returned empty response'
       }, { status: 503 });
     }
+
+    const inferenceData = { success: true, response: aiResponse };
 
     // Parse prediction from AI response
     const prediction = parsePredictionResponse(inferenceData.response, agentMetadata);

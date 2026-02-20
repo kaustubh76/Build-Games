@@ -77,14 +77,6 @@ export const getStorageApiUrl = (): string => {
 };
 
 /**
- * Get Arena Backend URL from environment
- * Used for battle automation and game master operations
- */
-export const getArenaBackendUrl = (): string => {
-  return process.env.NEXT_PUBLIC_ARENA_BACKEND_URL || 'http://localhost:3002';
-};
-
-/**
  * Get the base API URL for internal API calls
  */
 export const getApiBaseUrl = (): string => {
@@ -164,7 +156,7 @@ export const chainsToContracts: ContractsConfig = {
         outcomeToken: "0x578F5D284F1Ac91115293cC36eD2DF487550C1da",
         aiAgentRegistry: "0x5e0Df8750114ecBC0850494fb1a2b9001b61254e",
         microMarketFactory: "0xd81373eEd88FacE56c21CFA4787c80C325e0bC6E",
-        aiDebateOracle: "0x7C8484a8082b9E922b594D0Be2f82b4425B65E05",
+        aiDebateOracle: "0x17f63e80bd0db1ed77f6dcf54d2bb7ae3fb43f7d",
         creatorRevenueShare: "0x05Ca49f32B482e0Dce58e39A22F31e5f56A43Ee7",
         predictionMarketAMM: "0xeBe1DB030bBFC5bCdD38593C69e4899887D2e487",
         externalMarketMirror: "0x1cfa9eD162f90B1eD6d9A01c504fFc28B7412473",

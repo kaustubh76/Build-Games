@@ -175,13 +175,13 @@ class ExternalMarketAgentService {
   }
 
   /**
-   * Get verified AI prediction for an external market
+   * Get AI prediction for an external market
    */
   async getVerifiedPrediction(
     agentId: bigint,
     market: UnifiedMarket
   ): Promise<VerifiedMarketPrediction> {
-    const response = await fetch('/api/0g/market-inference', {
+    const response = await fetch('/api/agents/auto-predict', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -18,7 +18,7 @@ import { useWarriorsMinterMessages } from '../../hooks/useWarriorsMinterMessages
 import { usePromoteWarrior, getRankLabel, WarriorRank } from '../../hooks/usePromoteWarrior';
 
 // Storage service URL - configured via environment variable
-const ZG_STORAGE_API_URL = getStorageApiUrl();
+const STORAGE_API_URL = getStorageApiUrl();
 
 interface WarriorsTraits {
   strength: number;
@@ -661,15 +661,15 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
         return '/lazered.png';
       }
       
-      // Handle storage URLs with 0g:// prefix
-      if (url.startsWith('0g://')) {
-        const rootHash = url.replace('0g://', '');
-        return `${ZG_STORAGE_API_URL}/download/${rootHash}`;
+      // Handle storage URLs with storage:// or legacy 0g:// prefix
+      if (url.startsWith('storage://') || url.startsWith('0g://')) {
+        const rootHash = url.replace('storage://', '').replace('0g://', '');
+        return `${STORAGE_API_URL}/download/${rootHash}`;
       }
 
       // Handle storage root hashes (direct root hash)
       if (url.startsWith('0x')) {
-        return `${ZG_STORAGE_API_URL}/download/${url}`;
+        return `${STORAGE_API_URL}/download/${url}`;
       }
       
       // Return as-is for HTTP URLs or local paths
@@ -684,9 +684,9 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
         return false; // Use Next.js Image for local fallback
       }
       
-      // Always use regular img for storage URLs with 0g:// prefix
-      if (urlToCheck.startsWith('0g://')) {
-        console.log(`🖼️ shouldUseRegularImg: storage URL detected (${urlToCheck}), using regular img`);
+      // Always use regular img for storage URLs
+      if (urlToCheck.startsWith('storage://') || urlToCheck.startsWith('0g://')) {
+        console.log(`shouldUseRegularImg: storage URL detected (${urlToCheck}), using regular img`);
         return true;
       }
       
@@ -697,7 +697,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
       }
       
       // Use regular img for storage URLs (check if URL contains the storage API)
-      if (urlToCheck.includes(ZG_STORAGE_API_URL.replace('http://', '').replace('https://', ''))) {
+      if (urlToCheck.includes(STORAGE_API_URL.replace('http://', '').replace('https://', ''))) {
         console.log(`🖼️ shouldUseRegularImg: Storage URL detected (${urlToCheck}), using regular img`);
         return true;
       }
@@ -739,7 +739,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
     const handleError = useCallback(() => {
       if (!hasError) {
         // For storage URLs, fall back directly to placeholder
-        if (src.startsWith('0x') || imageSrc.includes(ZG_STORAGE_API_URL.replace('http://', '').replace('https://', ''))) {
+        if (src.startsWith('0x') || imageSrc.includes(STORAGE_API_URL.replace('http://', '').replace('https://', ''))) {
           console.log(`🖼️ Storage failed for: ${src}, falling back to lazered.png`);
           setImageSrc('/lazered.png');
           setHasError(true);

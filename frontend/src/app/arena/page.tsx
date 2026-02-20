@@ -12,7 +12,7 @@ import { Button } from '../../components/ui/button';
 // import { Badge } from '../../components/ui/badge';
 import { useArenas, type RankCategory, type ArenaWithDetails } from '../../hooks/useArenas';
 import { arenaService, isValidBettingAmount, getClosestValidBettingAmount } from '../../services/arenaService';
-import { ArenaAbi, warriorsNFTAbi, getChainId, getContracts, getArenaBackendUrl } from '../../constants';
+import { ArenaAbi, warriorsNFTAbi, getChainId, getContracts } from '../../constants';
 import { waitForTransactionReceipt, readContract } from '@wagmi/core';
 import rainbowKitConfig from '../../rainbowKitConfig';
 import {
@@ -29,9 +29,6 @@ import { GameTimer } from '../../components/GameTimer';
 import { useArenaSync } from '../../hooks/useArenaSync';
 import { useArenaMessages } from '../../hooks/useArenaMessages';
 import { useBattleDataSync } from '../../hooks/useBattleDataSync';
-
-// Arena Backend URL - configured via environment variable
-const ARENA_BACKEND_URL = getArenaBackendUrl();
 
 // Type for supported chain IDs (Avalanche: 43113 testnet, 43114 mainnet)
 type SupportedChainId = 31337 | 43113 | 43114;
@@ -151,7 +148,7 @@ interface Warriors {
   luck: number;
   owner: string;
   winnings: number;
-  // 0G Storage metadata fields for AI prompts and display
+  // Storage metadata fields for AI prompts and display
   bio?: string;
   life_history?: string;
   adjectives?: string;
@@ -556,16 +553,16 @@ export default function ArenaPage() {
     gameState: selectedArena?.state
   });
 
-  // 0G Storage sync for battle data
+  // Storage sync for battle data
   const { isSyncing: isBattleSyncing, lastSyncedBattleId, errors: battleSyncErrors } = useBattleDataSync({
     arenaAddress: selectedArena?.address as `0x${string}` | undefined,
     chainId: getTypedChainId(),
     autoSync: true,
     onBattleStored: (battleId, rootHash) => {
-      console.log(`🔗 Battle ${battleId} stored to 0G Storage. Root hash: ${rootHash}`);
+      console.log(`🔗 Battle ${battleId} stored to Storage. Root hash: ${rootHash}`);
     },
     onError: (error) => {
-      console.error('❌ Failed to sync battle to 0G:', error);
+      console.error('❌ Failed to sync battle:', error);
     }
   });
 
@@ -1349,7 +1346,7 @@ export default function ArenaPage() {
               // Game was reset due to insufficient bets, notify backend to stop automation
               console.log('⚠️ Game was reset (insufficient bets) - stopping automation');
               
-              const response = await fetch(`${ARENA_BACKEND_URL}/api/arena/commands?battleId=${selectedArena.address}`, {
+              const response = await fetch(`/api/arena/commands?battleId=${selectedArena.address}`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1930,8 +1927,8 @@ export default function ArenaPage() {
 
       console.log('Battle prompt data:', battlePrompt);
 
-      // Call our backend API route for 0G AI move selection
-      console.log('🕐 Starting 0G AI API call at:', new Date().toLocaleTimeString());
+      // Call our backend API route for AI move selection
+      console.log('🕐 Starting AI API call at:', new Date().toLocaleTimeString());
       console.log('Sending request to /api/generate-battle-moves with:', {
         battlePrompt: battlePrompt
       });
@@ -1946,7 +1943,7 @@ export default function ArenaPage() {
         })
       });
 
-      console.log('🕐 0G AI API response received at:', new Date().toLocaleTimeString());
+      console.log('🕐 AI API response received at:', new Date().toLocaleTimeString());
       console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
@@ -1959,7 +1956,7 @@ export default function ArenaPage() {
       console.log('Raw API response:', data);
 
       if (!data.success) {
-        throw new Error(data.error || 'Unknown error from 0G AI move selector');
+        throw new Error(data.error || 'Unknown error from AI move selector');
       }
 
       console.log("AI Move Selector Response:", data.response);      // Parse the AI response to extract moves and execute battle
@@ -2061,7 +2058,7 @@ export default function ArenaPage() {
 
     const pollForCommands = async () => {
       try {
-        const response = await fetch(`${ARENA_BACKEND_URL}/api/arena/commands?battleId=${selectedArena.address}`);
+        const response = await fetch(`/api/arena/commands?battleId=${selectedArena.address}`);
         
         if (response.ok) {
           const data = await response.json();
@@ -2394,19 +2391,19 @@ export default function ArenaPage() {
             >
               THE ULTIMATE BATTLEFIELD WHERE LEGENDS CLASH
             </p>
-            {/* 0G Storage Sync Status */}
+            {/* Storage Sync Status */}
             {(isBattleSyncing || lastSyncedBattleId || battleSyncErrors.length > 0) && (
               <div className="mt-3 flex items-center justify-center gap-2">
                 {isBattleSyncing && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-purple-500/20 text-purple-300 rounded-full">
                     <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></span>
-                    Syncing to 0G...
+                    Syncing...
                   </span>
                 )}
                 {lastSyncedBattleId && !isBattleSyncing && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-500/20 text-green-300 rounded-full">
                     <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                    0G Synced
+                    Synced
                   </span>
                 )}
                 {battleSyncErrors.length > 0 && (
@@ -2781,7 +2778,7 @@ const ArenaModal = ({
                     className="text-xs text-yellow-300 mt-2 max-w-md mx-auto leading-relaxed"
                     style={ { fontFamily: 'Press Start 2P, monospace' } }
                   >
-                    Note: Players should only place bets after the round counter updates. 0G AI's response, blockchain validation, and their synchronization with the timer above can sometimes vary.
+                    Note: Players should only place bets after the round counter updates. AI's response, blockchain validation, and their synchronization with the timer above can sometimes vary.
                   </div>
                   <div
                     className="text-sm text-blue-400 mt-1"
