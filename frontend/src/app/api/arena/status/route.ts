@@ -8,11 +8,11 @@ try {
   // DB not available
 }
 
-// Helper to check if DB is available
+// Helper to check if DB and ArenaGameState table are available
 async function getDb() {
   if (!prisma) return null;
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await prisma.$queryRaw`SELECT 1 FROM "ArenaGameState" LIMIT 0`;
     return prisma;
   } catch {
     return null;
