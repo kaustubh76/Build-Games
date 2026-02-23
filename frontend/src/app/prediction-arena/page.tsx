@@ -93,22 +93,25 @@ export default function PredictionArenaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen">
+      <div className="container-arcade py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent mb-4">
-            Prediction Arena
+          <h1
+            className="text-3xl md:text-4xl text-red-400 mb-4 tracking-wider arcade-glow"
+            style={{ fontFamily: 'Press Start 2P, monospace' }}
+          >
+            PREDICTION ARENA
           </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+          <p className="text-slate-400 text-sm max-w-2xl mx-auto">
             Warriors debate real market topics from Polymarket & Kalshi.
             Traits influence debate performance. Stakes go to the winner.
           </p>
         </div>
 
         {/* How It Works */}
-        <div className="bg-gray-800/30 rounded-2xl border border-gray-700 p-6 mb-8">
-          <h2 className="text-xl font-bold text-white mb-4">How It Works</h2>
+        <div className="arcade-card rounded-2xl border border-slate-700/30 p-6 mb-8" style={{ backdropFilter: 'blur(20px)', borderRadius: '16px' }}>
+          <h2 className="text-sm text-yellow-400 mb-4 tracking-wider" style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.7rem' }}>HOW IT WORKS</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Step number={1} title="Pick a Market" desc="Choose from Polymarket/Kalshi topics" />
             <Step number={2} title="Challenge" desc="Stake CRwN and pick YES or NO side" />
@@ -118,8 +121,8 @@ export default function PredictionArenaPage() {
         </div>
 
         {/* Trait Impact */}
-        <div className="bg-gray-800/30 rounded-2xl border border-gray-700 p-6 mb-8">
-          <h2 className="text-xl font-bold text-white mb-4">Warrior Traits in Debates</h2>
+        <div className="arcade-card rounded-2xl border border-slate-700/30 p-6 mb-8" style={{ backdropFilter: 'blur(20px)', borderRadius: '16px' }}>
+          <h2 className="text-sm text-yellow-400 mb-4 tracking-wider" style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.7rem' }}>WARRIOR TRAITS</h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
             <TraitCard trait="Strength" effect="Argument Quality" emoji="💪" />
             <TraitCard trait="Wit" effect="Rebuttal Power" emoji="🧠" />
@@ -158,7 +161,7 @@ export default function PredictionArenaPage() {
               onClick={() => setActiveTab(tab)}
               className={`px-6 py-2 rounded-lg font-medium transition-all ${
                 activeTab === tab
-                  ? 'bg-purple-600 text-white'
+                  ? 'bg-red-600 text-white'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
               }`}
             >
@@ -173,7 +176,7 @@ export default function PredictionArenaPage() {
           <div className="lg:col-span-2">
             {loading ? (
               <div className="text-center py-12">
-                <div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
+                <div className="animate-spin w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full mx-auto mb-4" />
                 <p className="text-gray-400">Loading prediction battles...</p>
               </div>
             ) : battles.length === 0 ? (
@@ -242,7 +245,7 @@ export default function PredictionArenaPage() {
 function Step({ number, title, desc }: { number: number; title: string; desc: string }) {
   return (
     <div className="text-center">
-      <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold">
+      <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold">
         {number}
       </div>
       <p className="text-white font-medium">{title}</p>
@@ -263,9 +266,9 @@ function TraitCard({ trait, effect, emoji }: { trait: string; effect: string; em
 
 function StatCard({ title, value }: { title: string; value: string }) {
   return (
-    <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-      <p className="text-gray-400 text-sm mb-1">{title}</p>
-      <p className="text-2xl font-bold text-white">{value}</p>
+    <div className="arcade-card rounded-xl p-5 border border-slate-700/30" style={{ backdropFilter: 'blur(20px)', borderRadius: '12px' }}>
+      <p className="text-slate-400 text-xs mb-1" style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.45rem' }}>{title.toUpperCase()}</p>
+      <p className="text-xl font-bold text-yellow-400">{value}</p>
     </div>
   );
 }
@@ -291,7 +294,7 @@ function PredictionBattleCard({
       battle.warrior2Owner.toLowerCase() === currentUser.toLowerCase());
 
   return (
-    <div className="bg-gray-800/50 rounded-2xl border border-gray-700 overflow-hidden hover:border-purple-500/50 transition-all">
+    <div className="arcade-card rounded-2xl border border-slate-700/30 overflow-hidden hover:border-red-500/50 transition-all" style={{ backdropFilter: 'blur(20px)', borderRadius: '16px' }}>
       {/* Header */}
       <div className="p-6 border-b border-gray-700">
         <div className="flex items-start justify-between mb-4">
@@ -304,7 +307,7 @@ function PredictionBattleCard({
                 {battle.source.toUpperCase()}
               </span>
               {battle.status === 'active' && (
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/50">
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/50">
                   Round {battle.currentRound}/5
                 </span>
               )}
@@ -315,7 +318,7 @@ function PredictionBattleCard({
           </div>
           <div className="text-right ml-4">
             <p className="text-sm text-gray-400">Stakes (each)</p>
-            <p className="text-xl font-bold text-purple-400">
+            <p className="text-xl font-bold text-yellow-400">
               {formatEther(BigInt(battle.stakes))} CRwN
             </p>
           </div>
@@ -421,7 +424,7 @@ function PredictionBattleCard({
         {battle.status === 'active' && (
           <Link
             href={`/prediction-arena/battle/${battle.id}`}
-            className="block w-full py-3 bg-purple-600/20 border border-purple-500/50 rounded-xl font-bold text-purple-400 hover:bg-purple-600/30 transition-all text-center"
+            className="block w-full py-3 bg-red-600/20 border border-red-500/50 rounded-xl font-bold text-red-400 hover:bg-red-600/30 transition-all text-center"
           >
             📺 Watch Live Debate
           </Link>
@@ -439,7 +442,7 @@ function PredictionBattleCard({
                 ? `🏆 Warrior #${battle.warrior2Id} (NO) wins!`
                 : '🤝 Draw - Stakes split'}
             </p>
-            <p className="text-purple-400 text-sm mt-1">View Details →</p>
+            <p className="text-red-400 text-sm mt-1">View Details →</p>
           </Link>
         )}
       </div>

@@ -33,64 +33,81 @@ export default function CopyTradingPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Connect Wallet</h1>
-          <p className="text-gray-400 mb-6">Please connect your wallet to manage copy trading.</p>
+      <main className="container-arcade py-12 md:py-20">
+        <div className="text-center animate-fade-in">
+          <div className="text-5xl md:text-6xl mb-6">&#x1F512;</div>
+          <h1
+            className="text-2xl md:text-3xl text-red-400 mb-4 arcade-glow"
+            style={{ fontFamily: 'Press Start 2P, monospace' }}
+          >
+            CONNECT WALLET
+          </h1>
+          <p className="text-slate-400 mb-8 text-sm">
+            Connect your wallet to manage copy trading.
+          </p>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen pt-8 pb-12">
+      <div className="container-arcade">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Copy Trading</h1>
-          <p className="text-gray-400 max-w-2xl mx-auto">
+          <h1
+            className="text-3xl md:text-4xl text-red-400 mb-4 tracking-wider arcade-glow"
+            style={{ fontFamily: 'Press Start 2P, monospace' }}
+          >
+            COPY TRADING
+          </h1>
+          <p className="text-slate-400 max-w-2xl mx-auto text-sm">
             Follow top AI agents and automatically mirror their trades.
-            Manage your copy trading settings and track performance.
           </p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-4xl mx-auto mb-12">
-          <div className="bg-gray-900 rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-white">{agentIds.length}</p>
-            <p className="text-sm text-gray-400">Following</p>
+          <div className="arcade-card p-4 text-center" style={{ border: '2px solid rgba(100, 116, 139, 0.3)', borderRadius: '12px', backdropFilter: 'blur(20px)' }}>
+            <p className="text-2xl font-bold text-yellow-400">{agentIds.length}</p>
+            <p className="text-xs text-slate-400" style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.45rem' }}>FOLLOWING</p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 text-center">
+          <div className="arcade-card p-4 text-center" style={{ border: '2px solid rgba(100, 116, 139, 0.3)', borderRadius: '12px', backdropFilter: 'blur(20px)' }}>
             <p className="text-2xl font-bold text-white">{totalAgentsNumber}</p>
-            <p className="text-sm text-gray-400">Total Agents</p>
+            <p className="text-xs text-slate-400" style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.45rem' }}>TOTAL AGENTS</p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 text-center">
+          <div className="arcade-card p-4 text-center" style={{ border: '2px solid rgba(100, 116, 139, 0.3)', borderRadius: '12px', backdropFilter: 'blur(20px)' }}>
             <p className={`text-2xl font-bold ${getPnLColorClass(totalPnL)}`}>
               {isPnLLoading ? '...' : pnlFormatted}
             </p>
-            <p className="text-sm text-gray-400">Est. PnL</p>
+            <p className="text-xs text-slate-400" style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.45rem' }}>EST. PNL</p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 text-center">
+          <div className="arcade-card p-4 text-center" style={{ border: '2px solid rgba(100, 116, 139, 0.3)', borderRadius: '12px', backdropFilter: 'blur(20px)' }}>
             <p className={`text-2xl font-bold ${getPnLColorClass(realizedPnL)}`}>
               {isPnLLoading ? '...' : realizedPnLFormatted}
             </p>
-            <p className="text-sm text-gray-400">Realized PnL</p>
+            <p className="text-xs text-slate-400" style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.45rem' }}>REALIZED PNL</p>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 text-center">
+          <div className="arcade-card p-4 text-center" style={{ border: '2px solid rgba(100, 116, 139, 0.3)', borderRadius: '12px', backdropFilter: 'blur(20px)' }}>
             <p className="text-2xl font-bold text-white">
               {isPnLLoading ? '...' : `${winRate.toFixed(1)}%`}
             </p>
-            <p className="text-sm text-gray-400">Win Rate</p>
+            <p className="text-xs text-slate-400" style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.45rem' }}>WIN RATE</p>
           </div>
         </div>
 
         {/* Recent Trades from Followed Agents */}
         {pnl && pnl.followedAgents.some(a => a.recentTrades && a.recentTrades.length > 0) && (
           <div className="mb-12">
-            <h2 className="text-xl font-semibold text-white mb-4">Recent Agent Trades</h2>
-            <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
+            <h2
+              className="text-lg text-yellow-400 mb-4 tracking-wider"
+              style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.7rem' }}
+            >
+              RECENT AGENT TRADES
+            </h2>
+            <div className="arcade-card rounded-xl border border-slate-700/30 overflow-hidden" style={{ borderRadius: '16px', backdropFilter: 'blur(20px)' }}>
               <table className="w-full">
-                <thead className="bg-gray-800">
+                <thead className="bg-slate-800/50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Agent</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Market</th>
@@ -145,10 +162,15 @@ export default function CopyTradingPage() {
         {/* Following Agents */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-white">Agents You Follow</h2>
+            <h2
+              className="text-lg text-yellow-400 tracking-wider"
+              style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.7rem' }}
+            >
+              AGENTS YOU FOLLOW
+            </h2>
             <Link
               href="/ai-agents"
-              className="text-purple-400 hover:text-purple-300 text-sm"
+              className="text-red-400 hover:text-red-300 text-sm"
             >
               Browse More Agents
             </Link>
@@ -161,13 +183,15 @@ export default function CopyTradingPage() {
               ))}
             </div>
           ) : followingAgents.length === 0 ? (
-            <div className="text-center py-12 bg-gray-900 rounded-xl">
-              <p className="text-gray-400 mb-4">You are not following any agents yet</p>
+            <div className="text-center py-12 arcade-card rounded-xl" style={{ border: '2px solid rgba(100, 116, 139, 0.3)', borderRadius: '16px', backdropFilter: 'blur(20px)' }}>
+              <div className="text-4xl mb-3">&#x1F916;</div>
+              <p className="text-slate-400 mb-4">You are not following any agents yet</p>
               <Link
                 href="/ai-agents"
-                className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500"
+                className="inline-block px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
+                style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.55rem' }}
               >
-                Discover Agents
+                DISCOVER AGENTS
               </Link>
             </div>
           ) : (
@@ -184,33 +208,46 @@ export default function CopyTradingPage() {
         </div>
 
         {/* How It Works */}
-        <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 rounded-xl p-8">
-          <h3 className="text-xl font-bold text-white mb-6 text-center">How Copy Trading Works</h3>
+        <div
+          className="arcade-card p-8"
+          style={{
+            background: 'radial-gradient(circle at top left, rgba(220, 20, 60, 0.1), rgba(100, 140, 180, 0.08) 50%)',
+            border: '2px solid rgba(100, 116, 139, 0.3)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '16px',
+          }}
+        >
+          <h3
+            className="text-lg text-yellow-400 mb-6 text-center tracking-wider arcade-glow"
+            style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.7rem' }}
+          >
+            HOW IT WORKS
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4 text-2xl">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4 text-2xl border border-red-500/30">
                 1
               </div>
-              <h4 className="text-white font-medium mb-2">Follow an Agent</h4>
-              <p className="text-gray-400 text-sm">
+              <h4 className="text-white font-medium mb-2 text-sm">Follow an Agent</h4>
+              <p className="text-slate-400 text-xs">
                 Browse AI agents and follow the ones that match your strategy
               </p>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4 text-2xl">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4 text-2xl border border-red-500/30">
                 2
               </div>
-              <h4 className="text-white font-medium mb-2">Set Limits</h4>
-              <p className="text-gray-400 text-sm">
+              <h4 className="text-white font-medium mb-2 text-sm">Set Limits</h4>
+              <p className="text-slate-400 text-xs">
                 Configure maximum trade amounts to control your exposure
               </p>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4 text-2xl">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4 text-2xl border border-red-500/30">
                 3
               </div>
-              <h4 className="text-white font-medium mb-2">Auto-Trade</h4>
-              <p className="text-gray-400 text-sm">
+              <h4 className="text-white font-medium mb-2 text-sm">Auto-Trade</h4>
+              <p className="text-slate-400 text-xs">
                 Your wallet automatically mirrors the agent&apos;s trades
               </p>
             </div>

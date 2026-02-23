@@ -97,7 +97,7 @@ export default function MarketsPage() {
         {/* Quick Stats - Grid on mobile, flex on desktop */}
         <div className="grid grid-cols-2 md:flex md:justify-center gap-4 md:gap-8 mt-6 md:mt-8 px-2">
           <div className="stat-card text-center">
-            <p className="stat-card-value text-purple-400">{markets.length}</p>
+            <p className="stat-card-value text-red-400">{markets.length}</p>
             <p className="stat-card-label">Total Markets</p>
           </div>
           <div className="stat-card text-center">
@@ -133,7 +133,7 @@ export default function MarketsPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap touch-target ${
                   activeTab === tab.key
-                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50'
+                    ? 'bg-red-500/20 text-red-300 border border-red-500/50'
                     : 'bg-slate-800/50 text-slate-400 border border-transparent hover:text-white hover:bg-slate-700/50'
                 }`}
               >

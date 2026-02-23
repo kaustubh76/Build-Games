@@ -44,7 +44,12 @@ export default function PortfolioPage() {
       <main className="container-arcade py-12 md:py-20">
         <div className="text-center animate-fade-in">
           <div className="text-5xl md:text-6xl mb-6">🔐</div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-4 arcade-glow">Connect Your Wallet</h1>
+          <h1
+            className="text-2xl md:text-3xl text-red-400 mb-4 arcade-glow"
+            style={{ fontFamily: 'Press Start 2P, monospace' }}
+          >
+            CONNECT WALLET
+          </h1>
           <p className="text-slate-400 mb-8 text-sm md:text-base">
             Connect your wallet to view your portfolio and positions
           </p>
@@ -124,7 +129,12 @@ export default function PortfolioPage() {
     <main className="container-arcade py-6 md:py-8">
       {/* Header */}
       <div className="mb-6 md:mb-8 animate-fade-in">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 arcade-glow">Portfolio</h1>
+        <h1
+          className="text-2xl sm:text-3xl md:text-4xl text-red-400 mb-2 tracking-wider arcade-glow"
+          style={{ fontFamily: 'Press Start 2P, monospace' }}
+        >
+          PORTFOLIO
+        </h1>
         <p className="text-sm md:text-base text-slate-400">
           Track your prediction market positions and performance
         </p>
@@ -139,7 +149,7 @@ export default function PortfolioPage() {
           </p>
           <Link
             href="/warriorsMinter"
-            className="text-purple-400 text-xs md:text-sm hover:text-purple-300 mt-2 inline-flex items-center gap-1"
+            className="text-red-400 text-xs md:text-sm hover:text-red-300 mt-2 inline-flex items-center gap-1"
           >
             Get more CRwN
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,7 +213,7 @@ export default function PortfolioPage() {
             onClick={() => setActiveTab(tab.key as PositionTab)}
             className={`flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap touch-target ${
               activeTab === tab.key
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50'
+                ? 'bg-red-500/20 text-red-300 border border-red-500/50'
                 : 'bg-slate-800/50 text-slate-400 border border-transparent hover:text-white hover:bg-slate-700/50'
             }`}
           >
@@ -268,10 +278,10 @@ export default function PortfolioPage() {
       <div className="mt-8 md:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 animate-fade-in" style={{ animationDelay: '200ms' }}>
         <Link
           href="/markets"
-          className="card hover:border-purple-500/50 transition-colors group"
+          className="card hover:border-red-500/50 transition-colors group"
         >
           <div className="text-2xl md:text-3xl mb-2 md:mb-3">🔮</div>
-          <h3 className="text-sm md:text-lg font-semibold text-white group-hover:text-purple-400 transition-colors">
+          <h3 className="text-sm md:text-lg font-semibold text-white group-hover:text-red-400 transition-colors">
             Trade Markets
           </h3>
           <p className="text-slate-400 text-xs md:text-sm mt-1">
@@ -281,10 +291,10 @@ export default function PortfolioPage() {
 
         <Link
           href="/leaderboard"
-          className="card hover:border-purple-500/50 transition-colors group"
+          className="card hover:border-red-500/50 transition-colors group"
         >
           <div className="text-2xl md:text-3xl mb-2 md:mb-3">🏆</div>
-          <h3 className="text-sm md:text-lg font-semibold text-white group-hover:text-purple-400 transition-colors">
+          <h3 className="text-sm md:text-lg font-semibold text-white group-hover:text-red-400 transition-colors">
             Leaderboard
           </h3>
           <p className="text-slate-400 text-xs md:text-sm mt-1">
@@ -294,10 +304,10 @@ export default function PortfolioPage() {
 
         <Link
           href="/arena"
-          className="card hover:border-purple-500/50 transition-colors group"
+          className="card hover:border-red-500/50 transition-colors group"
         >
           <div className="text-2xl md:text-3xl mb-2 md:mb-3">⚔️</div>
-          <h3 className="text-sm md:text-lg font-semibold text-white group-hover:text-purple-400 transition-colors">
+          <h3 className="text-sm md:text-lg font-semibold text-white group-hover:text-red-400 transition-colors">
             Arena Battles
           </h3>
           <p className="text-slate-400 text-xs md:text-sm mt-1">
@@ -335,7 +345,7 @@ function PositionCard({ market, position, showLiquidity }: PositionCardProps) {
 
   return (
     <Link href={`/markets/${market.id.toString()}`}>
-      <div className={`card p-4 md:p-6 transition-all hover:border-purple-500/50 ${
+      <div className={`card p-4 md:p-6 transition-all hover:border-red-500/50 ${
         isResolved && isWinning
           ? 'border-green-500/50 bg-green-900/10'
           : isResolved && !isWinning

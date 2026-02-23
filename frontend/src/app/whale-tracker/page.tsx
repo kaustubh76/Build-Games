@@ -49,26 +49,29 @@ export default function WhaleTrackerPage() {
   const { topWhales, loading: topWhalesLoading } = useTopWhales(5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen">
+      <div className="container-arcade py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <Link href="/markets" className="text-gray-400 hover:text-white">
+            <Link href="/markets" className="text-slate-400 hover:text-white text-sm">
               ← Back to Markets
             </Link>
           </div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-                <span>🐋</span> Whale Tracker
+              <h1
+                className="text-2xl md:text-3xl text-red-400 mb-2 tracking-wider arcade-glow"
+                style={{ fontFamily: 'Press Start 2P, monospace' }}
+              >
+                WHALE TRACKER
               </h1>
-              <p className="text-gray-400">
+              <p className="text-slate-400 text-sm">
                 Monitor large trades on Polymarket and Kalshi in real-time
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-sm">
+              <span className="text-slate-400 text-sm">
                 {stats?.trackedTraderCount ?? traders.length} traders tracked
               </span>
             </div>
@@ -122,8 +125,8 @@ export default function WhaleTrackerPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`py-3 px-1 border-b-2 font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'border-purple-500 text-purple-400'
-                    : 'border-transparent text-gray-400 hover:text-gray-200'
+                    ? 'border-red-500 text-red-400'
+                    : 'border-transparent text-slate-400 hover:text-white'
                 }`}
               >
                 <span className="mr-2">{tab.icon}</span>
@@ -165,7 +168,7 @@ export default function WhaleTrackerPage() {
 
                 {historyLoading ? (
                   <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500" />
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -198,7 +201,7 @@ export default function WhaleTrackerPage() {
               </h3>
               {hotMarketsLoading ? (
                 <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500" />
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500" />
                 </div>
               ) : hotMarkets.length === 0 ? (
                 <div className="text-center py-4 text-gray-500 text-sm">
@@ -225,7 +228,7 @@ export default function WhaleTrackerPage() {
               </h3>
               {topWhalesLoading ? (
                 <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500" />
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500" />
                 </div>
               ) : topWhales.length === 0 ? (
                 <div className="text-center py-4 text-gray-500 text-sm">
@@ -269,7 +272,7 @@ export default function WhaleTrackerPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400 text-sm">Push Notifications</span>
-                  <button className="w-12 h-6 bg-purple-600 rounded-full relative">
+                  <button className="w-12 h-6 bg-red-600 rounded-full relative">
                     <span className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
                   </button>
                 </div>
@@ -305,7 +308,7 @@ function StatCard({
   loading?: boolean;
 }) {
   return (
-    <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-700">
+    <div className="arcade-card rounded-xl p-4 border border-slate-700/30" style={{ backdropFilter: 'blur(20px)', borderRadius: '12px' }}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-2xl">{icon}</span>
         {change && !loading && (
@@ -371,7 +374,7 @@ function TopWhaleItem({
     <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
       <div className="flex items-center gap-2">
         <span>{rankEmoji}</span>
-        <code className="text-purple-400 text-sm">{address}</code>
+        <code className="text-red-400 text-sm">{address}</code>
       </div>
       <div className="text-right">
         <div className="text-white text-sm font-medium">{volume}</div>

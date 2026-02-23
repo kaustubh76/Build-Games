@@ -88,7 +88,7 @@ export default function AIAgentsPage() {
             <p className="stat-card-label">Active Agents</p>
           </div>
           <div className="stat-card text-center">
-            <p className="stat-card-value text-purple-400">{inftCount}</p>
+            <p className="stat-card-value text-red-400">{inftCount}</p>
             <p className="stat-card-label">iNFT Agents</p>
           </div>
           <div className="stat-card text-center">
@@ -225,7 +225,7 @@ export default function AIAgentsPage() {
               onClick={() => setAgentTypeFilter('inft')}
               className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all touch-target ${
                 agentTypeFilter === 'inft'
-                  ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                  ? 'bg-red-500/30 text-red-300 border border-red-500/50'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -249,7 +249,7 @@ export default function AIAgentsPage() {
             onClick={() => setFilters({ ...filters, onlyCopyTradingEnabled: !filters.onlyCopyTradingEnabled })}
             className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all whitespace-nowrap touch-target ${
               filters.onlyCopyTradingEnabled
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50'
+                ? 'bg-red-500/20 text-red-300 border border-red-500/50'
                 : 'bg-slate-800/50 text-slate-400 border border-transparent hover:text-white hover:bg-slate-700/50'
             }`}
           >
@@ -382,7 +382,7 @@ export default function AIAgentsPage() {
               className="text-center animate-slide-up"
               style={{ animationDelay: `${300 + index * 100}ms` }}
             >
-              <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-2xl md:text-3xl">
+              <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-2xl md:text-3xl">
                 {item.icon}
               </div>
               <h3 className="text-base md:text-lg font-semibold text-white mb-2">{item.title}</h3>
