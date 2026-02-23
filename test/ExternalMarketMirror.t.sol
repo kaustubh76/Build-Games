@@ -145,7 +145,7 @@ contract ExternalMarketMirrorTest is Test {
         assertEq(mirror.MIN_LIQUIDITY(), 0.1 ether);
         assertEq(mirror.PRICE_SYNC_THRESHOLD(), 500);
         assertEq(mirror.PRICE_VARIANCE_BPS(), 200);
-        assertEq(mirror.DEFAULT_MIRROR_FEE(), 100);
+
     }
 
     function testDeploymentRevertsOnZeroCrwnToken() public {
@@ -673,6 +673,6 @@ contract ExternalMarketMirrorTest is Test {
         assertEq(mirror.MIN_LIQUIDITY(), 0.1 ether);
         assertEq(mirror.PRICE_SYNC_THRESHOLD(), 500);
         assertEq(mirror.PRICE_VARIANCE_BPS(), 200);
-        assertEq(mirror.DEFAULT_MIRROR_FEE(), 100);
+
     }
 }

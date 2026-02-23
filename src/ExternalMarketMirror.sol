@@ -89,7 +89,7 @@ contract ExternalMarketMirror is Ownable, ReentrancyGuard, ERC1155Holder {
     uint256 public constant MIN_LIQUIDITY = 0.1 ether;    // Minimum 0.1 CRwN (testnet)
     uint256 public constant PRICE_SYNC_THRESHOLD = 500;   // 5% minimum change
     uint256 public constant PRICE_VARIANCE_BPS = 200;       // ±2% variance
-    uint256 public constant DEFAULT_MIRROR_FEE = 100;      // 1% default fee (in basis points)
+
 
     // ============ State ============
     IERC20 public immutable crwnToken;
@@ -582,6 +582,7 @@ contract ExternalMarketMirror is Ownable, ReentrancyGuard, ERC1155Holder {
 
         ExternalLink storage link = mirrorMarkets[mirrorKey].externalLink;
         if (!link.isActive) revert ExternalMarketMirror__MirrorNotActive();
+        if (newExternalPrice == 0 || newExternalPrice >= 10000) revert ExternalMarketMirror__InvalidPrice();
 
         // Only sync if significant price change (>5%)
         uint256 priceDiff = newExternalPrice > link.lastSyncPrice
