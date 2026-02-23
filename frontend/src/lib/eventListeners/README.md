@@ -373,7 +373,7 @@ import { getPublicClient } from '@/lib/rpcClient';
 
 const client = getPublicClient();
 const code = await client.getBytecode({
-  address: '0x7485019de6Eca5665057bAe08229F9E660ADEfDa',
+  address: '0x3677c9D00EA10900a7f44862cbB0679915054576',
 });
 console.log('Contract deployed:', code && code.length > 2);
 ```

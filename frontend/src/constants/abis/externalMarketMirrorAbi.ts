@@ -1,7 +1,7 @@
 /**
  * Complete ABI for ExternalMarketMirror Contract
  *
- * Contract Address (Avalanche Fuji Testnet): 0x7485019de6Eca5665057bAe08229F9E660ADEfDa
+ * Contract Address (Avalanche Fuji Testnet): 0x3677c9D00EA10900a7f44862cbB0679915054576
  * Chain ID: 43113
  * Deployed: January 2026
  *
