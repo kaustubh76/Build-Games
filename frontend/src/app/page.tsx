@@ -9,6 +9,89 @@ import { chainsToContracts, crownTokenAbi } from '../constants';
 import { useCRwNTokenMessages } from '../hooks/useCRwNTokenMessages';
 import './home-glass.css';
 
+// Quick-links data for the feature grid
+const QUICK_LINKS = [
+  { href: '/markets', icon: '\u{1F4C8}', title: 'MARKETS', description: 'TRADE PREDICTION MARKETS' },
+  { href: '/ai-agents', icon: '\u{1F916}', title: 'AI AGENTS', description: 'DEPLOY AI BATTLE AGENTS' },
+  { href: '/leaderboard', icon: '\u{1F3C6}', title: 'LEADERBOARD', description: 'VIEW TOP WARRIORS' },
+  { href: '/social/copy-trading', icon: '\u{1F465}', title: 'COPY TRADE', description: 'MIRROR TOP STRATEGIES' },
+  { href: '/portfolio', icon: '\u{1F4BC}', title: 'PORTFOLIO', description: 'TRACK YOUR POSITIONS' },
+  { href: '/creator-dashboard', icon: '\u2694\uFE0F', title: 'CREATOR', description: 'BUILD CUSTOM ARENAS' },
+];
+
+// Quick Link Card Component
+const QuickLinkCard = ({
+  href, icon, title, description, isConnected, isMounted, playSound,
+}: {
+  href: string; icon: string; title: string; description: string;
+  isConnected: boolean; isMounted: boolean; playSound: (file: string) => void;
+}) => {
+  const cardStyle = {
+    background: 'radial-gradient(circle at top left, rgba(120, 160, 200, 0.15), rgba(100, 140, 180, 0.1) 50%), linear-gradient(135deg, rgba(120, 160, 200, 0.2) 0%, rgba(100, 140, 180, 0.15) 30%, rgba(120, 160, 200, 0.2) 100%)',
+    border: '3px solid #2d5a27',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1), 0 0 8px rgba(45, 90, 39, 0.2)',
+    borderRadius: '16px',
+    borderImage: 'none',
+  };
+
+  if (isMounted && isConnected) {
+    return (
+      <Link href={href}>
+        <div
+          className="arcade-card p-6 group cursor-pointer hover:scale-105 transition-transform duration-200 home-token-card"
+          style={cardStyle}
+          onClick={() => playSound('/sounds/click.mp3')}
+        >
+          <div className="text-center">
+            <div className="mb-3">
+              <span className="text-3xl filter drop-shadow-lg">{icon}</span>
+            </div>
+            <h3
+              className="text-sm text-yellow-400 mb-2 tracking-wider arcade-glow"
+              style={{ fontFamily: 'Press Start 2P, monospace' }}
+            >
+              {title}
+            </h3>
+            <p
+              className="text-gray-300 text-[10px] leading-relaxed"
+              style={{ fontFamily: 'Press Start 2P, monospace' }}
+            >
+              {description}
+            </p>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      className="arcade-card p-6 cursor-not-allowed opacity-50 home-token-card"
+      style={cardStyle}
+    >
+      <div className="text-center">
+        <div className="mb-3">
+          <span className="text-3xl filter drop-shadow-lg grayscale">{icon}</span>
+        </div>
+        <h3
+          className="text-sm text-yellow-400 mb-2 tracking-wider arcade-glow"
+          style={{ fontFamily: 'Press Start 2P, monospace' }}
+        >
+          {title}
+        </h3>
+        <p
+          className="text-red-400 text-[10px] tracking-wide"
+          style={{ fontFamily: 'Press Start 2P, monospace' }}
+        >
+          WALLET REQUIRED
+        </p>
+      </div>
+    </div>
+  );
+};
+
 // Token Exchange Card Component
 const TokenExchangeCard = ({ 
   title, 
@@ -331,7 +414,7 @@ export default function HomePage() {
                   borderImage: 'none !important',
                   padding: '2rem',
                 }}
-                onClick={() => playSound('/sword_sound.mp3')}
+                onClick={() => playSound('/sounds/click.mp3')}
               >
                 <Image 
                   src="/WarriorsNFT_landing.png" 
@@ -383,7 +466,7 @@ export default function HomePage() {
           )}
           {/* Arena - The Arena */}
           {isMounted && isConnected ? (
-            <a href="/arena">
+            <Link href="/arena">
               <div 
                 className="arcade-card p-8 group cursor-pointer relative overflow-hidden flex flex-col justify-end min-h-[400px] hover:scale-105 transition-transform duration-200"
                 style={{
@@ -396,7 +479,7 @@ export default function HomePage() {
                   borderImage: 'none !important',
                   padding: '2rem',
                 }}
-                onClick={() => playSound('/sword_sound.mp3')}
+                onClick={() => playSound('/sounds/click.mp3')}
               >
                 <Image 
                   src="/Arena_landing.png" 
@@ -411,7 +494,7 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-            </a>
+            </Link>
           ) : (
             <div 
               className="arcade-card p-8 group cursor-not-allowed relative overflow-hidden flex flex-col justify-end min-h-[400px] opacity-50"
@@ -446,6 +529,32 @@ export default function HomePage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Quick Links Grid */}
+        <div className="mt-16 max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <h2
+              className="text-2xl text-red-400 mb-2 tracking-wider arcade-glow"
+              style={{ fontFamily: 'Press Start 2P, monospace' }}
+            >
+              EXPLORE
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {QUICK_LINKS.map((link) => (
+              <QuickLinkCard
+                key={link.href}
+                href={link.href}
+                icon={link.icon}
+                title={link.title}
+                description={link.description}
+                isConnected={isConnected}
+                isMounted={isMounted}
+                playSound={playSound}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Token Exchange Section */}
