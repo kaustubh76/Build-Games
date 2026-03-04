@@ -227,7 +227,7 @@ function getSoundManager(): SoundManager {
       playTradeResult: () => {},
       playStreakCelebration: () => {},
       playLevelUp: () => {},
-    } as SoundManager;
+    } as unknown as SoundManager;
   }
 
   if (!_soundManager) {

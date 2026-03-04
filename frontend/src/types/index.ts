@@ -13,7 +13,44 @@ export * from './microMarket';
 export * from './debate';
 
 // Creator Revenue types
-export * from './creator';
+// Note: getTierLabel and getTierColor are excluded to avoid ambiguity
+// with same-named exports from './agent'. Import directly from
+// '@/types/creator' when needed for creator tiers.
+export {
+  CreatorType,
+  CreatorTier,
+  type Creator,
+  type RevenueEntry,
+  type MarketFees,
+  type CreatorDisplay,
+  type RevenueEntryDisplay,
+  type MarketFeesDisplay,
+  type RevenueBreakdown,
+  type TierRequirements,
+  type CreatorStats,
+  type RevenueTimePoint,
+  type CreatorLeaderboardEntry,
+  type CreatedAsset,
+  type CreatorRegisteredEvent,
+  type FeeRecordedEvent,
+  type FeeDistributedEvent,
+  type RewardsClaimedEvent,
+  type TierUpgradedEvent,
+  type MarketCreatorSetEvent,
+  type WarriorCreatorSetEvent,
+  FEE_RATES,
+  TIER_THRESHOLDS,
+  TIER_MULTIPLIERS,
+  getCreatorTypeLabel,
+  getTierIcon,
+  getNextTier,
+  getTierProgress,
+  calculateCreatorFee,
+  getRevenueSourceLabel,
+  getRevenueSourceColor,
+  formatVolume,
+  getTierBenefits,
+} from './creator';
 
 // Battle data types (simplified from previous types)
 export interface WarriorTraits {

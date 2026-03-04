@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 
 import {ERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import {ReentrancyGuard} from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title CrownToken
@@ -63,7 +64,7 @@ import {ERC20Burnable} from "../lib/openzeppelin-contracts/contracts/token/ERC20
  *         -++-+####+++---..-.........
  *           .....
  */
-contract CrownToken is ERC20Burnable {
+contract CrownToken is ERC20Burnable, ReentrancyGuard {
     error CrownToken__InvalidMintAmount();
     error CrownToken__ValueSentAndMintAmountRequestedMismatch();
     error CrownToken__InvalidBurnAmount();
@@ -99,7 +100,7 @@ contract CrownToken is ERC20Burnable {
      *
      * @param _amount Amount of token to be burned by the user
      */
-    function burn(uint256 _amount) public override {
+    function burn(uint256 _amount) public override nonReentrant {
         if (_amount == 0) {
             revert CrownToken__InvalidBurnAmount();
         }

@@ -8,6 +8,7 @@ import {
   parseEther,
   formatEther,
   type Address,
+  type AbiEvent,
   parseAbiItem,
 } from 'viem';
 import { readContractWithRateLimit, batchReadContractsWithRateLimit, getPublicClient } from '../lib/rpcClient';
@@ -750,7 +751,7 @@ class PredictionMarketService {
         try {
           const logs = await publicClient.getLogs({
             address: this.predictionMarketAddress,
-            event: parseAbiItem(eventSignature),
+            event: parseAbiItem(eventSignature) as AbiEvent,
             args: { marketId },
             fromBlock: fromBlock > 0n ? fromBlock : 0n,
             toBlock: 'latest'
@@ -780,12 +781,13 @@ class PredictionMarketService {
 
       // Process TokensPurchased events
       for (const log of purchaseLogs) {
+        const args = log.args as Record<string, unknown>;
         activities.push({
           type: 'buy',
-          user: log.args.buyer as Address,
-          amount: log.args.collateralAmount as bigint,
-          tokens: log.args.tokensReceived as bigint,
-          isYes: log.args.isYes as boolean,
+          user: args.buyer as Address,
+          amount: args.collateralAmount as bigint,
+          tokens: args.tokensReceived as bigint,
+          isYes: args.isYes as boolean,
           timestamp: Math.floor(Date.now() / 1000) - Number(currentBlock - log.blockNumber) * 2, // Estimate timestamp
           txHash: log.transactionHash,
           blockNumber: log.blockNumber
@@ -794,12 +796,13 @@ class PredictionMarketService {
 
       // Process TokensSold events
       for (const log of sellLogs) {
+        const args = log.args as Record<string, unknown>;
         activities.push({
           type: 'sell',
-          user: log.args.seller as Address,
-          amount: log.args.collateralReceived as bigint,
-          tokens: log.args.tokenAmount as bigint,
-          isYes: log.args.isYes as boolean,
+          user: args.seller as Address,
+          amount: args.collateralReceived as bigint,
+          tokens: args.tokenAmount as bigint,
+          isYes: args.isYes as boolean,
           timestamp: Math.floor(Date.now() / 1000) - Number(currentBlock - log.blockNumber) * 2,
           txHash: log.transactionHash,
           blockNumber: log.blockNumber
@@ -808,11 +811,12 @@ class PredictionMarketService {
 
       // Process LiquidityAdded events
       for (const log of addLiquidityLogs) {
+        const args = log.args as Record<string, unknown>;
         activities.push({
           type: 'add_liquidity',
-          user: log.args.provider as Address,
-          amount: log.args.collateralAmount as bigint,
-          tokens: log.args.lpTokensReceived as bigint,
+          user: args.provider as Address,
+          amount: args.collateralAmount as bigint,
+          tokens: args.lpTokensReceived as bigint,
           timestamp: Math.floor(Date.now() / 1000) - Number(currentBlock - log.blockNumber) * 2,
           txHash: log.transactionHash,
           blockNumber: log.blockNumber

@@ -132,7 +132,7 @@ contract PredictionArenaTest is Test {
         crownToken.approve(address(predArena), 20 ether);
         predArena.createChallenge(1, keccak256("market1"), true, 10 ether, 24 hours);
 
-        vm.expectRevert(PredictionArena.PredictionArena__CannotChallengeself.selector);
+        vm.expectRevert(PredictionArena.PredictionArena__CannotChallengeSelf.selector);
         predArena.acceptChallenge(1, 1);
         vm.stopPrank();
     }

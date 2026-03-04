@@ -17,6 +17,7 @@ export interface WarriorsMetadata {
   image: string;
   bio?: string;
   life_history?: string;
+  personality?: string;
   adjectives?: string;
   knowledge_areas?: string;
   attributes: Array<{

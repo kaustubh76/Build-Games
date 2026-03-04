@@ -1261,72 +1261,32 @@ export default function ArenaPage() {
     });
 
     try {
-      console.log('Starting battle for arena using Game Master private key:', selectedArena.address);
+      console.log('Starting battle for arena via server-side Game Master:', selectedArena.address);
 
-      // Get game master private key from environment
-      const gameStandardPrivateKey = process.env.NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY;
-      if (!gameStandardPrivateKey) {
-        throw new Error('Game master private key not found');
+      // Call the server-side game-master API to start the game
+      // This keeps the private key on the server only
+      const response = await fetch('/api/game-master', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'checkAndStartGames',
+          arenaAddresses: [selectedArena.address]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to start game: ${response.status}`);
       }
 
-      // Ensure private key has 0x prefix for viem
-      const formattedPrivateKey = gameStandardPrivateKey.startsWith('0x') 
-        ? gameStandardPrivateKey 
-        : `0x${gameStandardPrivateKey}`;
+      const result = await response.json();
+      const arenaResult = result.results?.[selectedArena.address];
 
-      // Create Game Master account and wallet client
-      const gameStandardAccount = privateKeyToAccount(formattedPrivateKey as `0x${string}`);
-      
-      const { createWalletClient, http } = await import('viem');
-      const { defineChain } = await import('viem');
-      
-      const avalancheFuji = defineChain({
-        id: getChainId(),
-        name: 'Avalanche Fuji Testnet',
-        network: 'avalanche-fuji',
-        nativeCurrency: {
-          decimals: 18,
-          name: 'AVAX',
-          symbol: 'AVAX',
-        },
-        rpcUrls: {
-          default: {
-            http: ['https://api.avax-test.network/ext/bc/C/rpc'],
-          },
-        },
-      });
+      if (!arenaResult?.success) {
+        throw new Error(arenaResult?.error || arenaResult?.reason || 'Failed to start game');
+      }
 
-      const gameMasterWalletClient = createWalletClient({
-        account: gameStandardAccount,
-        chain: avalancheFuji,
-        transport: http('https://api.avax-test.network/ext/bc/C/rpc'),
-      });
-
-      console.log(`Using Game Master account: ${gameStandardAccount.address}`);
-
-      // Call startGame using Game Master's wallet client
-      const hash = await gameMasterWalletClient.writeContract({
-        address: selectedArena.address as `0x${string}`,
-        abi: ArenaAbi,
-        functionName: 'startGame',
-        args: []
-      });
-
-      console.log('Start game transaction sent:', hash);
-
-      // Wait for confirmation
-      const { createPublicClient } = await import('viem');
-      const publicClient = createPublicClient({
-        chain: avalancheFuji,
-        transport: http('https://api.avax-test.network/ext/bc/C/rpc'),
-      });
-
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: hash as `0x${string}`,
-        timeout: 60000
-      });
-
-      console.log('Game started successfully! Block:', receipt.blockNumber);
+      console.log('Game started successfully via Game Master API');
 
       // Refresh arena data to get the updated state
       console.log('🔄 Refreshing arena data after game start...');

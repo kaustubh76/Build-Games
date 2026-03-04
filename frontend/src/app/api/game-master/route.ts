@@ -238,7 +238,7 @@ async function getArenaState(arenaAddress: string): Promise<ArenaState | null> {
       executeWithAvalancheFallback((client) => client.readContract({
         address: arenaAddress as `0x${string}`,
         abi: ArenaAbi,
-        functionName: 'getMinYodhaBettingPeriod',
+        functionName: 'getMinWarriorsBettingPeriod',
       })),
       executeWithAvalancheFallback((client) => client.readContract({
         address: arenaAddress as `0x${string}`,
@@ -302,7 +302,7 @@ async function startGame(arenaAddress: string): Promise<boolean> {
 async function generateAIMoves(arenaAddress: string): Promise<{ agent_1: { move: string }, agent_2: { move: string } } | null> {
   try {
     // Get current battle data from contract
-    const [currentRound, damageOnYodhaOne, damageOnYodhaTwo, warriorsOneNFTId, warriorsTwoNFTId] = await Promise.all([
+    const [currentRound, damageOnWarriorsOne, damageOnWarriorsTwo, warriorsOneNFTId, warriorsTwoNFTId] = await Promise.all([
       executeWithAvalancheFallback((client) => client.readContract({
         address: arenaAddress as `0x${string}`,
         abi: ArenaAbi,
@@ -311,22 +311,22 @@ async function generateAIMoves(arenaAddress: string): Promise<{ agent_1: { move:
       executeWithAvalancheFallback((client) => client.readContract({
         address: arenaAddress as `0x${string}`,
         abi: ArenaAbi,
-        functionName: 'getDamageOnYodhaOne',
+        functionName: 'getDamageOnWarriorsOne',
       })),
       executeWithAvalancheFallback((client) => client.readContract({
         address: arenaAddress as `0x${string}`,
         abi: ArenaAbi,
-        functionName: 'getDamageOnYodhaTwo',
+        functionName: 'getDamageOnWarriorsTwo',
       })),
       executeWithAvalancheFallback((client) => client.readContract({
         address: arenaAddress as `0x${string}`,
         abi: ArenaAbi,
-        functionName: 'getYodhaOneNFTId',
+        functionName: 'getWarriorsOneNFTId',
       })),
       executeWithAvalancheFallback((client) => client.readContract({
         address: arenaAddress as `0x${string}`,
         abi: ArenaAbi,
-        functionName: 'getYodhaTwoNFTId',
+        functionName: 'getWarriorsTwoNFTId',
       }))
     ]);
 
@@ -342,12 +342,12 @@ async function generateAIMoves(arenaAddress: string): Promise<{ agent_1: { move:
       agent_1: {
         personality: warrior1Data.personality,
         traits: warrior1Data.traits,
-        total_damage_received: Number(damageOnYodhaOne)
+        total_damage_received: Number(damageOnWarriorsOne)
       },
       agent_2: {
         personality: warrior2Data.personality,
         traits: warrior2Data.traits,
-        total_damage_received: Number(damageOnYodhaTwo)
+        total_damage_received: Number(damageOnWarriorsTwo)
       },
       moveset: [
         "strike",

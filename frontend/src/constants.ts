@@ -159,7 +159,7 @@ export const chainsToContracts: ContractsConfig = {
         aiDebateOracle: "0x17f63e80bd0db1ed77f6dcf54d2bb7ae3fb43f7d",
         creatorRevenueShare: "0x05Ca49f32B482e0Dce58e39A22F31e5f56A43Ee7",
         predictionMarketAMM: "0xeBe1DB030bBFC5bCdD38593C69e4899887D2e487",
-        externalMarketMirror: "0x3677c9D00EA10900a7f44862cbB0679915054576",
+        externalMarketMirror: "0x1cfa9eD162f90B1eD6d9A01c504fFc28B7412473",
         aiAgentINFT: "0xbAE259eeA7fd49F631dE44Ac8d4fd2eb6C7F8Cb8",
         agentINFTOracle: "0xf986215373Bc8E5A1a698Be72270c0e1FC4716e3",
         aiLiquidityManager: "0x625A38bD9B7941d79f1da95982c51B197eC4Bdfd",

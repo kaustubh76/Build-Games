@@ -111,16 +111,10 @@ contract Arena {
 
     }
 
-    // enum LockStatus {
-    //     UNLOCKED,
-    //     LOCKED
-    // }
-
     IWarriorsNFT.Ranking immutable i_rankCategory;
     // Rank categories can be UNRANKED, BRONZE, SILVER, GOLD, PLATINUM.
     ICrownToken private immutable i_CrownToken; // Contract inteface of Crown Token
     address private immutable i_ArenaFactory;
-    // LockStatus private s_lockStatus; // Retrency lock status of the game
     uint256 private immutable i_costToInfluence; // Cost to influence a Warriors
     uint256 private s_costToInfluenceWarriorsOne;
     uint256 private s_costToInfluenceWarriorsTwo;
@@ -136,16 +130,12 @@ contract Arena {
     uint256 private s_totalDefluencePointsOfWarriorsTwoForNextRound;
     uint256 private s_WarriorsOneNFTId; // NFT ID of Warriors One
     uint256 private s_WarriorsTwoNFTId; // NFT ID of Warriors Two
-    // address private s_bridgeAddress; // Address of bridge contract (unused on Avalanche - agents are on-chain)
     uint8 private s_currentRound; // Current Round of the game (0 when game is not started yet can be initialized, 1-5 when game is in progress)
     address[] private s_playerOneBetAddresses; // Players' addresses that have placed their bets on Warriors One
-    // mapping(address => uint256) private s_playerOneBetAmounts; // Bet amounts of the betters siding with Warriors One
-    address[] private s_playerTwoBetAddresses; // Players' addresses that have places their bets on Warriors Two
-    // mapping(address => uint256) private s_playerTwoBetAmounts; // Bet amount of the betters siding with Warriors Two
+    address[] private s_playerTwoBetAddresses; // Players' addresses that have placed their bets on Warriors Two
     mapping(address => bool) private s_playersAlreadyUsedDefluenceAddresses; // Track if a player has already defluenced a Warriors in the game since a player can only defluence a Warriors once per game
     bool private s_gameInitialized; // Flag to check if the game has been initialized (not started but initialized with Warriors NFT Ids and bridge address)
-    bool private s_isBattleOngoing; // flog to check if the battle round is currently ongoing
-    // bool private s_isCalculatingWinner; // Flag to check if the winner is being calculated
+    bool private s_isBattleOngoing; // Flag to check if the battle round is currently ongoing
     uint256 private s_gameInitializedAt;
     uint256 private s_lastRoundEndedAt;
     uint256 private s_damageOnWarriorsOne; // To keep track of damage of Warriors one during the game

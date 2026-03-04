@@ -31,7 +31,7 @@ contract PredictionArena is ReentrancyGuard {
     error PredictionArena__InvalidRound();
     error PredictionArena__InvalidSignature();
     error PredictionArena__Unauthorized();
-    error PredictionArena__CannotChallengeself();
+    error PredictionArena__CannotChallengeSelf();
     error PredictionArena__InvalidMarketKey();
     error PredictionArena__BettingClosed();
     error PredictionArena__InvalidBetAmount();
@@ -310,7 +310,7 @@ contract PredictionArena is ReentrancyGuard {
             revert PredictionArena__ChallengeExpired();
         }
         if (challenge.challengerOwner == msg.sender) {
-            revert PredictionArena__CannotChallengeself();
+            revert PredictionArena__CannotChallengeSelf();
         }
 
         // Verify warrior ownership

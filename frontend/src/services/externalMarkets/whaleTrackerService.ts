@@ -639,12 +639,12 @@ class WhaleTrackerService {
       create: {
         userAddress,
         whaleAddress,
-        config: config as unknown as Record<string, unknown>,
+        config: JSON.stringify(config),
         isActive: true,
         userId: userAddress, // Use address as userId if no user record
       },
       update: {
-        config: config as unknown as Record<string, unknown>,
+        config: JSON.stringify(config),
         isActive: true,
       },
     });
