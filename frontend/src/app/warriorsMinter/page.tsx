@@ -79,11 +79,6 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
   const { address: connectedAddress } = useAccount();
   const chainId = useChainId();
   
-  // Memoize the debug logging to prevent excessive console output
-  useMemo(() => {
-    console.log('WarriorsMinter - chainId detected:', chainId, 'connectedAddress:', connectedAddress);
-  }, [chainId, connectedAddress]);
-  
   const { writeContract, data: hash } = useWriteContract();
   const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
@@ -95,8 +90,6 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
   // Handle transaction confirmation and display success message
   useEffect(() => {
     if (isConfirmed && hash) {
-      console.log("Transaction confirmed:", hash);
-      
       // Clear NFT cache to force refresh of updated data
       clearCache();
       
@@ -136,10 +129,8 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
             // Image is square, proceed with upload
             setFormData(prev => ({ ...prev, image: file }));
             setImagePreview(event.target?.result as string);
-            console.log(`✅ Image uploaded: ${img.width}x${img.height} (Square)`);
           } else {
             // Image is not square, show cropper
-            console.log(`📐 Image needs cropping: ${img.width}x${img.height} - Opening cropper`);
             setCropImageSrc(event.target?.result as string);
             
             // Set initial crop to be a square in the center (using percentage)
@@ -177,8 +168,6 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
     
     try {
       // Call AI service via API route
-      console.log("Sending prompt to AI API:", aiPrompt);
-      
       const apiResponse = await fetch('/api/generate-warrior-attributes', {
         method: 'POST',
         headers: {

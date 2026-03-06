@@ -27,7 +27,7 @@ export const getChainId = (): SupportedChainId => {
 export const AVALANCHE_RPC_URLS = {
   testnet: {
     primary: 'https://api.avax-test.network/ext/bc/C/rpc',
-    fallback: 'https://ava-testnet.public.blastapi.io/ext/bc/C/rpc',
+    fallback: 'https://avalanche-fuji-c-chain-rpc.publicnode.com',
   },
   mainnet: {
     primary: 'https://api.avax.network/ext/bc/C/rpc',
@@ -164,7 +164,7 @@ export const chainsToContracts: ContractsConfig = {
         agentINFTOracle: "0xf986215373Bc8E5A1a698Be72270c0e1FC4716e3",
         aiLiquidityManager: "0x625A38bD9B7941d79f1da95982c51B197eC4Bdfd",
         marketFactory: "0x7E2e6eb2Ad58c4a9CE1aD5ccfFfc7e5e715753BA",
-        predictionArena: "0xD7CbEC2D198357213b434E6b61CC4f80BB0feaCF"
+        predictionArena: "0x1aE78556038E0a261Ee57Bee06BdedFC177786Dd"
     },
 
     // Avalanche C-Chain Mainnet (Chain ID: 43114) - Production

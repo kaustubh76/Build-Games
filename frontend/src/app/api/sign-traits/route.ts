@@ -105,10 +105,10 @@ export async function POST(request: NextRequest) {
 
     const account = privateKeyToAccount(formattedKey);
 
-    // Encode the data including timestamp for replay attack prevention
-    // The contract should verify the timestamp is recent when consuming the signature
+    // Encode the data matching the contract's abi.encodePacked format exactly
+    // Contract: keccak256(abi.encodePacked(_tokenId, _strength, _wit, _charisma, _defence, _luck, _strike, _taunt, _dodge, _special, _recover))
     const encodedData = encodePacked(
-      ['uint16', 'uint16', 'uint16', 'uint16', 'uint16', 'uint16', 'string', 'string', 'string', 'string', 'string', 'uint64'],
+      ['uint16', 'uint16', 'uint16', 'uint16', 'uint16', 'uint16', 'string', 'string', 'string', 'string', 'string'],
       [
         tokenId,
         strength,
@@ -121,7 +121,6 @@ export async function POST(request: NextRequest) {
         dodge,
         special,
         recover,
-        BigInt(signatureTimestamp) // Include timestamp in signed data
       ]
     );
 

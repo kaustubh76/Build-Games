@@ -90,14 +90,6 @@ class AIAgentINFTService {
     this.contractAddress = (contracts as any)?.aiAgentINFT || ZERO_ADDRESS;
     // CrownToken on Avalanche for staking with iNFT
     this.crownTokenAddress = (contracts?.crownToken as Address) || ZERO_ADDRESS;
-
-    console.log('[iNFT Service] Initialized with:', {
-      chainId: AVALANCHE_CHAIN_ID,
-      contractAddress: this.contractAddress,
-      crownTokenAddress: this.crownTokenAddress,
-      rpcUrl: AVALANCHE_RPC_URL,
-      isDeployed: this.contractAddress !== ZERO_ADDRESS,
-    });
   }
 
   /**
@@ -143,11 +135,9 @@ class AIAgentINFTService {
    * Get iNFT by token ID
    */
   async getINFT(tokenId: bigint): Promise<AIAgentINFT | null> {
-    console.log(`[iNFT] getINFT(${tokenId}) called, contractDeployed=${this.isContractDeployed()}`);
     if (!this.isContractDeployed()) return null;
 
     try {
-      console.log(`[iNFT] Fetching data for token ${tokenId}...`);
       const [owner, encryptedMetadataRef, metadataHash, onChainData, performance, pendingTransfer] =
         await Promise.all([
           this.getOwner(tokenId),
@@ -158,17 +148,7 @@ class AIAgentINFTService {
           this.getPendingTransfer(tokenId),
         ]);
 
-      console.log(`[iNFT] Token ${tokenId} data:`, {
-        owner,
-        encryptedMetadataRef,
-        metadataHash,
-        onChainData,
-        performance,
-        pendingTransfer,
-      });
-
       if (!owner || owner === ZERO_ADDRESS) {
-        console.log(`[iNFT] Token ${tokenId} has no owner, returning null`);
         return null;
       }
 
@@ -249,7 +229,6 @@ class AIAgentINFTService {
         functionName: 'getAgentData',
         args: [tokenId],
       });
-      console.log(`[iNFT] getAgentData(${tokenId}) returned:`, data);
       return data;
     } catch (error) {
       console.error('[iNFT] getAgentData error for token', tokenId.toString(), ':', error);
@@ -385,13 +364,11 @@ class AIAgentINFTService {
    */
   async getAllINFTs(onlyActive: boolean = false): Promise<AIAgentINFT[]> {
     if (!this.isContractDeployed()) {
-      console.log('[iNFT] Contract not deployed, skipping fetch');
       return [];
     }
 
     try {
       const totalSupply = await this.getTotalSupply();
-      console.log(`[iNFT] Total supply on Avalanche: ${totalSupply}`);
 
       if (totalSupply === BigInt(0)) {
         return [];
@@ -402,14 +379,12 @@ class AIAgentINFTService {
       for (let i = BigInt(1); i <= totalSupply; i++) {
         const inft = await this.getINFT(i);
         if (inft) {
-          console.log(`[iNFT] Token #${i}: owner=${inft.owner}, isActive=${inft.onChainData.isActive}`);
           if (!onlyActive || inft.onChainData.isActive) {
             infts.push(inft);
           }
         }
       }
 
-      console.log(`[iNFT] Found ${infts.length} iNFTs (onlyActive=${onlyActive})`);
       return infts;
     } catch (error) {
       console.error('[iNFT] Error fetching iNFTs:', error);
@@ -584,61 +559,37 @@ class AIAgentINFTService {
     account: `0x${string}`,
     storageService: { uploadEncryptedMetadata: (data: Uint8Array) => Promise<string> }
   ): Promise<{ txHash: string; tokenId?: bigint }> {
-    console.log('[iNFT Service] Starting mint process...');
-    console.log('[iNFT Service] Account:', account);
-    console.log('[iNFT Service] Stake amount:', stakeAmount.toString());
-    console.log('[iNFT Service] Copy trading enabled:', copyTradingEnabled);
-
     // 1. Encrypt metadata
-    console.log('[iNFT Service] Step 1: Encrypting metadata...');
     const encryptedData = await agentEncryptionService.encrypt(metadata, walletClient, account);
 
     // 2. Serialize for storage
-    console.log('[iNFT Service] Step 2: Serializing encrypted data...');
     const { serializeEncryptedData } = await import('./agentEncryptionService');
     const serialized = serializeEncryptedData(encryptedData);
 
     // 3. Upload to IPFS
-    console.log('[iNFT Service] Step 3: Uploading to IPFS...');
     const encryptedMetadataRef = await storageService.uploadEncryptedMetadata(serialized);
-    console.log('[iNFT Service] Metadata ref:', encryptedMetadataRef);
 
     // 4. Compute metadata hash
-    console.log('[iNFT Service] Step 4: Computing metadata hash...');
     const metadataHash = computeMetadataHash(metadata);
-    console.log('[iNFT Service] Metadata hash:', metadataHash);
 
     // 5. Approve tokens for staking on Avalanche chain
-    console.log('[iNFT Service] Step 5: Approving CRwN tokens for staking...');
-    console.log('[iNFT Service] CRwN token address:', this.crownTokenAddress);
-    console.log('[iNFT Service] iNFT contract address:', this.contractAddress);
     const approveTx = this.prepareApproveToken(stakeAmount);
     const approveHash = await walletClient.writeContract({
       ...approveTx,
       account,
       chain: avalancheFuji,
     });
-    console.log('[iNFT Service] Approve tx hash:', approveHash);
 
     // Wait a bit for the approval to be mined
-    console.log('[iNFT Service] Waiting for approval confirmation...');
     await new Promise(resolve => setTimeout(resolve, 3000));
 
     // 6. Mint iNFT on Avalanche chain
-    console.log('[iNFT Service] Step 6: Minting iNFT...');
     const mintTx = this.prepareMint(encryptedMetadataRef, metadataHash, stakeAmount, copyTradingEnabled);
-    console.log('[iNFT Service] Mint tx args:', {
-      encryptedMetadataRef,
-      metadataHash,
-      stakeAmount: stakeAmount.toString(),
-      copyTradingEnabled,
-    });
     const mintHash = await walletClient.writeContract({
       ...mintTx,
       account,
       chain: avalancheFuji,
     });
-    console.log('[iNFT Service] Mint tx hash:', mintHash);
 
     return { txHash: mintHash };
   }

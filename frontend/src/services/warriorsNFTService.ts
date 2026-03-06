@@ -61,9 +61,6 @@ const IPFS_GATEWAYS = [
  */
 const fetchMetadataFromStorage = async (rootHash: string, tokenId: number): Promise<WarriorsMetadata | null> => {
   try {
-    console.log(`Warriors ${tokenId}: Fetching metadata from Storage`);
-    console.log(`Root Hash: ${rootHash}`);
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
@@ -81,7 +78,6 @@ const fetchMetadataFromStorage = async (rootHash: string, tokenId: number): Prom
     }
 
     const metadata = await response.json() as WarriorsMetadata;
-    console.log(`Warriors ${tokenId}: Successfully fetched metadata from Storage`);
 
     return metadata;
 
@@ -95,9 +91,6 @@ const fetchMetadataFromStorage = async (rootHash: string, tokenId: number): Prom
  * Fetch metadata from IPFS with multiple gateway fallback (legacy support)
  */
 const fetchMetadataFromIPFS = async (tokenURI: string, tokenId: number): Promise<WarriorsMetadata | null> => {
-  console.log(`🔍 Warriors ${tokenId}: Fetching metadata from IPFS (fallback)`);
-  console.log(`📎 TokenURI: ${tokenURI}`);
-
   // Extract IPFS hash from various URI formats
   let ipfsHash = '';
   
@@ -110,16 +103,12 @@ const fetchMetadataFromIPFS = async (tokenURI: string, tokenId: number): Promise
     ipfsHash = tokenURI;
   }
 
-  console.log(`🔗 IPFS Hash: ${ipfsHash}`);
-
   // Try each gateway
   for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
     const gateway = IPFS_GATEWAYS[i];
     const url = `${gateway}${ipfsHash}`;
     
     try {
-      console.log(`🌐 Warriors ${tokenId}: Trying IPFS gateway ${i + 1}/${IPFS_GATEWAYS.length}: ${gateway}`);
-      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
@@ -133,17 +122,14 @@ const fetchMetadataFromIPFS = async (tokenURI: string, tokenId: number): Promise
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        console.log(`❌ Warriors ${tokenId}: Gateway ${gateway} returned ${response.status}`);
         continue;
       }
       
       const metadata = await response.json() as WarriorsMetadata;
-      console.log(`✅ Warriors ${tokenId}: Successfully fetched metadata from IPFS ${gateway}`);
-      
+
       return metadata;
       
     } catch (error) {
-      console.log(`⚠️ Warriors ${tokenId}: Gateway ${gateway} failed:`, error instanceof Error ? error.message : 'Unknown error');
       continue;
     }
   }
@@ -157,7 +143,6 @@ const fetchMetadataFromIPFS = async (tokenURI: string, tokenId: number): Promise
 const fetchMetadata = async (tokenURI: string, tokenId: number): Promise<WarriorsMetadata> => {
   // Check cache first
   if (metadataCache.has(tokenURI)) {
-    console.log(`📦 Warriors ${tokenId}: Using cached metadata`);
     return metadataCache.get(tokenURI)!;
   }
 
@@ -165,17 +150,14 @@ const fetchMetadata = async (tokenURI: string, tokenId: number): Promise<Warrior
 
   // Check if tokenURI is a storage root hash (starts with 0x)
   if (tokenURI.startsWith('0x')) {
-    console.log(`Warriors ${tokenId}: Detected storage root hash format`);
     metadata = await fetchMetadataFromStorage(tokenURI, tokenId);
   } 
   // Check if tokenURI is an IPFS CID
   else if (tokenURI.startsWith('ipfs://') || tokenURI.includes('/ipfs/')) {
-    console.log(`🔗 Warriors ${tokenId}: Detected IPFS format`);
     metadata = await fetchMetadataFromIPFS(tokenURI, tokenId);
   }
   // Try both methods if format is unclear
   else {
-    console.log(`Warriors ${tokenId}: Unclear format, trying storage first then IPFS`);
     metadata = await fetchMetadataFromStorage(tokenURI, tokenId);
     if (!metadata) {
       metadata = await fetchMetadataFromIPFS(tokenURI, tokenId);
@@ -184,7 +166,6 @@ const fetchMetadata = async (tokenURI: string, tokenId: number): Promise<Warrior
 
   // If all methods failed, use fallback metadata
   if (!metadata) {
-    console.log(`🔄 Warriors ${tokenId}: All storage methods failed, using fallback`);
     metadata = {
       name: `Warriors Warrior #${tokenId}`,
       description: "A legendary warrior from the Warriors AI-rena battlefield",
@@ -298,9 +279,6 @@ export const warriorsNFTService = {
       // Use encrypted URI (where the actual storage root hash is stored)
       const tokenURI = encryptedURI as string;
 
-      console.log(`🔍 Warriors ${tokenId}: Encrypted URI: "${encryptedURI}"`);
-      console.log(`🎯 Warriors ${tokenId}: Using URI: "${tokenURI}"`);
-
       // Fetch metadata from Storage or IPFS
       const metadata = await fetchMetadata(tokenURI, tokenId);
       
@@ -386,6 +364,5 @@ export const warriorsNFTService = {
    */
   clearCache(): void {
     metadataCache.clear();
-    console.log('🗑️ Warriors NFT metadata cache cleared');
   }
 }; 
