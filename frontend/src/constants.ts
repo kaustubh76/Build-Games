@@ -151,8 +151,8 @@ export const chainsToContracts: ContractsConfig = {
         // Deployed via: forge script script/DeployFujiSplit.s.sol + RedeployThree.s.sol --rpc-url https://api.avax-test.network/ext/bc/C/rpc --broadcast -vvvv
         mockOracle: "0xf986215373Bc8E5A1a698Be72270c0e1FC4716e3",
         crownToken: "0xF0011ca65e3F6314B180a8848ae373042bAEc9b4",
-        warriorsNFT: "0x6135D8ad56A326Ab0D6D12E5871cCD0b2b80da08",
-        ArenaFactory: "0x6634fa404876E991269D8152Fea0291CCCFB4008",
+        warriorsNFT: "0x218d3efaB076bd03E278CDCf3B488AA107215b8a",
+        ArenaFactory: "0xe9faCA292CEF42489AF4d20266964Fb6425AE122",
         outcomeToken: "0x578F5D284F1Ac91115293cC36eD2DF487550C1da",
         aiAgentRegistry: "0x5e0Df8750114ecBC0850494fb1a2b9001b61254e",
         microMarketFactory: "0xd81373eEd88FacE56c21CFA4787c80C325e0bC6E",
@@ -164,7 +164,7 @@ export const chainsToContracts: ContractsConfig = {
         agentINFTOracle: "0xf986215373Bc8E5A1a698Be72270c0e1FC4716e3",
         aiLiquidityManager: "0x625A38bD9B7941d79f1da95982c51B197eC4Bdfd",
         marketFactory: "0x7E2e6eb2Ad58c4a9CE1aD5ccfFfc7e5e715753BA",
-        predictionArena: "0x1aE78556038E0a261Ee57Bee06BdedFC177786Dd"
+        predictionArena: "0xE80C2eaDf7B4d0e2acD51a475c1a2ED4134D4Ad5"
     },
 
     // Avalanche C-Chain Mainnet (Chain ID: 43114) - Production
