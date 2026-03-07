@@ -234,18 +234,20 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Auto-Predict] Sending to AI Compute...`);
 
-    // Call OpenAI for prediction
-    const { default: OpenAI } = await import('openai');
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    // Call Gemini for prediction
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 500,
-      temperature: 0.3,
+    const geminiResult = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        maxOutputTokens: 500,
+        temperature: 0.3,
+      },
     });
 
-    const aiResponse = completion.choices[0]?.message?.content;
+    const aiResponse = geminiResult.response.text();
 
     if (!aiResponse) {
       return NextResponse.json({
