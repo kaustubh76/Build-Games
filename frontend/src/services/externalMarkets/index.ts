@@ -82,12 +82,6 @@ class ExternalMarketsService {
       ];
     }
 
-    // Volume filter
-    if (filters?.minVolume) {
-      // SQLite stores volume as string, need to handle comparison
-      // For now, filter in memory after fetch
-    }
-
     // End time filter
     if (filters?.maxEndTime) {
       where.endTime = { lte: new Date(filters.maxEndTime) };
@@ -113,7 +107,15 @@ class ExternalMarketsService {
     });
 
     // Convert to unified format
-    return dbMarkets.map((m) => this.dbToUnified(m));
+    let results = dbMarkets.map((m) => this.dbToUnified(m));
+
+    // Volume filter (in-memory since volume is stored as string)
+    if (filters?.minVolume) {
+      const minVol = parseFloat(filters.minVolume);
+      results = results.filter((m) => parseFloat(m.volume) >= minVol);
+    }
+
+    return results;
   }
 
   /**

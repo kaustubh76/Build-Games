@@ -49,6 +49,16 @@ const WS_BASE = 'wss://ws-subscriptions-clob.polymarket.com';
 
 const WHALE_THRESHOLD = 10000; // $10k USD
 
+/** Parse a value that may be a JSON string or already an array */
+function parseJsonArray<T>(value: T[] | string | undefined): T[] | undefined {
+  if (!value) return undefined;
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try { return JSON.parse(value); } catch { return undefined; }
+  }
+  return undefined;
+}
+
 // ============================================
 // POLYMARKET SERVICE CLASS
 // ============================================
@@ -97,11 +107,11 @@ class PolymarketService {
 
           const data = await response.json();
 
-          // Validate response (soft validation - returns raw on failure)
+          // Validate response (filter out invalid markets)
           const markets = Array.isArray(data) ? data : data.markets || [];
-          return markets.map((m: unknown) =>
-            safeValidatePolymarket(m, PolymarketMarketSchema, 'getActiveMarkets') || m
-          ) as PolymarketMarket[];
+          return markets
+            .map((m: unknown) => safeValidatePolymarket(m, PolymarketMarketSchema, 'getActiveMarkets'))
+            .filter((m): m is NonNullable<typeof m> => m !== null) as PolymarketMarket[];
         });
       },
       { limit, offset }
@@ -162,7 +172,11 @@ class PolymarketService {
         throw new Error(`Polymarket API error: ${response.status}`);
       }
 
-      return response.json();
+      const data = await response.json();
+      const markets = Array.isArray(data) ? data : data.markets || [];
+      return markets
+        .map((m: unknown) => safeValidatePolymarket(m, PolymarketMarketSchema, 'searchMarkets'))
+        .filter((m): m is NonNullable<typeof m> => m !== null) as PolymarketMarket[];
     });
   }
 
@@ -187,7 +201,11 @@ class PolymarketService {
         throw new Error(`Polymarket API error: ${response.status}`);
       }
 
-      return response.json();
+      const data = await response.json();
+      const markets = Array.isArray(data) ? data : data.markets || [];
+      return markets
+        .map((m: unknown) => safeValidatePolymarket(m, PolymarketMarketSchema, 'getMarketsByCategory'))
+        .filter((m): m is NonNullable<typeof m> => m !== null) as PolymarketMarket[];
     });
   }
 
@@ -432,9 +450,10 @@ class PolymarketService {
    * Convert Polymarket market to unified format
    */
   normalizeMarket(poly: PolymarketMarket): UnifiedMarket {
-    // Parse outcome prices
-    const yesPriceStr = poly.outcomePrices?.[0] || '0.5';
-    const noPriceStr = poly.outcomePrices?.[1] || '0.5';
+    // Parse outcome prices (Gamma API may return as JSON string or array)
+    const outcomePrices = parseJsonArray(poly.outcomePrices);
+    const yesPriceStr = outcomePrices?.[0] || '0.5';
+    const noPriceStr = outcomePrices?.[1] || '0.5';
     const yesPrice = parseFloat(yesPriceStr) * 100;
     const noPrice = parseFloat(noPriceStr) * 100;
 
@@ -458,7 +477,7 @@ class PolymarketService {
       question: poly.question,
       description: poly.description,
       category: poly.category,
-      tags: poly.tags,
+      tags: parseJsonArray(poly.tags),
 
       yesPrice: Math.round(yesPrice * 100) / 100,
       noPrice: Math.round(noPrice * 100) / 100,
@@ -475,8 +494,8 @@ class PolymarketService {
       sourceUrl: `https://polymarket.com/event/${poly.slug}`,
       sourceMetadata: {
         conditionId: poly.conditionId,
-        clobTokenIds: poly.clobTokenIds,
-        outcomes: poly.outcomes,
+        clobTokenIds: parseJsonArray(poly.clobTokenIds),
+        outcomes: parseJsonArray(poly.outcomes),
         image: poly.image,
       },
 
