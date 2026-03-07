@@ -2,8 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { logger } from '../../lib/logger';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY || '',
+  baseURL: 'https://api.groq.com/openai/v1',
 });
 
 export default async function handler(
@@ -23,12 +24,9 @@ export default async function handler(
 
     logger.debug('Generating warrior attributes');
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'user',
-          content: `You are a creative game character designer for a blockchain warrior battle game. Create a unique warrior character based on this description: ${prompt}
+    const result = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: `You are a creative game character designer for a blockchain warrior battle game. Create a unique warrior character based on this description: ${prompt}
 
 Generate a COMPLETE warrior profile as JSON with this EXACT format:
 {
@@ -45,14 +43,12 @@ IMPORTANT:
 - knowledge_areas should be skills like: Combat, Strategy, Warfare, Stealth, Leadership, etc.
 - Make the character unique and interesting
 
-Respond with valid JSON only, no explanation.`,
-        },
-      ],
+Respond with valid JSON only, no explanation.` }],
       max_tokens: 600,
       temperature: 0.8,
     });
 
-    const attributesJson = completion.choices[0]?.message?.content;
+    const attributesJson = result.choices[0]?.message?.content || '';
 
     if (!attributesJson) {
       throw new Error('AI returned empty response');
@@ -63,7 +59,9 @@ Respond with valid JSON only, no explanation.`,
     // Parse and validate attributes
     let attributes;
     try {
-      attributes = JSON.parse(attributesJson);
+      // Strip markdown code fences if present
+      const cleaned = attributesJson.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      attributes = JSON.parse(cleaned);
     } catch (parseError) {
       logger.error('Failed to parse AI response:', attributesJson);
       throw new Error('AI returned invalid JSON format');

@@ -2,8 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { logger } from '../../lib/logger';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY || '',
+  baseURL: 'https://api.groq.com/openai/v1',
 });
 
 export default async function handler(
@@ -23,12 +24,9 @@ export default async function handler(
 
     logger.debug('Generating warrior traits and moves');
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'user',
-          content: `You are a game character designer for a blockchain warrior battle game. Based on these personality attributes, generate warrior traits and special moves.
+    const result = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: `You are a game character designer for a blockchain warrior battle game. Based on these personality attributes, generate warrior traits and special moves.
 
 Personality: ${JSON.stringify(personalityAttributes)}
 
@@ -52,14 +50,12 @@ IMPORTANT:
 - Trait values MUST be numbers between 0 and 10000
 - Base traits on personality (e.g., aggressive = high Strength, clever = high Wit)
 
-Respond with valid JSON only, no explanation.`,
-        },
-      ],
+Respond with valid JSON only, no explanation.` }],
       max_tokens: 400,
       temperature: 0.7,
     });
 
-    const traitsMovesJson = completion.choices[0]?.message?.content;
+    const traitsMovesJson = result.choices[0]?.message?.content || '';
 
     if (!traitsMovesJson) {
       throw new Error('AI returned empty response');
@@ -70,7 +66,9 @@ Respond with valid JSON only, no explanation.`,
     // Parse the response
     let traitsAndMoves;
     try {
-      traitsAndMoves = JSON.parse(traitsMovesJson);
+      // Strip markdown code fences if present
+      const cleaned = traitsMovesJson.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      traitsAndMoves = JSON.parse(cleaned);
     } catch (parseError) {
       logger.error('Failed to parse AI response:', traitsMovesJson);
       throw new Error('AI returned invalid JSON format');

@@ -4,8 +4,9 @@ import { privateKeyToAccount } from 'viem/accounts';
 import OpenAI from 'openai';
 import { logger } from '../../lib/logger';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY || '',
+  baseURL: 'https://api.groq.com/openai/v1',
 });
 
 export default async function handler(
@@ -25,26 +26,21 @@ export default async function handler(
 
     logger.debug('Generating battle moves for battle prompt');
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'user',
-          content: `You are a battle AI. Given the following warriors and their stats, determine what move each warrior should make.
+    const result = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: `You are a battle AI. Given the following warriors and their stats, determine what move each warrior should make.
 
 Warrior 1: ${JSON.stringify(battlePrompt.warrior1)}
 Warrior 2: ${JSON.stringify(battlePrompt.warrior2)}
 
 Available moves: ${battlePrompt.availableMoves?.join(', ') || 'strike, taunt, dodge, recover, special_move'}
 
-Respond with JSON only: {"agent_1": "<move>", "agent_2": "<move>"}`,
-        },
-      ],
+Respond with JSON only: {"agent_1": "<move>", "agent_2": "<move>"}` }],
       max_tokens: 100,
       temperature: 0.7,
     });
 
-    const battleMoves = completion.choices[0]?.message?.content;
+    const battleMoves = result.choices[0]?.message?.content || '';
 
     if (!battleMoves) {
       throw new Error('AI returned empty response');
@@ -53,7 +49,8 @@ Respond with JSON only: {"agent_1": "<move>", "agent_2": "<move>"}`,
     logger.debug('Generated battle moves');
 
     // Parse the AI response to get the moves
-    const parsedMoves = JSON.parse(battleMoves);
+    const cleaned = battleMoves.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    const parsedMoves = JSON.parse(cleaned);
 
     // Map move names to contract enum values (same as arena page)
     const moveMapping: { [key: string]: number } = {
