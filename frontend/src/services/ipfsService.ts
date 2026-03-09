@@ -105,7 +105,7 @@ export class IPFSService {
 
   // Helper method to get storage URL from root hash
   static getStorageUrl(rootHash: string): string {
-    return `storage://${rootHash}`;
+    return `ipfs://${rootHash}`;
   }
 
   // Helper method to validate image file
