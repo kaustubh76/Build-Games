@@ -12,7 +12,7 @@ import '../home-glass.css';
 
 // gameMasterSigningService moved to server-side /api/sign-traits
 import { ipfsService } from '../../services/ipfsService';
-import { getContracts, warriorsNFTAbi, getStorageApiUrl } from '../../constants';
+import { getContracts, chainsToContracts, warriorsNFTAbi, getStorageApiUrl } from '../../constants';
 import { useUserNFTs } from '../../hooks/useUserNFTs';
 import { useWarriorsMinterMessages } from '../../hooks/useWarriorsMinterMessages';
 import { usePromoteWarrior, getRankLabel, WarriorRank } from '../../hooks/usePromoteWarrior';

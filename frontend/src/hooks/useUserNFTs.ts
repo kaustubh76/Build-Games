@@ -84,12 +84,15 @@ const convertIpfsToProxyUrl = (imageUrl: string) => {
   
   // Handle IPFS URLs
   if (imageUrl.startsWith('ipfs://')) {
-    // Extract the IPFS hash from the URL
     const hash = imageUrl.replace('ipfs://', '');
-    // Try to use a public IPFS gateway that works with CORS
     return `https://ipfs.io/ipfs/${hash}`;
   }
-  
+
+  // Handle raw IPFS CIDs (Qm... or bafy...)
+  if (imageUrl.startsWith('Qm') || imageUrl.startsWith('bafy')) {
+    return `https://ipfs.io/ipfs/${imageUrl}`;
+  }
+
   // Return as-is if it's already a proper HTTP URL or local path
   return imageUrl;
 };
@@ -294,17 +297,22 @@ const fetchMetadata = async (
     logger.debug(`Token ${tokenId || 'unknown'}: Detected storage root hash format`);
     metadata = await fetchMetadataFromStorage(tokenURI, tokenId, signal);
   }
-  // Check if tokenURI is an IPFS CID
+  // Check if tokenURI is an IPFS URI
   else if (tokenURI.startsWith('ipfs://') || tokenURI.includes('/ipfs/')) {
-    logger.debug(`🔗 Token ${tokenId || 'unknown'}: Detected IPFS format`);
+    logger.debug(`🔗 Token ${tokenId || 'unknown'}: Detected IPFS URI format`);
     metadata = await fetchMetadataFromIPFS(tokenURI, tokenId, signal);
+  }
+  // Check if tokenURI is a raw IPFS CID (Qm... or bafy...)
+  else if (tokenURI.startsWith('Qm') || tokenURI.startsWith('bafy')) {
+    logger.debug(`🔗 Token ${tokenId || 'unknown'}: Detected raw IPFS CID, adding ipfs:// prefix`);
+    metadata = await fetchMetadataFromIPFS(`ipfs://${tokenURI}`, tokenId, signal);
   }
   // Try both methods if format is unclear
   else {
     logger.debug(`Token ${tokenId || 'unknown'}: Unclear format, trying storage first then IPFS`);
     metadata = await fetchMetadataFromStorage(tokenURI, tokenId, signal);
     if (!metadata && !signal?.aborted) {
-      metadata = await fetchMetadataFromIPFS(tokenURI, tokenId, signal);
+      metadata = await fetchMetadataFromIPFS(`ipfs://${tokenURI}`, tokenId, signal);
     }
   }
 

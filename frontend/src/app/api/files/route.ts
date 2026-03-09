@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 
 const PINATA_JWT = process.env.PINATA_JWT;
-const PINATA_GATEWAY = process.env.PINATA_GATEWAY_URL || 'https://gateway.pinata.cloud';
+const PINATA_GATEWAY = (process.env.PINATA_GATEWAY_URL || 'https://gateway.pinata.cloud').trim();
 
 async function uploadToPinata(file: File | Blob, fileName: string): Promise<{ IpfsHash: string; PinSize: number }> {
   const formData = new FormData();
