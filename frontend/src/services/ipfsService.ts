@@ -19,6 +19,8 @@ export interface WarriorsUploadResult {
   metadataCid: string;
   imageUrl: string;
   metadataUrl: string;
+  // Storage backend indicator ('0g' or 'ipfs')
+  storage?: string;
 }
 
 export class IPFSService {

@@ -3,6 +3,7 @@ import { encodePacked, keccak256 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import OpenAI from 'openai';
 import { logger } from '../../lib/logger';
+import { chatCompletion as zgChatCompletion, isZgComputeConfigured } from '../../services/zgComputeService';
 
 const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY || '',
@@ -26,21 +27,32 @@ export default async function handler(
 
     logger.debug('Generating battle moves for battle prompt');
 
-    const result = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: `You are a battle AI. Given the following warriors and their stats, determine what move each warrior should make.
+    const userMessage = `You are a battle AI. Given the following warriors and their stats, determine what move each warrior should make.
 
 Warrior 1: ${JSON.stringify(battlePrompt.warrior1)}
 Warrior 2: ${JSON.stringify(battlePrompt.warrior2)}
 
 Available moves: ${battlePrompt.availableMoves?.join(', ') || 'strike, taunt, dodge, recover, special_move'}
 
-Respond with JSON only: {"agent_1": "<move>", "agent_2": "<move>"}` }],
-      max_tokens: 100,
-      temperature: 0.7,
-    });
+Respond with JSON only: {"agent_1": "<move>", "agent_2": "<move>"}`;
 
-    const battleMoves = result.choices[0]?.message?.content || '';
+    let battleMoves: string;
+
+    if (isZgComputeConfigured()) {
+      logger.debug('Using 0G Compute for battle moves');
+      battleMoves = await zgChatCompletion(
+        [{ role: 'user', content: userMessage }],
+        { temperature: 0.7, maxTokens: 100 }
+      );
+    } else {
+      const result = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: userMessage }],
+        max_tokens: 100,
+        temperature: 0.7,
+      });
+      battleMoves = result.choices[0]?.message?.content || '';
+    }
 
     if (!battleMoves) {
       throw new Error('AI returned empty response');

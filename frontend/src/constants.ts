@@ -69,11 +69,11 @@ export const getAvalancheExplorerUrl = (): string => {
 };
 
 /**
- * Get Storage API URL from environment
- * Used for battle data storage and file uploads
+ * Get Storage download base URL
+ * Downloads are proxied through /api/storage/download (0G Storage + IPFS fallback)
  */
-export const getStorageApiUrl = (): string => {
-  return process.env.NEXT_PUBLIC_STORAGE_API_URL || 'http://localhost:3001';
+export const getStorageDownloadBaseUrl = (): string => {
+  return '/api/storage/download';
 };
 
 /**

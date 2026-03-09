@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { logger } from '../../lib/logger';
+import { chatCompletion as zgChatCompletion, isZgComputeConfigured } from '../../services/zgComputeService';
 
 const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY || '',
@@ -24,9 +25,7 @@ export default async function handler(
 
     logger.debug('Generating warrior attributes');
 
-    const result = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: `You are a creative game character designer for a blockchain warrior battle game. Create a unique warrior character based on this description: ${prompt}
+    const userMessage = `You are a creative game character designer for a blockchain warrior battle game. Create a unique warrior character based on this description: ${prompt}
 
 Generate a COMPLETE warrior profile as JSON with this EXACT format:
 {
@@ -43,12 +42,25 @@ IMPORTANT:
 - knowledge_areas should be skills like: Combat, Strategy, Warfare, Stealth, Leadership, etc.
 - Make the character unique and interesting
 
-Respond with valid JSON only, no explanation.` }],
-      max_tokens: 600,
-      temperature: 0.8,
-    });
+Respond with valid JSON only, no explanation.`;
 
-    const attributesJson = result.choices[0]?.message?.content || '';
+    let attributesJson: string;
+
+    if (isZgComputeConfigured()) {
+      logger.debug('Using 0G Compute for warrior attributes');
+      attributesJson = await zgChatCompletion(
+        [{ role: 'user', content: userMessage }],
+        { temperature: 0.8, maxTokens: 600 }
+      );
+    } else {
+      const result = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: userMessage }],
+        max_tokens: 600,
+        temperature: 0.8,
+      });
+      attributesJson = result.choices[0]?.message?.content || '';
+    }
 
     if (!attributesJson) {
       throw new Error('AI returned empty response');

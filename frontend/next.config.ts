@@ -1,10 +1,8 @@
 import type { NextConfig } from "next";
 
-// Parse the storage API URL to extract hostname and port for image patterns
-const storageApiUrl = process.env.NEXT_PUBLIC_STORAGE_API_URL || 'http://localhost:3001';
-const storageUrlParts = new URL(storageApiUrl);
-
 const nextConfig: NextConfig = {
+  // Transpile 0G packages that have broken ESM exports
+  transpilePackages: ['@0glabs/0g-serving-broker'],
   // Ignore ESLint errors during build (pre-existing code quality issues)
   // This allows Vercel deployment to succeed
   eslint: {
@@ -42,19 +40,6 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      // External storage service (configurable via environment)
-      {
-        protocol: storageUrlParts.protocol.replace(':', '') as 'http' | 'https',
-        hostname: storageUrlParts.hostname,
-        port: storageUrlParts.port || '',
-        pathname: '/download/**',
-      },
-      // Allow any HTTPS storage endpoint (for production deployments)
-      {
-        protocol: 'https',
-        hostname: '**',
-        pathname: '/download/**',
-      },
       // IPFS gateways
       {
         protocol: 'https',

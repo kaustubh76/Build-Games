@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { logger } from '../../lib/logger';
+import { chatCompletion as zgChatCompletion, isZgComputeConfigured } from '../../services/zgComputeService';
 
 const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY || '',
@@ -24,9 +25,7 @@ export default async function handler(
 
     logger.debug('Generating warrior traits and moves');
 
-    const result = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: `You are a game character designer for a blockchain warrior battle game. Based on these personality attributes, generate warrior traits and special moves.
+    const userMessage = `You are a game character designer for a blockchain warrior battle game. Based on these personality attributes, generate warrior traits and special moves.
 
 Personality: ${JSON.stringify(personalityAttributes)}
 
@@ -50,12 +49,25 @@ IMPORTANT:
 - Trait values MUST be numbers between 0 and 10000
 - Base traits on personality (e.g., aggressive = high Strength, clever = high Wit)
 
-Respond with valid JSON only, no explanation.` }],
-      max_tokens: 400,
-      temperature: 0.7,
-    });
+Respond with valid JSON only, no explanation.`;
 
-    const traitsMovesJson = result.choices[0]?.message?.content || '';
+    let traitsMovesJson: string;
+
+    if (isZgComputeConfigured()) {
+      logger.debug('Using 0G Compute for warrior traits');
+      traitsMovesJson = await zgChatCompletion(
+        [{ role: 'user', content: userMessage }],
+        { temperature: 0.7, maxTokens: 400 }
+      );
+    } else {
+      const result = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: userMessage }],
+        max_tokens: 400,
+        temperature: 0.7,
+      });
+      traitsMovesJson = result.choices[0]?.message?.content || '';
+    }
 
     if (!traitsMovesJson) {
       throw new Error('AI returned empty response');

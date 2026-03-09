@@ -179,9 +179,21 @@ export async function POST(request: NextRequest) {
       // The metadata ref format is "storage://0x..." - extract the hash
       const metadataHash = encryptedMetadataRef.replace('storage://', '').replace('0g://', '');
 
-      // Try to fetch from Storage API
-      const storageApiUrl = process.env.NEXT_PUBLIC_STORAGE_API_URL || 'http://localhost:3001';
-      const storageResponse = await fetch(`${storageApiUrl}/download?hash=${metadataHash}`);
+      // Try to fetch from 0G Storage or IPFS
+      const { download: zgDl, isZgConfigured: zgOk } = await import('@/services/zgStorageService');
+      let storageResponse: Response | null = null;
+      if (zgOk()) {
+        try {
+          const data = await zgDl(metadataHash);
+          storageResponse = new Response(data, { status: 200 });
+        } catch { storageResponse = null; }
+      }
+      if (!storageResponse && (metadataHash.startsWith('Qm') || metadataHash.startsWith('bafy'))) {
+        storageResponse = await fetch(`https://ipfs.io/ipfs/${metadataHash}`);
+      }
+      if (!storageResponse) {
+        storageResponse = new Response(null, { status: 404 });
+      }
       if (storageResponse.ok) {
         const storageData = await storageResponse.json();
         if (storageData) {
@@ -234,20 +246,33 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Auto-Predict] Sending to AI Compute...`);
 
-    // Call Gemini for prediction
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    let aiResponse: string;
 
-    const geminiResult = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        maxOutputTokens: 500,
-        temperature: 0.3,
-      },
-    });
+    // Try 0G Compute first, fall back to Gemini
+    const { chatCompletion: zgChatCompletion, isZgComputeConfigured } = await import('@/services/zgComputeService');
 
-    const aiResponse = geminiResult.response.text();
+    if (isZgComputeConfigured()) {
+      console.log(`[Auto-Predict] Using 0G Compute`);
+      aiResponse = await zgChatCompletion(
+        [{ role: 'user', content: prompt }],
+        { temperature: 0.3, maxTokens: 500 }
+      );
+    } else {
+      console.log(`[Auto-Predict] Using Gemini fallback`);
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+      const geminiResult = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: 500,
+          temperature: 0.3,
+        },
+      });
+
+      aiResponse = geminiResult.response.text();
+    }
 
     if (!aiResponse) {
       return NextResponse.json({

@@ -5,8 +5,8 @@
 
 // API URLs - configured via environment variables for different deployments
 export const config = {
-  // Storage Service URL (IPFS or other storage provider)
-  storageApiUrl: process.env.NEXT_PUBLIC_STORAGE_API_URL || 'http://localhost:3001',
+  // Storage downloads are handled by /api/storage/download/[hash] (0G Storage + IPFS fallback)
+  storageDownloadBaseUrl: '/api/storage/download',
 
   // Base URL for this frontend application
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
@@ -35,11 +35,7 @@ export const config = {
 
 // Helper functions for building URLs
 export const getStorageDownloadUrl = (rootHash: string): string => {
-  return `${config.storageApiUrl}/download/${rootHash}`;
-};
-
-export const getStorageUploadUrl = (): string => {
-  return `${config.storageApiUrl}/upload`;
+  return `${config.storageDownloadBaseUrl}/${rootHash}`;
 };
 
 export const getArenaCommandsUrl = (battleId: string): string => {
@@ -53,10 +49,8 @@ export const getArenaStatusUrl = (battleId: string): string => {
 // Check if we're in production
 export const isProduction = process.env.NODE_ENV === 'production';
 
-// Check if external services are configured
-export const isStorageConfigured = (): boolean => {
-  return config.storageApiUrl !== 'http://localhost:3001';
-};
+// Storage is always available via /api/storage/download (0G or IPFS)
+export const isStorageConfigured = (): boolean => true;
 
 // Validate required environment variables
 export const validateConfig = (): { valid: boolean; missing: string[] } => {

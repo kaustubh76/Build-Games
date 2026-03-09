@@ -10,9 +10,7 @@ import { type Address, isAddress } from 'viem';
 import { agentINFTService } from '@/services/agentINFTService';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 
-// Storage configuration
-const STORAGE_API_URL =
-  process.env.NEXT_PUBLIC_STORAGE_API_URL || 'http://localhost:3001';
+import { download as zgDownload, isZgConfigured } from '@/services/zgStorageService';
 
 /**
  * Check if user is authorized to decrypt metadata
@@ -52,19 +50,23 @@ async function checkDecryptAuthorization(
  */
 async function fetchFromStorage(rootHash: string): Promise<Uint8Array | null> {
   try {
-    const response = await fetch(`${STORAGE_API_URL}/download/${rootHash}`, {
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
-      }
-      throw new Error(`Storage fetch failed: ${response.statusText}`);
+    // Use 0G Storage SDK directly (server-side)
+    if (isZgConfigured()) {
+      const data = await zgDownload(rootHash);
+      return new Uint8Array(data);
     }
 
-    const buffer = await response.arrayBuffer();
-    return new Uint8Array(buffer);
+    // Fallback: try IPFS if it looks like a CID
+    if (rootHash.startsWith('Qm') || rootHash.startsWith('bafy')) {
+      const response = await fetch(`https://ipfs.io/ipfs/${rootHash}`, {
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) return null;
+      const buffer = await response.arrayBuffer();
+      return new Uint8Array(buffer);
+    }
+
+    return null;
   } catch (error) {
     console.warn('Storage fetch error:', error);
     return null;

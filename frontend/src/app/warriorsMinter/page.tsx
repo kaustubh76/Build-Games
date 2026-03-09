@@ -12,13 +12,13 @@ import '../home-glass.css';
 
 // gameMasterSigningService moved to server-side /api/sign-traits
 import { ipfsService } from '../../services/ipfsService';
-import { getContracts, chainsToContracts, warriorsNFTAbi, getStorageApiUrl } from '../../constants';
+import { getContracts, chainsToContracts, warriorsNFTAbi, getStorageDownloadBaseUrl } from '../../constants';
 import { useUserNFTs } from '../../hooks/useUserNFTs';
 import { useWarriorsMinterMessages } from '../../hooks/useWarriorsMinterMessages';
 import { usePromoteWarrior, getRankLabel, WarriorRank } from '../../hooks/usePromoteWarrior';
 
-// Storage service URL - configured via environment variable
-const STORAGE_API_URL = getStorageApiUrl();
+// Storage downloads go through /api/storage/download (0G Storage + IPFS fallback)
+const STORAGE_DOWNLOAD_URL = getStorageDownloadBaseUrl();
 
 interface WarriorsTraits {
   strength: number;
@@ -307,7 +307,10 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
       console.log('===================================');
 
       // Step 2: Mint NFT on blockchain using the metadata root hash
-      const encryptedURI = uploadResult.metadataRootHash; // metadata root hash
+      // If uploaded to 0G Storage, use storage:// URI; otherwise use raw IPFS CID
+      const encryptedURI = (uploadResult as any).storage === '0g'
+        ? `storage://${uploadResult.metadataRootHash}`
+        : uploadResult.metadataRootHash;
       const metadataHash = `0x${Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(uploadResult.metadata)))))
         .map(b => b.toString(16).padStart(2, '0')).join('')}` as `0x${string}`;
       
@@ -653,12 +656,12 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
       // Handle storage URLs with storage:// or legacy 0g:// prefix
       if (url.startsWith('storage://') || url.startsWith('0g://')) {
         const rootHash = url.replace('storage://', '').replace('0g://', '');
-        return `${STORAGE_API_URL}/download/${rootHash}`;
+        return `${STORAGE_DOWNLOAD_URL}/${rootHash}`;
       }
 
       // Handle storage root hashes (direct root hash)
       if (url.startsWith('0x')) {
-        return `${STORAGE_API_URL}/download/${url}`;
+        return `${STORAGE_DOWNLOAD_URL}/${url}`;
       }
       
       // Return as-is for HTTP URLs or local paths
@@ -686,7 +689,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
       }
       
       // Use regular img for storage URLs (check if URL contains the storage API)
-      if (urlToCheck.includes(STORAGE_API_URL.replace('http://', '').replace('https://', ''))) {
+      if (urlToCheck.includes(STORAGE_DOWNLOAD_URL)) {
         console.log(`🖼️ shouldUseRegularImg: Storage URL detected (${urlToCheck}), using regular img`);
         return true;
       }
@@ -728,7 +731,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
     const handleError = useCallback(() => {
       if (!hasError) {
         // For storage URLs, fall back directly to placeholder
-        if (src.startsWith('0x') || imageSrc.includes(STORAGE_API_URL.replace('http://', '').replace('https://', ''))) {
+        if (src.startsWith('0x') || imageSrc.includes(STORAGE_DOWNLOAD_URL)) {
           console.log(`🖼️ Storage failed for: ${src}, falling back to lazered.png`);
           setImageSrc('/lazered.png');
           setHasError(true);

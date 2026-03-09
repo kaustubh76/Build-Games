@@ -45,8 +45,8 @@ export interface WarriorsDetails {
 // Cache for metadata to avoid repeated calls
 const metadataCache = new Map<string, WarriorsMetadata>();
 
-// Storage service configuration - use environment variable
-const STORAGE_API_URL = process.env.NEXT_PUBLIC_STORAGE_API_URL || 'http://localhost:3001';
+// Storage downloads go through /api/storage/download (0G Storage + IPFS fallback)
+const STORAGE_DOWNLOAD_URL = '/api/storage/download';
 
 // Legacy IPFS gateways (fallback only)
 const IPFS_GATEWAYS = [
@@ -64,7 +64,7 @@ const fetchMetadataFromStorage = async (rootHash: string, tokenId: number): Prom
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-    const response = await fetch(`${STORAGE_API_URL}/download/${rootHash}`, {
+    const response = await fetch(`${STORAGE_DOWNLOAD_URL}/${rootHash}`, {
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
@@ -201,7 +201,7 @@ export const processImageURI = (imageURI: string): string => {
   // If it's a storage URI, convert it to the proper API endpoint
   if (imageURI.startsWith('storage://') || imageURI.startsWith('0g://')) {
     const rootHash = imageURI.replace('storage://', '').replace('0g://', '').split(':')[0];
-    return `${STORAGE_API_URL}/download/${rootHash}`;
+    return `${STORAGE_DOWNLOAD_URL}/${rootHash}`;
   }
   
   // If it's an IPFS URI, use the first IPFS gateway
@@ -212,7 +212,7 @@ export const processImageURI = (imageURI: string): string => {
   
   // If format is unclear, assume it's a root hash and try storage
   if (imageURI.startsWith('0x')) {
-    return `${STORAGE_API_URL}/download/${imageURI}`;
+    return `${STORAGE_DOWNLOAD_URL}/${imageURI}`;
   }
   
   // Fallback to the original URI
