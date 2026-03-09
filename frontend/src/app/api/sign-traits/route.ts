@@ -93,15 +93,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Get Game Master private key
-    const privateKey = process.env.GAME_MASTER_PRIVATE_KEY;
+    const privateKey = process.env.GAME_MASTER_PRIVATE_KEY?.trim();
     if (!privateKey) {
       throw ErrorResponses.serviceUnavailable('Game Master key not configured');
     }
 
-    // Create account from private key
-    const formattedKey = privateKey.startsWith('0x')
-      ? privateKey as `0x${string}`
-      : `0x${privateKey}` as `0x${string}`;
+    // Create account from private key - ensure proper hex formatting
+    const hex = privateKey.replace(/^0x/i, '').padStart(64, '0');
+    const formattedKey = `0x${hex}` as `0x${string}`;
 
     const account = privateKeyToAccount(formattedKey);
 
@@ -178,14 +177,14 @@ export async function GET(request: NextRequest) {
       windowMs: 60000,
     });
 
-    const privateKey = process.env.GAME_MASTER_PRIVATE_KEY;
+    const privateKey = process.env.GAME_MASTER_PRIVATE_KEY?.trim();
     if (!privateKey) {
       throw ErrorResponses.serviceUnavailable('Game Master key not configured');
     }
 
-    const formattedKey = privateKey.startsWith('0x')
-      ? privateKey as `0x${string}`
-      : `0x${privateKey}` as `0x${string}`;
+    // Strip 0x prefix, ensure even-length hex, then re-add prefix
+    const hex = privateKey.replace(/^0x/i, '').padStart(64, '0');
+    const formattedKey = `0x${hex}` as `0x${string}`;
 
     const account = privateKeyToAccount(formattedKey);
 

@@ -130,11 +130,12 @@ let _fallbackClient: ReturnType<typeof createAvalancheFallbackClient> | null = n
 function getGameMasterAccount() {
   if (!_gameMasterAccount) {
     // Server-side only - private keys should never have NEXT_PUBLIC_ prefix
-    const privateKey = process.env.GAME_MASTER_PRIVATE_KEY;
+    const privateKey = process.env.GAME_MASTER_PRIVATE_KEY?.trim();
     if (!privateKey) {
       throw new Error('GAME_MASTER_PRIVATE_KEY not found in environment variables. This is a server-side only variable.');
     }
-    _gameMasterAccount = privateKeyToAccount(privateKey as `0x${string}`);
+    const hex = privateKey.replace(/^0x/i, '').padStart(64, '0');
+    _gameMasterAccount = privateKeyToAccount(`0x${hex}` as `0x${string}`);
   }
   return _gameMasterAccount;
 }

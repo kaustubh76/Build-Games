@@ -110,11 +110,12 @@ const externalMarketMirrorAbi = [
 // ============================================
 
 function getOracleAccount() {
-  const privateKey = process.env.ORACLE_PRIVATE_KEY || process.env.PRIVATE_KEY;
+  const privateKey = (process.env.ORACLE_PRIVATE_KEY || process.env.PRIVATE_KEY)?.trim();
   if (!privateKey) {
     throw new Error('Oracle private key not configured');
   }
-  return privateKeyToAccount(privateKey as `0x${string}`);
+  const hex = privateKey.replace(/^0x/i, '').padStart(64, '0');
+  return privateKeyToAccount(`0x${hex}` as `0x${string}`);
 }
 
 const avalanchePublicClient = createPublicClient({

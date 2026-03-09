@@ -485,8 +485,8 @@ class PolymarketService {
       volume: poly.volume || '0',
       liquidity: poly.liquidity || '0',
 
-      endTime: new Date(poly.endDate).getTime(),
-      createdAt: new Date(poly.startDate).getTime(),
+      endTime: poly.endDate ? new Date(poly.endDate).getTime() : Date.now() + 30 * 24 * 60 * 60 * 1000,
+      createdAt: poly.startDate ? new Date(poly.startDate).getTime() : Date.now(),
 
       status,
       outcome: undefined, // Would need to resolve from outcomes array

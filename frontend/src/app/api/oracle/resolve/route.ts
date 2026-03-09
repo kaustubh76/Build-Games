@@ -104,16 +104,17 @@ export async function POST(request: NextRequest) {
 
     // Optionally submit to contract if oracle key is configured
     let txHash: string | undefined;
-    const oraclePrivateKey = process.env.ORACLE_SIGNER_PRIVATE_KEY;
+    const oraclePrivateKey = process.env.ORACLE_SIGNER_PRIVATE_KEY?.trim();
 
     if (oraclePrivateKey) {
       try {
+        const hex = oraclePrivateKey.replace(/^0x/i, '').padStart(64, '0');
         txHash = await submitToContract(
           BigInt(marketId),
           outcomeValue,
           signatures,
           proofHash,
-          oraclePrivateKey as `0x${string}`
+          `0x${hex}` as `0x${string}`
         );
       } catch (txError) {
         console.error('Failed to submit to contract:', txError);

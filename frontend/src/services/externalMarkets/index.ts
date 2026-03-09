@@ -712,9 +712,9 @@ class ExternalMarketsService {
       noPrice: Math.round(market.noPrice * 100),
       volume: market.volume,
       liquidity: market.liquidity,
-      endTime: new Date(market.endTime),
+      endTime: isNaN(market.endTime) ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : new Date(market.endTime),
       status: market.status,
-      outcome: market.outcome,
+      outcome: market.outcome || null,
       sourceUrl: market.sourceUrl,
       metadata: market.sourceMetadata
         ? JSON.stringify(market.sourceMetadata)
