@@ -292,8 +292,14 @@ const fetchMetadata = async (
 
   let metadata: NFTMetadata | null = null;
 
+  // Check if tokenURI is a storage:// or 0g:// URI
+  if (tokenURI.startsWith('storage://') || tokenURI.startsWith('0g://')) {
+    const rootHash = tokenURI.replace('storage://', '').replace('0g://', '').split(':')[0];
+    logger.debug(`Token ${tokenId || 'unknown'}: Detected storage URI, root hash: ${rootHash}`);
+    metadata = await fetchMetadataFromStorage(rootHash, tokenId, signal);
+  }
   // Check if tokenURI is a storage root hash (starts with 0x)
-  if (tokenURI.startsWith('0x')) {
+  else if (tokenURI.startsWith('0x')) {
     logger.debug(`Token ${tokenId || 'unknown'}: Detected storage root hash format`);
     metadata = await fetchMetadataFromStorage(tokenURI, tokenId, signal);
   }
