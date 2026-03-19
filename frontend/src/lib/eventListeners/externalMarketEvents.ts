@@ -289,14 +289,18 @@ export class ExternalMarketEventListener {
           console.log(`[EventListener] ${decoded.eventName}:`, decoded.args);
           break;
 
-        default:
-          console.warn(`[EventListener] Unknown event: ${decoded.eventName}`);
+        default: {
+          const unknownEvent: string = (decoded as { eventName: string }).eventName;
+          console.warn(`[EventListener] Unknown event: ${unknownEvent}`);
+          break;
+        }
       }
 
       // Record success metrics
       const duration = Date.now() - startTime;
-      ChainMetrics.recordEventProcessed(decoded.eventName as string, true);
-      ChainMetrics.recordEventProcessingTime(decoded.eventName as string, duration);
+      const eventNameStr: string = decoded.eventName;
+      ChainMetrics.recordEventProcessed(eventNameStr, true);
+      ChainMetrics.recordEventProcessingTime(eventNameStr, duration);
       this.consecutiveFailures = 0;
 
     } catch (error: any) {
@@ -471,7 +475,7 @@ export class ExternalMarketEventListener {
       await prisma.mirrorTrade.updateMany({
         where: {
           mirrorKey: args.mirrorKey || '',
-          trader: args.follower || '',
+          traderAddress: args.follower || '',
           blockNumber: Number(log.blockNumber || 0),
         },
         data: {
@@ -502,13 +506,14 @@ export class ExternalMarketEventListener {
       await prisma.mirrorTrade.create({
         data: {
           mirrorKey: args.mirrorKey || '',
-          trader: '0x0000000000000000000000000000000000000000', // System/agent address
-          agentId: Number(args.agentId || 0),
+          traderAddress: '0x0000000000000000000000000000000000000000', // System/agent address
+          agentId: String(args.agentId || 0),
           isYes: args.isYes || false,
-          amountIn: (args.amount || 0n).toString(),
-          sharesOut: '0', // Not in event
+          amount: (args.amount || 0n).toString(),
+          sharesReceived: '0', // Not in event
+          price: 0,
           blockNumber: Number(log.blockNumber || 0),
-          transactionHash: log.transactionHash || '',
+          txHash: log.transactionHash || '',
           timestamp: new Date(),
         },
       });
@@ -573,18 +578,17 @@ export class ExternalMarketEventListener {
         where: { mirrorKey: event.mirrorKey },
         create: {
           mirrorKey: event.mirrorKey,
-          onChainMarketId: Number(event.onChainMarketId),
+          onChainMarketId: event.onChainMarketId.toString(),
           externalId: event.externalId,
-          source: event.source,
+          source: String(event.source),
+          question: event.externalId, // Placeholder; enrich later
+          initialPrice: 5000,
+          lastSyncPrice: 5000,
           creator: event.creator,
           createdAt: new Date(),
-          blockNumber: Number(event.blockNumber),
-          transactionHash: event.transactionHash,
         },
         update: {
-          onChainMarketId: Number(event.onChainMarketId),
-          blockNumber: Number(event.blockNumber),
-          transactionHash: event.transactionHash,
+          onChainMarketId: event.onChainMarketId.toString(),
         },
       });
     } catch (error) {
@@ -598,25 +602,28 @@ export class ExternalMarketEventListener {
       await prisma.mirrorTrade.create({
         data: {
           mirrorKey: event.mirrorKey,
-          trader: event.trader,
+          traderAddress: event.trader,
           isYes: event.isYes,
-          amountIn: event.amountIn.toString(),
-          sharesOut: event.sharesOut.toString(),
+          amount: event.amountIn.toString(),
+          sharesReceived: event.sharesOut.toString(),
+          price: 0, // Not available from event
           blockNumber: Number(event.blockNumber),
-          transactionHash: event.transactionHash,
+          txHash: event.transactionHash,
           timestamp: new Date(),
         },
       });
 
-      // Update mirror market pools
+      // Update mirror market volume
+      const market = await prisma.mirrorMarket.findUnique({
+        where: { mirrorKey: event.mirrorKey },
+        select: { totalVolume: true },
+      });
+      const currentVolume = BigInt(market?.totalVolume || '0');
+      const newVolume = currentVolume + event.amountIn;
       await prisma.mirrorMarket.update({
         where: { mirrorKey: event.mirrorKey },
         data: {
-          yesPool: event.newYesPool.toString(),
-          noPool: event.newNoPool.toString(),
-          totalVolume: {
-            increment: event.amountIn.toString(),
-          },
+          totalVolume: newVolume.toString(),
         },
       });
     } catch (error) {
@@ -630,11 +637,9 @@ export class ExternalMarketEventListener {
         where: { mirrorKey: event.mirrorKey },
         data: {
           resolved: true,
-          outcome: event.outcome,
-          finalYesPrice: Number(event.finalYesPrice),
+          yesWon: event.outcome,
+          resolvedOutcome: event.outcome ? 'yes' : 'no',
           resolvedAt: new Date(Number(event.resolveTime) * 1000),
-          resolveBlockNumber: Number(event.blockNumber),
-          resolveTransactionHash: event.transactionHash,
         },
       });
     } catch (error) {
