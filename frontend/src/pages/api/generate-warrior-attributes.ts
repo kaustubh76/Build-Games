@@ -1,12 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import OpenAI from 'openai';
 import { logger } from '../../lib/logger';
 import { chatCompletion as zgChatCompletion, isZgComputeConfigured } from '../../services/zgComputeService';
-
-const groq = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || '',
-  baseURL: 'https://api.groq.com/openai/v1',
-});
 
 export default async function handler(
   req: NextApiRequest,
@@ -44,23 +38,14 @@ IMPORTANT:
 
 Respond with valid JSON only, no explanation.`;
 
-    let attributesJson: string;
-
-    if (isZgComputeConfigured()) {
-      logger.debug('Using 0G Compute for warrior attributes');
-      attributesJson = await zgChatCompletion(
-        [{ role: 'user', content: userMessage }],
-        { temperature: 0.8, maxTokens: 600 }
-      );
-    } else {
-      const result = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: userMessage }],
-        max_tokens: 600,
-        temperature: 0.8,
-      });
-      attributesJson = result.choices[0]?.message?.content || '';
+    if (!isZgComputeConfigured()) {
+      return res.status(503).json({ error: '0G Compute not configured. Set ZG_PRIVATE_KEY and ZG_COMPUTE_PROVIDER.' });
     }
+
+    const attributesJson = await zgChatCompletion(
+      [{ role: 'user', content: userMessage }],
+      { temperature: 0.8, maxTokens: 600 }
+    );
 
     if (!attributesJson) {
       throw new Error('AI returned empty response');

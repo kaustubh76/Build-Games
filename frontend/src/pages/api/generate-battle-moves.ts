@@ -1,14 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { encodePacked, keccak256 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import OpenAI from 'openai';
 import { logger } from '../../lib/logger';
 import { chatCompletion as zgChatCompletion, isZgComputeConfigured } from '../../services/zgComputeService';
-
-const groq = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || '',
-  baseURL: 'https://api.groq.com/openai/v1',
-});
 
 export default async function handler(
   req: NextApiRequest,
@@ -36,23 +30,14 @@ Available moves: ${battlePrompt.availableMoves?.join(', ') || 'strike, taunt, do
 
 Respond with JSON only: {"agent_1": "<move>", "agent_2": "<move>"}`;
 
-    let battleMoves: string;
-
-    if (isZgComputeConfigured()) {
-      logger.debug('Using 0G Compute for battle moves');
-      battleMoves = await zgChatCompletion(
-        [{ role: 'user', content: userMessage }],
-        { temperature: 0.7, maxTokens: 100 }
-      );
-    } else {
-      const result = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: userMessage }],
-        max_tokens: 100,
-        temperature: 0.7,
-      });
-      battleMoves = result.choices[0]?.message?.content || '';
+    if (!isZgComputeConfigured()) {
+      return res.status(503).json({ error: '0G Compute not configured. Set ZG_PRIVATE_KEY and ZG_COMPUTE_PROVIDER.' });
     }
+
+    const battleMoves = await zgChatCompletion(
+      [{ role: 'user', content: userMessage }],
+      { temperature: 0.7, maxTokens: 100 }
+    );
 
     if (!battleMoves) {
       throw new Error('AI returned empty response');
