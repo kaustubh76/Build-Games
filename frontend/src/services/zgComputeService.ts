@@ -18,7 +18,9 @@ let providerAcknowledged = false;
 
 async function getBroker() {
   if (!brokerInstance && ZG_PRIVATE_KEY) {
-    const provider = new ethers.JsonRpcProvider(ZG_EVM_RPC);
+    // Use a static network to avoid ENS resolution on 0G testnet (chainId 16602)
+    const network = new ethers.Network('0g-testnet', 16602);
+    const provider = new ethers.JsonRpcProvider(ZG_EVM_RPC, network, { staticNetwork: network });
     const signer = new ethers.Wallet(ZG_PRIVATE_KEY, provider);
     brokerInstance = await createZGComputeNetworkBroker(signer);
   }

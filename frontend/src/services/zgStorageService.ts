@@ -27,7 +27,9 @@ export async function upload(
 ): Promise<{ rootHash: string; txHash: string }> {
   if (!ZG_PRIVATE_KEY) throw new Error('ZG_PRIVATE_KEY not configured');
 
-  const provider = new ethers.JsonRpcProvider(ZG_EVM_RPC);
+  // Use a static network to avoid ENS resolution on 0G testnet (chainId 16602)
+  const network = new ethers.Network('0g-testnet', 16602);
+  const provider = new ethers.JsonRpcProvider(ZG_EVM_RPC, network, { staticNetwork: network });
   const signer = new ethers.Wallet(ZG_PRIVATE_KEY, provider);
   const indexer = new Indexer(ZG_INDEXER_RPC);
 
