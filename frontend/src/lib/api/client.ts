@@ -3,7 +3,7 @@
  * A strongly-typed HTTP client for making API requests
  */
 
-import { APIError, ErrorResponses } from './errorHandler';
+import { APIError } from './errorHandler';
 
 /**
  * HTTP methods supported by the client
@@ -106,7 +106,7 @@ export function createApiClient(config: ApiClientConfig) {
 
     // Apply request interceptor
     if (onRequest) {
-      finalConfig = await onRequest(finalConfig);
+      finalConfig = await onRequest(finalConfig as RequestConfig) as RequestConfig<TBody>;
     }
 
     const {
@@ -199,7 +199,7 @@ export function createApiClient(config: ApiClientConfig) {
           lastError = error;
         } else if (error instanceof Error) {
           if (error.name === 'AbortError') {
-            lastError = ErrorResponses.timeout();
+            lastError = new APIError('Request timed out', 408, 'TIMEOUT');
           } else {
             lastError = new APIError(error.message, 500, 'NETWORK_ERROR');
           }
@@ -208,7 +208,7 @@ export function createApiClient(config: ApiClientConfig) {
         }
 
         // Don't retry on client errors (4xx)
-        if (lastError.statusCode >= 400 && lastError.statusCode < 500) {
+        if (lastError!.statusCode >= 400 && lastError!.statusCode < 500) {
           break;
         }
 

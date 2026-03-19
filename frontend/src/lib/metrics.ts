@@ -282,6 +282,20 @@ class MetricsRegistry {
 export class ChainMetrics {
   private static registry = new MetricsRegistry();
 
+  // ========== Generic Metric Methods ==========
+
+  static incrementCounter(name: string, value: number = 1, labels: MetricLabels = {}): void {
+    this.registry.incrementCounter(name, value, labels);
+  }
+
+  static setGauge(name: string, value: number, labels: MetricLabels = {}): void {
+    this.registry.setGauge(name, value, labels);
+  }
+
+  static observeHistogram(name: string, value: number, labels: MetricLabels = {}): void {
+    this.registry.observeHistogram(name, value, labels);
+  }
+
   // ========== Event Tracking Metrics ==========
 
   static recordEventProcessed(eventName: string, success: boolean): void {

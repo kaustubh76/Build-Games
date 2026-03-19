@@ -124,7 +124,7 @@ export class MockWalletProvider {
  */
 export class MockContract {
   private methods: Map<string, (...args: unknown[]) => Promise<unknown>> = new Map();
-  private events: Map<string, unknown[]> = new Map();
+  private events: Map<string, unknown[][]> = new Map();
 
   constructor(public address: string) {}
 

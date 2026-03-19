@@ -327,6 +327,72 @@ export function mapValues<T extends Record<string, unknown>, R>(
 }
 
 /**
+ * Deep merge multiple objects (recursively merges nested objects)
+ *
+ * @example
+ * deepMerge({ a: { x: 1 } }, { a: { y: 2 } }) // { a: { x: 1, y: 2 } }
+ */
+export function deepMerge<T extends Record<string, unknown>>(...objects: Partial<T>[]): T {
+  return merge(...objects);
+}
+
+/**
+ * Filter an object's entries using a predicate function
+ *
+ * @example
+ * filterObject({ a: 1, b: 2, c: 3 }, (value) => value > 1)
+ * // { b: 2, c: 3 }
+ */
+export function filterObject<T extends Record<string, unknown>>(
+  obj: T,
+  predicate: (value: T[keyof T], key: string) => boolean
+): Partial<T> {
+  const result: Record<string, unknown> = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      if (predicate(obj[key] as T[keyof T], key)) {
+        result[key] = obj[key];
+      }
+    }
+  }
+  return result as Partial<T>;
+}
+
+/**
+ * Check if an object is empty (has no own enumerable properties)
+ *
+ * @example
+ * isEmpty({}) // true
+ * isEmpty({ a: 1 }) // false
+ */
+export function isEmpty(obj: Record<string, unknown>): boolean {
+  return Object.keys(obj).length === 0;
+}
+
+/**
+ * Apply default values to an object (fills in missing keys)
+ *
+ * @example
+ * defaults({ a: 1 }, { a: 0, b: 2 }) // { a: 1, b: 2 }
+ */
+export function defaults<T extends Record<string, unknown>>(
+  obj: Partial<T>,
+  ...defaultObjects: Partial<T>[]
+): T {
+  const result = { ...obj } as Record<string, unknown>;
+  for (const defs of defaultObjects) {
+    for (const key in defs) {
+      if (Object.prototype.hasOwnProperty.call(defs, key)) {
+        if (result[key] === undefined) {
+          result[key] = defs[key];
+        }
+      }
+    }
+  }
+  return result as T;
+}
+
+/**
  * Invert an object's keys and values
  *
  * @example

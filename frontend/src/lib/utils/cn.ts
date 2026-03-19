@@ -106,7 +106,7 @@ export function createVariants<
     [K in keyof V]?: keyof V[K];
   } & { className?: string }
 ) => string {
-  const { base, variants, defaultVariants = {} } = config;
+  const { base, variants, defaultVariants = {} as Record<string, unknown> } = config;
 
   return (props = {}) => {
     const { className, ...variantProps } = props;
@@ -117,11 +117,11 @@ export function createVariants<
     for (const [key, options] of Object.entries(variants)) {
       const variantKey = key as keyof V;
       const selectedVariant =
-        (variantProps[variantKey] as keyof V[typeof variantKey] | undefined) ??
-        defaultVariants[variantKey];
+        ((variantProps as Record<string, unknown>)[key] as string | undefined) ??
+        (defaultVariants[key] as string | undefined);
 
-      if (selectedVariant && options[selectedVariant as string]) {
-        classes.push(options[selectedVariant as string]);
+      if (selectedVariant && options[selectedVariant]) {
+        classes.push(options[selectedVariant]);
       }
     }
 

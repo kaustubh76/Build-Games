@@ -760,7 +760,7 @@ export class TransactionQueue {
   async add<T>(fn: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
       const id = Math.random().toString(36).substring(7);
-      this.queue.push({ id, fn, resolve, reject });
+      this.queue.push({ id, fn, resolve: resolve as (value: unknown) => void, reject });
       this.process();
     });
   }

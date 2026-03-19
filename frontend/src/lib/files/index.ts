@@ -490,19 +490,19 @@ export function fileListToArray(fileList: FileList): File[] {
  * Check if file is image
  */
 export function isImage(file: File): boolean {
-  return FileTypes.images.includes(file.type);
+  return (FileTypes.images as readonly string[]).includes(file.type);
 }
 
 /**
  * Check if file is video
  */
 export function isVideo(file: File): boolean {
-  return FileTypes.videos.includes(file.type);
+  return (FileTypes.videos as readonly string[]).includes(file.type);
 }
 
 /**
  * Check if file is document
  */
 export function isDocument(file: File): boolean {
-  return FileTypes.documents.includes(file.type);
+  return (FileTypes.documents as readonly string[]).includes(file.type);
 }

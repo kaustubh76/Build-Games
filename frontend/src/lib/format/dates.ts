@@ -18,12 +18,12 @@ export function formatDate(
   const d = toDate(date);
   if (!d) return '';
 
-  const options: Intl.DateTimeFormatOptions = {
+  const options: Intl.DateTimeFormatOptions = ({
     short: { month: 'numeric', day: 'numeric', year: '2-digit' },
     medium: { month: 'short', day: 'numeric', year: 'numeric' },
     long: { month: 'long', day: 'numeric', year: 'numeric' },
     full: { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' },
-  }[style];
+  } as const)[style];
 
   return d.toLocaleDateString(locale, options);
 }
