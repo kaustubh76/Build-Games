@@ -32,7 +32,7 @@ export function MicroMarketGrid({
           <button
             onClick={() => setViewMode('grid')}
             className={`px-3 py-1 text-sm rounded-lg ${
-              viewMode === 'grid' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+              (viewMode as string) === 'grid' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
             Grid View
@@ -40,7 +40,7 @@ export function MicroMarketGrid({
           <button
             onClick={() => setViewMode('grouped')}
             className={`px-3 py-1 text-sm rounded-lg ${
-              viewMode === 'grouped' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+              (viewMode as string) === 'grouped' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
             Grouped View

@@ -129,7 +129,7 @@ export function CreateMirrorMarketModal({
                   </div>
                   <div>
                     <span className="text-gray-400">Volume:</span>
-                    <span className="ml-2 text-white">${formatTokenAmount(market.volume)}</span>
+                    <span className="ml-2 text-white">${formatTokenAmount(BigInt(market.volume || '0'))}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Ends:</span>

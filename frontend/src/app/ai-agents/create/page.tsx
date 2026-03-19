@@ -191,7 +191,7 @@ export default function CreateAgentPage() {
             parameters: {
               minConfidence: formData.strategyParams.minConfidence,
               lookbackPeriod: formData.strategyParams.lookbackPeriod,
-              marketFocus: formData.strategyParams.marketFocus,
+              marketFocus: formData.strategyParams.marketFocus === 'all' ? 0 : formData.strategyParams.marketFocus === 'main' ? 1 : 2,
             },
             weights: [
               formData.strategyWeights.traitAnalysis,

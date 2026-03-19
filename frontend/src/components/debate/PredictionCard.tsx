@@ -62,7 +62,7 @@ export function PredictionCard({ prediction, rank }: PredictionCardProps) {
             Rebutted
           </span>
         )}
-        {prediction.isVerified && (
+        {'isVerified' in prediction && !!(prediction as Record<string, unknown>).isVerified && (
           <span className="px-2 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded-full">
             Verified
           </span>

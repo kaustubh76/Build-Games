@@ -115,12 +115,12 @@ export function MirrorMarketPositions({ onPositionClick, compact = false }: Mirr
         <div className="grid grid-cols-3 gap-3 mb-4 p-3 bg-gray-900 rounded-lg">
           <div>
             <div className="text-xs text-gray-500">Total Value</div>
-            <div className="text-lg font-semibold text-white">{formatTokenAmount(totalValue.toString())}</div>
+            <div className="text-lg font-semibold text-white">{formatTokenAmount(BigInt(totalValue.toString()))}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Total P&L</div>
             <div className={`text-lg font-semibold ${totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {totalPnL >= 0 ? '+' : ''}{formatTokenAmount(totalPnL.toString())}
+              {totalPnL >= 0 ? '+' : ''}{formatTokenAmount(BigInt(totalPnL.toString()))}
             </div>
           </div>
           <div>
@@ -190,7 +190,7 @@ function PositionCard({ position, compact, onClick }: PositionCardProps) {
             {pnlPositive ? '+' : ''}{(position.pnlPercent || 0).toFixed(1)}%
           </div>
           <div className="text-xs text-gray-500">
-            {formatTokenAmount(position.pnl || '0')} CRwN
+            {formatTokenAmount(BigInt(position.pnl || '0'))} CRwN
           </div>
         </div>
       </div>

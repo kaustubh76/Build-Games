@@ -71,7 +71,7 @@ export function MirrorMarketTradePanel({
       if (result) {
         setTxResult({
           txHash: result.txHash,
-          shares: result.sharesReceived || result.sharesOut || '0',
+          shares: ('sharesReceived' in result ? result.sharesReceived : undefined) || ('sharesOut' in result ? result.sharesOut : undefined) || '0',
         });
         setAmount('');
         onTradeComplete?.();
@@ -125,7 +125,7 @@ export function MirrorMarketTradePanel({
             </div>
             <div>
               <span className="text-gray-500">Volume:</span>
-              <span className="ml-2 text-white">{formatTokenAmount(mirrorMarket.totalVolume)}</span>
+              <span className="ml-2 text-white">{formatTokenAmount(BigInt(mirrorMarket.totalVolume || '0'))}</span>
             </div>
             <div>
               <span className="text-gray-500">Trades:</span>
@@ -294,7 +294,7 @@ export function MirrorMarketTradePanel({
       {/* Trade Button */}
       <button
         onClick={handleTrade}
-        disabled={!isConnected || !amount || loading || (mirrorMarket && !mirrorMarket.isActive)}
+        disabled={!isConnected || !amount || loading || (mirrorMarket != null && !mirrorMarket.isActive)}
         className={`w-full py-4 rounded-lg font-semibold text-lg transition-all ${
           !isConnected || !amount || loading || (mirrorMarket && !mirrorMarket.isActive)
             ? 'bg-gray-700 text-gray-400 cursor-not-allowed'

@@ -34,7 +34,7 @@ export function TransferAgentModal({
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const isValidAddress = recipientAddress && isAddress(recipientAddress);
+  const isValidAddress = recipientAddress ? isAddress(recipientAddress) : false;
   const isSelfTransfer = isValidAddress && recipientAddress.toLowerCase() === address?.toLowerCase();
 
   const handleTransfer = useCallback(async () => {

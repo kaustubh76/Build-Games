@@ -416,7 +416,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
       console.log('Warrior promoted successfully:', txHash);
 
       // Refresh NFTs after promotion
-      if (address) {
+      if (connectedAddress) {
         clearCache();
       }
     } catch (error) {

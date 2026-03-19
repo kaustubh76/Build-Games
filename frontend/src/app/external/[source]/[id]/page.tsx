@@ -13,8 +13,8 @@ import { formatTokenAmount } from '@/utils/format';
 export default function ExternalMarketDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const source = params.source as string;
-  const id = params.id as string;
+  const source = params?.source as string;
+  const id = params?.id as string;
 
   // Construct the market ID in the format used by the API
   const marketId = `${source}_${id}`;
@@ -158,11 +158,11 @@ export default function ExternalMarketDetailPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <div className="text-sm text-gray-500">Volume</div>
-                  <div className="text-lg font-semibold">${formatTokenAmount(market.volume)}</div>
+                  <div className="text-lg font-semibold">${formatTokenAmount(BigInt(market.volume || '0'))}</div>
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">Liquidity</div>
-                  <div className="text-lg font-semibold">${formatTokenAmount(market.liquidity)}</div>
+                  <div className="text-lg font-semibold">${formatTokenAmount(BigInt(market.liquidity || '0'))}</div>
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">Time Left</div>
@@ -193,7 +193,7 @@ export default function ExternalMarketDetailPage() {
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Mirror Volume</div>
-                    <div className="text-lg font-semibold">{formatTokenAmount(mirrorMarket.totalVolume)} CRwN</div>
+                    <div className="text-lg font-semibold">{formatTokenAmount(BigInt(mirrorMarket.totalVolume || '0'))} CRwN</div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Trades</div>
