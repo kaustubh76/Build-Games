@@ -51,6 +51,7 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
     [MarketSource.NATIVE]: '🏆',
     [MarketSource.POLYMARKET]: '🔮',
     [MarketSource.KALSHI]: '📊',
+    [MarketSource.OPINION]: '💬',
   };
 
   if (loading) {

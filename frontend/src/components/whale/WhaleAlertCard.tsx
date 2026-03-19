@@ -31,6 +31,7 @@ export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) 
     [MarketSource.NATIVE]: '🏆',
     [MarketSource.POLYMARKET]: '🔮',
     [MarketSource.KALSHI]: '📊',
+    [MarketSource.OPINION]: '💬',
   };
 
   const shortenAddress = (addr?: string) => {

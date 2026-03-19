@@ -37,6 +37,13 @@ const sourceConfig: Record<MarketSource, {
     textColor: 'text-green-400',
     borderColor: 'border-green-500/30',
   },
+  [MarketSource.OPINION]: {
+    label: 'Opinion',
+    icon: '💬',
+    bgColor: 'bg-yellow-500/20',
+    textColor: 'text-yellow-400',
+    borderColor: 'border-yellow-500/30',
+  },
 };
 
 const sizeClasses = {

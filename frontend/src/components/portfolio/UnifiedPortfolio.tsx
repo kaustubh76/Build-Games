@@ -43,6 +43,7 @@ function SourceBadge({ source }: { source: MarketSource }) {
     [MarketSource.NATIVE]: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Native' },
     [MarketSource.POLYMARKET]: { bg: 'bg-purple-500/20', text: 'text-purple-400', label: 'Polymarket' },
     [MarketSource.KALSHI]: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Kalshi' },
+    [MarketSource.OPINION]: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Opinion' },
   };
 
   const { bg, text, label } = config[source] || config[MarketSource.NATIVE];
