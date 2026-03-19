@@ -246,33 +246,21 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Auto-Predict] Sending to AI Compute...`);
 
-    let aiResponse: string;
-
-    // Try 0G Compute first, fall back to Gemini
+    // Use 0G Compute for AI inference (on-chain compute)
     const { chatCompletion: zgChatCompletion, isZgComputeConfigured } = await import('@/services/zgComputeService');
 
-    if (isZgComputeConfigured()) {
-      console.log(`[Auto-Predict] Using 0G Compute`);
-      aiResponse = await zgChatCompletion(
-        [{ role: 'user', content: prompt }],
-        { temperature: 0.3, maxTokens: 500 }
-      );
-    } else {
-      console.log(`[Auto-Predict] Using Gemini fallback`);
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-      const geminiResult = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          maxOutputTokens: 500,
-          temperature: 0.3,
-        },
-      });
-
-      aiResponse = geminiResult.response.text();
+    if (!isZgComputeConfigured()) {
+      return NextResponse.json({
+        success: false,
+        error: '0G Compute not configured. Set ZG_PRIVATE_KEY and ZG_COMPUTE_PROVIDER.'
+      }, { status: 503 });
     }
+
+    console.log(`[Auto-Predict] Using 0G Compute`);
+    const aiResponse = await zgChatCompletion(
+      [{ role: 'user', content: prompt }],
+      { temperature: 0.3, maxTokens: 500 }
+    );
 
     if (!aiResponse) {
       return NextResponse.json({
