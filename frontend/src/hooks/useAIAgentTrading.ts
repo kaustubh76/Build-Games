@@ -136,7 +136,7 @@ export function useAIAgentTrading(agentId: bigint | null) {
       };
     }
 
-    if (prediction.fallbackMode) {
+    if ('fallbackMode' in prediction && (prediction as Record<string, unknown>).fallbackMode) {
       return {
         success: false,
         error: 'Cannot execute trade: Prediction is in fallback mode'
@@ -204,7 +204,7 @@ export function useAIAgentTrading(agentId: bigint | null) {
     // State
     prediction: state.prediction,
     isVerified: state.prediction?.isVerified ?? false,
-    isFallback: state.prediction?.fallbackMode ?? false,
+    isFallback: (state.prediction && 'fallbackMode' in state.prediction) ? !!(state.prediction as Record<string, unknown>).fallbackMode : false,
     validation: state.validation,
 
     // Loading states
@@ -268,7 +268,7 @@ export function useVerifiedCopyTrade(agentId: bigint | null) {
       return false;
     }
 
-    if (prediction.fallbackMode) {
+    if ('fallbackMode' in prediction && (prediction as Record<string, unknown>).fallbackMode) {
       setError('Cannot copy trade: AI prediction is in fallback mode');
       return false;
     }

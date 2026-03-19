@@ -103,7 +103,7 @@ export function useForm<T extends Record<string, unknown>>(
 ): FormState<T> & FormActions<T> {
   const {
     initialValues,
-    validators = {},
+    validators = {} as Partial<{ [K in keyof T]: Validator<T[K]> }>,
     onSubmit,
     validateOnChange = true,
     validateOnBlur = true,

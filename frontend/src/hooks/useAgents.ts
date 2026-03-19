@@ -200,7 +200,7 @@ async function fetchINFTAgents(skipCache = false, signal?: AbortSignal): Promise
         // iNFT specific
         isINFT: true,
         inftTokenId: BigInt(agent.tokenId),
-      } as AIAgentDisplay;
+      } as unknown as AIAgentDisplay;
     });
 
     return displayAgents;
@@ -439,7 +439,7 @@ export function useFollowingAgents() {
             followerCount: 0,
             isINFT: true,
             inftTokenId: BigInt(agent.tokenId),
-          } as AIAgentDisplay));
+          } as unknown as AIAgentDisplay));
 
           setAgents(followedAgents);
         }

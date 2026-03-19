@@ -464,7 +464,7 @@ export function useTypingDetection(options?: {
 
   const [value, setValue] = useState(initialValue);
   const [isTyping, setIsTyping] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const callbackRef = useRef(onFinishTyping);
   callbackRef.current = onFinishTyping;
 

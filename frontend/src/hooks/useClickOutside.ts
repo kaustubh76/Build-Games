@@ -27,7 +27,7 @@ import { useEffect, useRef, RefObject } from 'react';
 export function useClickOutside<T extends HTMLElement>(
   handler: (event: MouseEvent | TouchEvent) => void,
   enabled: boolean = true
-): RefObject<T> {
+): RefObject<T | null> {
   const ref = useRef<T>(null);
 
   useEffect(() => {
@@ -77,8 +77,8 @@ export function useClickOutsideMultiple<T extends HTMLElement>(
   handler: (event: MouseEvent | TouchEvent) => void,
   count: number = 2,
   enabled: boolean = true
-): RefObject<T>[] {
-  const refs = useRef<RefObject<T>[]>(
+): RefObject<T | null>[] {
+  const refs = useRef<RefObject<T | null>[]>(
     Array.from({ length: count }, () => ({ current: null }))
   ).current;
 
@@ -148,7 +148,7 @@ export function useEscapeKey(
 export function useModalBehavior<T extends HTMLElement>(
   onClose: () => void,
   enabled: boolean = true
-): RefObject<T> {
+): RefObject<T | null> {
   const ref = useClickOutside<T>(onClose, enabled);
   useEscapeKey(onClose, enabled);
   return ref;

@@ -5,7 +5,7 @@
  * Type-safe event listener management with automatic cleanup
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 /**
  * Hook for adding event listeners with automatic cleanup
@@ -97,7 +97,7 @@ export function useWindowResize(
     height: typeof window !== 'undefined' ? window.innerHeight : 0,
   });
 
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEventListener('resize', () => {
     if (timeoutRef.current) {
@@ -123,8 +123,6 @@ export function useWindowResize(
   return size;
 }
 
-import { useState } from 'react';
-
 /**
  * Hook for listening to scroll position
  *
@@ -149,7 +147,7 @@ export function useScroll(): {
   });
 
   const prevY = useRef(0);
-  const scrollingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const scrollingTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEventListener('scroll', () => {
     const y = window.scrollY;
@@ -326,7 +324,7 @@ export function useLongPress(options: {
     cancelOnMove = true,
   } = options;
 
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const isLongPressRef = useRef(false);
 
   const start = useCallback(() => {
@@ -383,7 +381,7 @@ export function useDoubleClick(options: {
 }): () => void {
   const { onClick, onDoubleClick, delay = 300 } = options;
   const clickCountRef = useRef(0);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   return useCallback(() => {
     clickCountRef.current += 1;

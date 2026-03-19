@@ -45,7 +45,7 @@ export interface IntersectionObserverEntry {
  */
 export function useIntersectionObserver<T extends HTMLElement>(
   options: UseIntersectionObserverOptions = {}
-): [RefObject<T>, boolean, IntersectionObserverEntry | null] {
+): [RefObject<T | null>, boolean, IntersectionObserverEntry | null] {
   const {
     root = null,
     rootMargin = '0px',
@@ -125,7 +125,7 @@ export function useInfiniteScroll<T extends HTMLElement>(
     rootMargin?: string;
     threshold?: number;
   } = {}
-): RefObject<T> {
+): RefObject<T | null> {
   const { enabled = true, rootMargin = '100px', threshold = 0 } = options;
 
   const ref = useRef<T>(null);
@@ -182,7 +182,7 @@ export function useVisibilityRatio<T extends HTMLElement>(
     rootMargin?: string;
     steps?: number;
   } = {}
-): [RefObject<T>, number] {
+): [RefObject<T | null>, number] {
   const { rootMargin = '0px', steps = 20 } = options;
 
   const ref = useRef<T>(null);
@@ -234,7 +234,7 @@ export function useVisibilityRatio<T extends HTMLElement>(
  */
 export function useLazyLoad<T extends HTMLElement>(
   rootMargin: string = '200px'
-): [RefObject<T>, boolean] {
+): [RefObject<T | null>, boolean] {
   const [ref, isVisible] = useIntersectionObserver<T>({
     rootMargin,
     once: true,

@@ -366,7 +366,7 @@ const rankingToString = (ranking: number): 'unranked' | 'bronze' | 'silver' | 'g
   }
 };
 
-export const useUserNFTs = (isActive: boolean = false, chainId: number = getChainId()) => {
+export const useUserNFTs = (isActive: boolean = false, chainId: number = 43113) => {
   const { address: connectedAddress } = useAccount();
 
   const [userNFTs, setUserNFTs] = useState<UserWarriors[]>([]);
@@ -387,14 +387,14 @@ export const useUserNFTs = (isActive: boolean = false, chainId: number = getChai
 
   // Debug logging (only when params change)
   if (hasParamsChanged) {
-    logger.debug('useUserNFTs - chainId:', chainId, 'isActive:', isActive, 'connectedAddress:', connectedAddress);
+    logger.debug(`useUserNFTs - chainId: ${chainId}, isActive: ${isActive}, connectedAddress: ${connectedAddress ?? 'none'}`);
     lastParamsRef.current = stableParams.key;
   }
 
   // Get contract address for the current chain
   const contractAddress = chainsToContracts[chainId]?.warriorsNFT;
   if (hasParamsChanged) {
-    logger.debug('useUserNFTs - contractAddress for chain', chainId, ':', contractAddress);
+    logger.debug(`useUserNFTs - contractAddress for chain ${chainId}: ${contractAddress ?? 'none'}`);
   }
 
   // Read user's NFT token IDs
@@ -525,12 +525,13 @@ export const useUserNFTs = (isActive: boolean = false, chainId: number = getChai
       };
 
       if (contractTraits) {
+        const t = contractTraits as Record<string, unknown>;
         traits = {
-          strength: Number(contractTraits.strength) / 100,
-          wit: Number(contractTraits.wit) / 100,
-          charisma: Number(contractTraits.charisma) / 100,
-          defence: Number(contractTraits.defence) / 100,
-          luck: Number(contractTraits.luck) / 100
+          strength: Number(t.strength) / 100,
+          wit: Number(t.wit) / 100,
+          charisma: Number(t.charisma) / 100,
+          defence: Number(t.defence) / 100,
+          luck: Number(t.luck) / 100
         };
       }
 
@@ -552,7 +553,7 @@ export const useUserNFTs = (isActive: boolean = false, chainId: number = getChai
           : (typeof metadata?.knowledge_areas === 'string' ? metadata.knowledge_areas : 'Combat, Strategy'),
         traits,
         image: metadata?.image ? convertIpfsToProxyUrl(metadata.image) : '/lazered.png',
-        rank: rankingToString(ranking),
+        rank: rankingToString(Number(ranking)),
         totalWinnings
       };
 
