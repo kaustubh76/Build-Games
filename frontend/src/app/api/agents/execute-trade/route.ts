@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     // Check rate limit (per agent)
     if (!checkRateLimit(agentId)) {
-      throw ErrorResponses.tooManyRequests('Rate limit exceeded. Max 10 trades per minute per agent.');
+      throw ErrorResponses.rateLimitExceeded(RATE_LIMIT_WINDOW);
     }
 
     // Validate prediction verification - only verified predictions allowed

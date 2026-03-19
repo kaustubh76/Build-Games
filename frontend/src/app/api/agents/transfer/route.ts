@@ -58,12 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Check if there's already a pending transfer
     if (inft.pendingTransfer) {
-      throw ErrorResponses.conflict('Transfer already pending', {
-        pendingTransfer: {
-          to: inft.pendingTransfer.to,
-          initiatedAt: inft.pendingTransfer.initiatedAt.toString(),
-        },
-      });
+      throw ErrorResponses.conflict(`Transfer already pending to ${inft.pendingTransfer.to}`);
     }
 
     // Prepare the transfer transaction

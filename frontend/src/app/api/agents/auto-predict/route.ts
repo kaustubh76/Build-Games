@@ -297,8 +297,8 @@ export async function POST(request: NextRequest) {
           ...prediction,
           marketId,
           agentId,
-          isVerified: inferenceData.isVerified || false,
-          proof: inferenceData.proof
+          isVerified: false,
+          proof: undefined
         },
         executed: false,
         reason: `Confidence ${prediction.confidence}% below threshold ${minConfidence}%`,
@@ -331,9 +331,9 @@ export async function POST(request: NextRequest) {
                 isYes: prediction.prediction === 'YES',
                 confidence: prediction.confidence,
                 reasoning: prediction.reasoning,
-                isVerified: inferenceData.isVerified || false,
-                chatId: inferenceData.chatId || '',
-                proof: inferenceData.proof || {
+                isVerified: false,
+                chatId: '',
+                proof: {
                   inputHash: '',
                   outputHash: '',
                   providerAddress: '',
@@ -371,8 +371,8 @@ export async function POST(request: NextRequest) {
         decision: prediction.prediction,
         confidence: prediction.confidence,
         reasoning: prediction.reasoning,
-        isVerified: inferenceData.isVerified || false,
-        proof: inferenceData.proof
+        isVerified: false,
+        proof: undefined
       },
       execution: executionResult,
       timing: {

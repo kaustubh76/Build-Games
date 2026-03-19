@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     const trades = await prisma.mirrorTrade.findMany({
       where: {
         traderAddress: address.toLowerCase(),
-        mirrorKey: { not: null },
+        mirrorKey: { not: undefined },
         NOT: { mirrorKey: '' },
       },
       orderBy: {

@@ -56,19 +56,36 @@ export async function GET(request: NextRequest) {
         userId: address.toLowerCase(),
         status: 'completed',
       },
-      _sum: {
-        copyAmount: true,
-      },
       _count: {
         id: true,
       },
     });
 
+    // Fetch individual copy amounts to compute totals (copyAmount is a String field)
+    const completedCopyTrades = await prisma.mirrorCopyTrade.findMany({
+      where: {
+        userId: address.toLowerCase(),
+        status: 'completed',
+      },
+      select: {
+        whaleAddress: true,
+        copyAmount: true,
+      },
+    });
+
+    const totalCopiedByWhale = new Map<string, string>();
+    for (const trade of completedCopyTrades) {
+      const key = trade.whaleAddress.toLowerCase();
+      const prev = parseFloat(totalCopiedByWhale.get(key) || '0');
+      const curr = parseFloat(trade.copyAmount || '0');
+      totalCopiedByWhale.set(key, (prev + curr).toString());
+    }
+
     const copyStatsMap = new Map(
       copyStats.map((s) => [
         s.whaleAddress.toLowerCase(),
         {
-          totalCopied: s._sum.copyAmount || '0',
+          totalCopied: totalCopiedByWhale.get(s.whaleAddress.toLowerCase()) || '0',
           copyCount: s._count.id,
         },
       ])

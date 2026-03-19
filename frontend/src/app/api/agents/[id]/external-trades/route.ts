@@ -33,7 +33,7 @@ export async function GET(
     const totalCount = await prisma.mirrorTrade.count({
       where: {
         agentId: agentId,
-        mirrorKey: { not: null },
+        mirrorKey: { not: undefined },
         NOT: { mirrorKey: '' },
       },
     });
@@ -42,7 +42,7 @@ export async function GET(
     const trades = await prisma.mirrorTrade.findMany({
       where: {
         agentId: agentId,
-        mirrorKey: { not: null },
+        mirrorKey: { not: undefined },
         NOT: { mirrorKey: '' },
       },
       orderBy: {

@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
 
     // Get contract address
     const contracts = chainsToContracts[getChainId()];
-    const predictionMarketAddress = contracts?.predictionMarket as `0x${string}`;
+    const predictionMarketAddress = contracts?.predictionMarketAMM as `0x${string}`;
 
     // Fetch current market data for each position
     const positions = [];

@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
           ? {
               id: originalTrade.id,
               marketQuestion: originalTrade.marketQuestion,
-              amount: originalTrade.amount,
+              amount: originalTrade.amountUsd,
               source: originalTrade.source,
               timestamp: originalTrade.timestamp,
             }

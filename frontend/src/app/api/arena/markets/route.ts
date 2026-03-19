@@ -123,12 +123,12 @@ export async function GET(request: NextRequest) {
 
     // Collect results and errors
     allMarkets.push(...polymarketResult.markets);
-    if (polymarketResult.error) {
+    if ('error' in polymarketResult && polymarketResult.error) {
       errors.push(polymarketResult.error);
     }
 
     allMarkets.push(...kalshiResult.markets);
-    if (kalshiResult.error) {
+    if ('error' in kalshiResult && kalshiResult.error) {
       errors.push(kalshiResult.error);
     }
 
