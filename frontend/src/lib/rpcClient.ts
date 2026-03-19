@@ -13,10 +13,15 @@ import {
   http,
   type PublicClient,
   type Address,
-  type Abi,
-  type ReadContractParameters,
-  type ReadContractReturnType,
 } from 'viem';
+
+// Use a relaxed type for ReadContractParameters to avoid ABI const-assertion requirements
+type ReadContractParameters = {
+  address: Address;
+  abi: readonly unknown[];
+  functionName: string;
+  args?: readonly unknown[];
+};
 import { avalancheFuji } from 'viem/chains';
 import { getChainId, getAvalancheRpcUrl, getAvalancheFallbackRpcUrl } from '@/constants';
 
@@ -410,29 +415,26 @@ class SharedRPCClient {
   /**
    * Read contract with caching and rate limiting
    */
-  async readContract<
-    TAbi extends Abi | readonly unknown[],
-    TFunctionName extends string,
-  >(
-    params: ReadContractParameters<TAbi, TFunctionName>,
+  async readContract(
+    params: ReadContractParameters,
     options?: {
       cacheTTL?: number; // Cache TTL in ms, 0 to disable caching
       priority?: number; // Higher priority = processed first
       skipCache?: boolean; // Force fresh read
     }
-  ): Promise<ReadContractReturnType<TAbi, TFunctionName>> {
+  ): Promise<unknown> {
     const { cacheTTL = CONFIG.DEFAULT_CACHE_TTL_MS, priority = 0, skipCache = false } = options || {};
 
     // Generate cache key
     const cacheKey = this.cache.generateKey(
-      params.address,
-      params.functionName,
-      params.args
+      params.address!,
+      params.functionName as string,
+      params.args as readonly unknown[] | undefined
     );
 
     // Check cache first (unless skipCache is true)
     if (!skipCache && cacheTTL > 0) {
-      const cached = this.cache.get<ReadContractReturnType<TAbi, TFunctionName>>(cacheKey);
+      const cached = this.cache.get(cacheKey);
       if (cached !== undefined) {
         return cached;
       }
@@ -443,14 +445,14 @@ class SharedRPCClient {
       async () => {
         try {
           const client = this.getActiveClient();
-          const res = await client.readContract(params) as ReadContractReturnType<TAbi, TFunctionName>;
+          const res = await client.readContract(params);
           this.handleRequestSuccess();
           return res;
         } catch (error) {
           this.handleRequestFailure(error as Error);
           // If we just switched to fallback, retry immediately with fallback
           if (this.useFallback) {
-            const fallbackRes = await this.fallbackClient.readContract(params) as ReadContractReturnType<TAbi, TFunctionName>;
+            const fallbackRes = await this.fallbackClient.readContract(params);
             this.handleRequestSuccess();
             return fallbackRes;
           }
@@ -487,9 +489,9 @@ class SharedRPCClient {
     for (let i = 0; i < calls.length; i++) {
       const params = calls[i];
       const cacheKey = this.cache.generateKey(
-        params.address,
-        params.functionName,
-        params.args
+        params.address!,
+        params.functionName as string,
+        params.args as readonly unknown[] | undefined
       );
 
       const cached = this.cache.get(cacheKey);
@@ -544,7 +546,7 @@ class SharedRPCClient {
       }
     }
 
-    return results as T;
+    return results as unknown as T;
   }
 
   /**
@@ -642,17 +644,14 @@ export function getSharedRPCClient(): SharedRPCClient {
 }
 
 // Convenience function for contract reads
-export async function readContractWithRateLimit<
-  TAbi extends Abi | readonly unknown[],
-  TFunctionName extends string,
->(
-  params: ReadContractParameters<TAbi, TFunctionName>,
+export async function readContractWithRateLimit(
+  params: ReadContractParameters,
   options?: {
     cacheTTL?: number;
     priority?: number;
     skipCache?: boolean;
   }
-): Promise<ReadContractReturnType<TAbi, TFunctionName>> {
+): Promise<unknown> {
   return getSharedRPCClient().readContract(params, options);
 }
 
