@@ -15,7 +15,6 @@
   "dependencies": {
     "@0gfoundation/0g-ts-sdk": "^1.2.1",
     "@0glabs/0g-serving-broker": "^0.7.2",
-    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.22.0",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@types/crypto-js": "^4.2.2",
@@ -26,8 +25,6 @@
     "framer-motion": "^12.23.0",
     "lucide-react": "^0.522.0",
     "next": "^15.3.6",
-    "openai": "^5.7.0",
-    "pinata": "^2.4.8",
     "pino-pretty": "^13.0.0",
     "prisma": "^5.22.0",
     "react": "^19.0.0",
