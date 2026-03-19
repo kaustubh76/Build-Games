@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { chatCompletion as zgChatCompletion, isZgComputeConfigured } from '@/services/zgComputeService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,166 +11,73 @@ export async function POST(request: NextRequest) {
       windowMs: 60000,
     });
 
+    // Require 0G Compute
+    if (!isZgComputeConfigured()) {
+      throw ErrorResponses.serviceUnavailable('0G Compute not configured. Set ZG_PRIVATE_KEY and ZG_COMPUTE_PROVIDER.');
+    }
+
     const body = await request.json();
-    const { auth, warriorsData } = body;
+    const { warriorsData } = body;
 
-    // Check if we have both auth and warriorsData
-    if (!auth && !warriorsData) {
-      throw ErrorResponses.badRequest('Missing auth and warriorsData');
+    if (!warriorsData) {
+      throw ErrorResponses.badRequest('Missing warriorsData');
     }
 
-    let authPayload;
+    // Build warrior profile from input
+    const personality = Array.isArray(warriorsData.personality)
+      ? warriorsData.personality
+      : (warriorsData.personality ? warriorsData.personality.split(', ') : ['Brave', 'Skilled']);
+    const knowledgeAreas = Array.isArray(warriorsData.knowledge_areas)
+      ? warriorsData.knowledge_areas
+      : (warriorsData.knowledge_areas ? warriorsData.knowledge_areas.split(', ') : ['Combat', 'Strategy']);
 
-    if (auth) {
-      // Frontend provided signed auth - use it directly
-      console.log('Using frontend-provided auth:', auth);
-      
-      // Validate auth structure
-      if (!auth.signature || !auth.accountId || !auth.publicKey) {
-        throw ErrorResponses.badRequest('Invalid auth structure - missing signature, accountId, or publicKey');
-      }
+    const prompt = `You are a warrior traits generator for a blockchain battle arena game. Given the following warrior profile, generate detailed combat traits and special abilities.
 
-      // Format auth payload (convert to snake_case)
-      const nonceBuffer = Buffer.from(auth.nonce, 'base64');
-      const nonceString = nonceBuffer.toString('utf8');
-      authPayload = {
-        signature: auth.signature,
-        account_id: auth.accountId,
-        public_key: auth.publicKey,
-        message: auth.message,
-        nonce: nonceString,
-        recipient: auth.recipient,
-        callback_url: auth.callbackUrl
-      };
-    } else {
-      // Fallback to backend signing (existing logic)
-      console.log('No auth provided, using backend signing...');
+Warrior Profile:
+- Name: ${warriorsData.name || 'Unknown Warrior'}
+- Bio: ${warriorsData.bio || 'A legendary warrior'}
+- Life History: ${warriorsData.life_history || 'History unknown'}
+- Personality: ${personality.join(', ')}
+- Knowledge Areas: ${knowledgeAreas.join(', ')}
 
-      throw ErrorResponses.serviceUnavailable('Backend signing not yet working - please provide signed auth from frontend');
+Generate a detailed combat profile as JSON with this EXACT format:
+{
+  "traits": {
+    "Strength": <0-10000>,
+    "Wit": <0-10000>,
+    "Charisma": <0-10000>,
+    "Defence": <0-10000>,
+    "Luck": <0-10000>
+  },
+  "moves": {
+    "strike_attack": "<descriptive attack move>",
+    "taunt_attack": "<descriptive taunt phrase>",
+    "dodge": "<descriptive evasion move>",
+    "recover": "<descriptive recovery move>",
+    "special_move": "<unique powerful special move>"
+  },
+  "battle_cry": "<warrior's battle cry>",
+  "weakness": "<warrior's weakness>"
+}
+
+Base trait values on personality (aggressive = high Strength, clever = high Wit, etc.).
+Respond with valid JSON only, no explanation.`;
+
+    console.log('[Activate Warriors] Sending to 0G Compute...');
+
+    const aiResponse = await zgChatCompletion(
+      [{ role: 'user', content: prompt }],
+      { temperature: 0.7, maxTokens: 1000 }
+    );
+
+    if (!aiResponse) {
+      throw new Error('0G Compute returned empty response');
     }
-    
-    // Create the JSON payload for the traits generator AI (not a text prompt)
-    const traitsGeneratorPayload = {
-      name: warriorsData.name,
-      bio: warriorsData.bio,
-      life_history: warriorsData.life_history,
-      personality: Array.isArray(warriorsData.personality) 
-        ? warriorsData.personality 
-        : (warriorsData.personality ? warriorsData.personality.split(', ') : ['Brave', 'Skilled']),
-      knowledge_areas: Array.isArray(warriorsData.knowledge_areas)
-        ? warriorsData.knowledge_areas
-        : (warriorsData.knowledge_areas ? warriorsData.knowledge_areas.split(', ') : ['Combat', 'Strategy'])
-    };
 
-    console.log('Sending JSON payload to traits generator:', traitsGeneratorPayload);
-
-    // Create auth header for AI API
-    const authString = `Bearer ${JSON.stringify(authPayload)}`;
-    
-    const { default: OpenAI } = await import('openai');
-    const openai = new OpenAI({
-      baseURL: "https://api.near.ai/v1",
-      apiKey: "dummy",
-      defaultHeaders: {
-        'Authorization': authString
-      }
+    return NextResponse.json({
+      success: true,
+      response: aiResponse
     });
-
-    // Try chat completions format with the traits generator assistant
-    try {
-      const assistant_id = "samkitsoni.near/traits-generator/latest";
-      
-      const chatResponse = await fetch("https://api.near.ai/v1/chat/completions", {
-        method: 'POST',
-        headers: {
-          'Authorization': authString,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: assistant_id,
-          messages: [
-            {
-              role: "user",
-              content: JSON.stringify(traitsGeneratorPayload)
-            }
-          ],
-          max_tokens: 1000
-        })
-      });
-      
-      if (chatResponse.ok) {
-        const result = await chatResponse.json();
-        const responseContent = result.choices?.[0]?.message?.content || result.response || JSON.stringify(result);
-        
-        return NextResponse.json({
-          success: true,
-          response: responseContent
-        });
-      } else {
-        const errorText = await chatResponse.text();
-        throw new Error(`${chatResponse.status} ${chatResponse.statusText}: ${errorText}`);
-      }
-    } catch (directError) {
-      console.error('Chat completions failed:', directError);
-    }
-
-    // Fallback to threads approach
-    try {
-      const thread = await openai.beta.threads.create();
-
-      await openai.beta.threads.messages.create(
-        thread.id, {
-          role: "user",
-          content: JSON.stringify(traitsGeneratorPayload)
-        }
-      );
-
-      const assistant_id = "samkitsoni.near/traits-generator/latest";
-      const run = await openai.beta.threads.runs.createAndPoll(
-        thread.id,
-        { 
-          assistant_id: assistant_id,
-        }
-      );
-
-      if (run.status === 'completed') {
-        const messages = await openai.beta.threads.messages.list(
-          run.thread_id
-        );
-        
-        const assistantMessages = messages.data.filter(msg => msg.role === 'assistant');
-        
-        if (assistantMessages.length > 0) {
-          const contentMessages = assistantMessages.filter(msg => 
-            !msg.metadata || 
-            (msg.metadata.message_type !== 'system:log' && msg.metadata.message_type !== 'system:output_file')
-          );
-          
-          const mainResponse = contentMessages.length > 0 ? contentMessages[0] : assistantMessages[0];
-          const content = mainResponse.content[0];
-          
-          if (content.type === 'text') {
-            return NextResponse.json({
-              success: true,
-              response: content.text.value
-            });
-          }
-        }
-        
-        return NextResponse.json(
-          { error: "No response received from assistant" },
-          { status: 500 }
-        );
-      } else {
-        return NextResponse.json(
-          { error: `Assistant run failed with status: ${run.status}` },
-          { status: 500 }
-        );
-      }
-    } catch (threadsError) {
-      console.error('Threads approach failed:', threadsError);
-      throw threadsError;
-    }
 
   } catch (error) {
     return handleAPIError(error, 'API:ActivateWarriors:POST');
