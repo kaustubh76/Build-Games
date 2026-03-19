@@ -478,7 +478,7 @@ class WhaleTrackerService {
           }
 
           const copyAmount = this.calculateCopyAmount(
-            whaleTrade.amountUsd,
+            parseFloat(whaleTrade.amountUsd),
             config.maxCopyAmount,
             config.copyPercentage
           );
@@ -601,7 +601,7 @@ class WhaleTrackerService {
   async getMirrorCopyHistory(userAddress: string): Promise<MirrorCopyTrade[]> {
     const trades = await prisma.mirrorCopyTrade.findMany({
       where: {
-        user: { address: userAddress },
+        userId: userAddress,
       },
       orderBy: { createdAt: 'desc' },
       take: 100,

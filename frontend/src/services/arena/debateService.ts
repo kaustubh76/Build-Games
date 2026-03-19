@@ -19,8 +19,8 @@ import {
   generateBaseScore,
   selectOptimalMove,
   calculateConfidence,
-  ScoreBreakdown,
 } from '../../lib/arenaScoring';
+import type { ScoreBreakdown } from '../../types/predictionArena';
 
 // ============================================
 // ARGUMENT TEMPLATES

@@ -14,7 +14,8 @@ import { z } from 'zod';
 /**
  * Single market from Opinion API
  */
-export const OpinionMarketSchema = z.object({
+// Break circular reference by defining base schema first, then adding recursive field
+const OpinionMarketBaseSchema = z.object({
   marketId: z.number(),
   marketTitle: z.string(),
   status: z.number(), // 1=Created, 2=Activated, 3=Resolving, 4=Resolved, 5=Failed, 6=Deleted
@@ -34,8 +35,17 @@ export const OpinionMarketSchema = z.object({
   createdAt: z.string().optional().default(''),
   cutoffAt: z.string().optional().default(''),
   resolvedAt: z.string().optional(),
-  childMarkets: z.array(z.lazy(() => OpinionMarketSchema)).optional(),
 });
+
+type OpinionMarketBase = z.infer<typeof OpinionMarketBaseSchema>;
+
+export type ValidatedOpinionMarketWithChildren = OpinionMarketBase & {
+  childMarkets?: ValidatedOpinionMarketWithChildren[];
+};
+
+export const OpinionMarketSchema: z.ZodType<ValidatedOpinionMarketWithChildren> = OpinionMarketBaseSchema.extend({
+  childMarkets: z.array(z.lazy((): z.ZodType<ValidatedOpinionMarketWithChildren> => OpinionMarketSchema)).optional(),
+}) as z.ZodType<ValidatedOpinionMarketWithChildren>;
 
 export type ValidatedOpinionMarket = z.infer<typeof OpinionMarketSchema>;
 

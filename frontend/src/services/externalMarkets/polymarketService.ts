@@ -31,12 +31,14 @@ import {
 import { polymarketAdaptiveRateLimiter } from '@/lib/adaptiveRateLimiter';
 import { polymarketWS, type PriceCallback } from './polymarketWebSocket';
 import { monitoredCall } from './monitoring';
+import { z } from 'zod';
 import {
   PolymarketMarketsResponseSchema,
   PolymarketMarketSchema,
   PolymarketOrderbookSchema,
   PolymarketTradesResponseSchema,
   safeValidatePolymarket,
+  type ValidatedPolymarketMarket,
 } from './schemas/polymarketSchemas';
 
 // ============================================
@@ -110,8 +112,8 @@ class PolymarketService {
           // Validate response (filter out invalid markets)
           const markets = Array.isArray(data) ? data : data.markets || [];
           return markets
-            .map((m: unknown) => safeValidatePolymarket(m, PolymarketMarketSchema, 'getActiveMarkets'))
-            .filter((m): m is NonNullable<typeof m> => m !== null) as PolymarketMarket[];
+            .map((m: unknown) => safeValidatePolymarket(m, PolymarketMarketSchema as z.ZodType<ValidatedPolymarketMarket>, 'getActiveMarkets'))
+            .filter((m: ValidatedPolymarketMarket | null): m is ValidatedPolymarketMarket => m !== null) as PolymarketMarket[];
         });
       },
       { limit, offset }
@@ -144,7 +146,7 @@ class PolymarketService {
           }
 
           const data = await response.json();
-          return safeValidatePolymarket(data, PolymarketMarketSchema, 'getMarket') || data;
+          return safeValidatePolymarket(data, PolymarketMarketSchema as z.ZodType<ValidatedPolymarketMarket>, 'getMarket') || data;
         });
       },
       { conditionId }
@@ -175,8 +177,8 @@ class PolymarketService {
       const data = await response.json();
       const markets = Array.isArray(data) ? data : data.markets || [];
       return markets
-        .map((m: unknown) => safeValidatePolymarket(m, PolymarketMarketSchema, 'searchMarkets'))
-        .filter((m): m is NonNullable<typeof m> => m !== null) as PolymarketMarket[];
+        .map((m: unknown) => safeValidatePolymarket(m, PolymarketMarketSchema as z.ZodType<ValidatedPolymarketMarket>, 'searchMarkets'))
+        .filter((m: ValidatedPolymarketMarket | null): m is ValidatedPolymarketMarket => m !== null) as PolymarketMarket[];
     });
   }
 
@@ -204,8 +206,8 @@ class PolymarketService {
       const data = await response.json();
       const markets = Array.isArray(data) ? data : data.markets || [];
       return markets
-        .map((m: unknown) => safeValidatePolymarket(m, PolymarketMarketSchema, 'getMarketsByCategory'))
-        .filter((m): m is NonNullable<typeof m> => m !== null) as PolymarketMarket[];
+        .map((m: unknown) => safeValidatePolymarket(m, PolymarketMarketSchema as z.ZodType<ValidatedPolymarketMarket>, 'getMarketsByCategory'))
+        .filter((m: ValidatedPolymarketMarket | null): m is ValidatedPolymarketMarket => m !== null) as PolymarketMarket[];
     });
   }
 

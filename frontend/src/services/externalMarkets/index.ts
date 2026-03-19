@@ -699,7 +699,7 @@ class ExternalMarketsService {
   /**
    * Convert unified market to database format
    */
-  private unifiedToDb(market: UnifiedMarket): Record<string, unknown> {
+  private unifiedToDb(market: UnifiedMarket) {
     return {
       id: market.id,
       source: market.source,

@@ -544,7 +544,7 @@ class AIAgentService {
       return await readContractWithRateLimit({
         address: this.aiAgentRegistryAddress,
         abi: AIAgentRegistryAbi,
-        functionName
+        functionName: functionName as 'MIN_STAKE_NOVICE',
       }, { cacheTTL: CACHE_TTL.STATIC }) as bigint;
     } catch (error) {
       console.error('Error fetching min stake:', error);

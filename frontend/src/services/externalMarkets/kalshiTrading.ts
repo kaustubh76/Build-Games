@@ -187,7 +187,7 @@ class KalshiTradingService {
    * Get all open orders, optionally filtered by ticker
    */
   async getOpenOrders(ticker?: string): Promise<KalshiOrder[]> {
-    return monitoredCall('kalshi', 'getOpenOrders', async () => {
+    return monitoredCall<KalshiOrder[]>('kalshi', 'getOpenOrders', async () => {
       await kalshiAdaptiveRateLimiter.acquire();
       const headers = await kalshiAuth.getAuthHeaders();
 
@@ -218,7 +218,7 @@ class KalshiTradingService {
         'KalshiTrading.getOpenOrders'
       );
 
-      return data.orders;
+      return data.orders ?? [];
     });
   }
 
@@ -229,7 +229,7 @@ class KalshiTradingService {
     status?: 'resting' | 'canceled' | 'executed' | 'pending',
     limit: number = 100
   ): Promise<KalshiOrder[]> {
-    return monitoredCall('kalshi', 'getAllOrders', async () => {
+    return monitoredCall<KalshiOrder[]>('kalshi', 'getAllOrders', async () => {
       await kalshiAdaptiveRateLimiter.acquire();
       const headers = await kalshiAuth.getAuthHeaders();
 
@@ -260,7 +260,7 @@ class KalshiTradingService {
         'KalshiTrading.getAllOrders'
       );
 
-      return data.orders;
+      return data.orders ?? [];
     });
   }
 
@@ -268,7 +268,7 @@ class KalshiTradingService {
    * Get portfolio positions
    */
   async getPositions(): Promise<KalshiPosition[]> {
-    return monitoredCall('kalshi', 'getPositions', async () => {
+    return monitoredCall<KalshiPosition[]>('kalshi', 'getPositions', async () => {
       await kalshiAdaptiveRateLimiter.acquire();
       const headers = await kalshiAuth.getAuthHeaders();
 
@@ -293,7 +293,10 @@ class KalshiTradingService {
         'KalshiTrading.getPositions'
       );
 
-      return data.market_positions;
+      return (data.market_positions ?? []).map(p => ({
+        ...p,
+        realized_pnl: p.realized_pnl ?? 0,
+      }));
     });
   }
 
@@ -309,7 +312,7 @@ class KalshiTradingService {
    * Get account balance
    */
   async getBalance(): Promise<KalshiBalance> {
-    return monitoredCall('kalshi', 'getBalance', async () => {
+    return monitoredCall<KalshiBalance>('kalshi', 'getBalance', async () => {
       await kalshiAdaptiveRateLimiter.acquire();
       const headers = await kalshiAuth.getAuthHeaders();
 
@@ -334,7 +337,7 @@ class KalshiTradingService {
         'KalshiTrading.getBalance'
       );
 
-      return data;
+      return { ...data, payout: data.payout ?? 0 };
     });
   }
 

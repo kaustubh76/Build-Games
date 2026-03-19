@@ -73,9 +73,9 @@ async function readContractOnAvalanche<T>(params: {
   address: Address;
   abi: any;
   functionName: string;
-  args?: readonly unknown[];
+  args?: readonly any[];
 }): Promise<T> {
-  return avalanchePublicClient.readContract(params) as Promise<T>;
+  return avalanchePublicClient.readContract(params as any) as Promise<T>;
 }
 
 class AIAgentINFTService {

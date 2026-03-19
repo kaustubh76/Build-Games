@@ -39,12 +39,12 @@ export async function upload(
     const [tree, treeErr] = await file.merkleTree();
     if (treeErr) throw new Error(`Merkle tree error: ${treeErr}`);
 
-    const rootHash = tree!.rootHash();
+    const rootHash = tree!.rootHash() ?? '';
     const [uploadResult, uploadErr] = await indexer.upload(file, ZG_EVM_RPC, signer);
     if (uploadErr) throw new Error(`0G upload error: ${uploadErr}`);
 
     await file.close();
-    return { rootHash, txHash: uploadResult?.txHash || '' };
+    return { rootHash, txHash: (uploadResult as { txHash?: string } | null)?.txHash || '' };
   } finally {
     await unlink(tempPath).catch(() => {});
   }
