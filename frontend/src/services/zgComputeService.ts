@@ -43,7 +43,7 @@ export async function chatCompletion(
     throw new Error('0G Compute not configured');
   }
 
-  // One-time: acknowledge provider signer
+  // One-time: acknowledge provider signer and ensure sufficient balance
   if (!providerAcknowledged) {
     try {
       await broker.inference.acknowledgeProviderSigner(ZG_COMPUTE_PROVIDER);
@@ -54,6 +54,16 @@ export async function chatCompletion(
         console.warn('0G provider acknowledgment warning:', e.message);
       }
       providerAcknowledged = true;
+    }
+
+    // Top up compute account to ensure sufficient balance (2 0G)
+    try {
+      const topUpAmount = BigInt(2) * BigInt(10 ** 18); // 2 0G
+      await broker.ledger.transferFund(ZG_COMPUTE_PROVIDER, 'inference', topUpAmount);
+      console.log('0G Compute: topped up inference account with 2 0G');
+    } catch (e: any) {
+      // May fail if already funded — not critical
+      console.warn('0G top-up note:', e.message?.slice(0, 100));
     }
   }
 
