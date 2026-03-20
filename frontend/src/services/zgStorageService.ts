@@ -5,7 +5,7 @@
  */
 
 import { ZgFile, Indexer } from '@0gfoundation/0g-ts-sdk';
-import { ethers } from 'ethers';
+import { ethers, EnsPlugin } from 'ethers';
 import { writeFile, readFile, unlink } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -27,8 +27,9 @@ export async function upload(
 ): Promise<{ rootHash: string; txHash: string }> {
   if (!ZG_PRIVATE_KEY) throw new Error('ZG_PRIVATE_KEY not configured');
 
-  // Use a static network to avoid ENS resolution on 0G testnet (chainId 16602)
+  // Use a static network with dummy ENS plugin to avoid ENS resolution errors on 0G testnet
   const network = new ethers.Network('0g-testnet', 16602);
+  network.attachPlugin(new EnsPlugin('0x0000000000000000000000000000000000000000', 16602));
   const provider = new ethers.JsonRpcProvider(ZG_EVM_RPC, network, { staticNetwork: network });
   const signer = new ethers.Wallet(ZG_PRIVATE_KEY, provider);
   const indexer = new Indexer(ZG_INDEXER_RPC);

@@ -5,7 +5,7 @@
  */
 
 import { createZGComputeNetworkBroker } from '@0glabs/0g-serving-broker';
-import { ethers } from 'ethers';
+import { ethers, EnsPlugin } from 'ethers';
 
 const ZG_EVM_RPC = process.env.ZG_EVM_RPC || 'https://evmrpc-testnet.0g.ai';
 // Reuse the existing AVAX deployer private key (same wallet for 0G operations)
@@ -18,8 +18,9 @@ let providerAcknowledged = false;
 
 async function getBroker() {
   if (!brokerInstance && ZG_PRIVATE_KEY) {
-    // Use a static network to avoid ENS resolution on 0G testnet (chainId 16602)
+    // Use a static network with dummy ENS plugin to avoid ENS resolution errors on 0G testnet
     const network = new ethers.Network('0g-testnet', 16602);
+    network.attachPlugin(new EnsPlugin('0x0000000000000000000000000000000000000000', 16602));
     const provider = new ethers.JsonRpcProvider(ZG_EVM_RPC, network, { staticNetwork: network });
     const signer = new ethers.Wallet(ZG_PRIVATE_KEY, provider);
     brokerInstance = await createZGComputeNetworkBroker(signer);
