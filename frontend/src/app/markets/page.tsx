@@ -295,7 +295,7 @@ export default function MarketsPage() {
               className="text-center animate-slide-up"
               style={{ animationDelay: `${400 + index * 100}ms` }}
             >
-              <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-2xl md:text-3xl">
+              <div className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-4 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-2xl md:text-3xl">
                 {item.icon}
               </div>
               <h3 className="text-base md:text-lg font-semibold text-white mb-2">{item.title}</h3>

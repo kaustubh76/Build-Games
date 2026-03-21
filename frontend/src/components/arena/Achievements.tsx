@@ -214,7 +214,7 @@ const TIER_COLORS = {
   silver: 'from-gray-300 to-gray-500',
   gold: 'from-yellow-400 to-yellow-600',
   platinum: 'from-cyan-400 to-cyan-600',
-  diamond: 'from-purple-400 to-pink-500',
+  diamond: 'from-red-400 to-pink-500',
 };
 
 const TIER_BG = {
@@ -222,7 +222,7 @@ const TIER_BG = {
   silver: 'bg-gray-400/20 border-gray-400/50',
   gold: 'bg-yellow-500/20 border-yellow-500/50',
   platinum: 'bg-cyan-500/20 border-cyan-500/50',
-  diamond: 'bg-purple-500/20 border-purple-500/50',
+  diamond: 'bg-red-500/20 border-red-500/50',
 };
 
 // ============================================
@@ -266,7 +266,7 @@ export function Achievements({ stats, className = '', showLocked = true }: Achie
   return (
     <div className={`bg-gray-800/50 rounded-2xl border border-gray-700 overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="p-6 border-b border-gray-700 bg-gradient-to-r from-purple-900/30 to-pink-900/30">
+      <div className="p-6 border-b border-gray-700 bg-gradient-to-r from-red-900/30 to-pink-900/30">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">Achievements</h2>
@@ -275,7 +275,7 @@ export function Achievements({ stats, className = '', showLocked = true }: Achie
             </p>
           </div>
           <div className="text-right">
-            <p className="text-3xl font-bold text-purple-400">{progress}%</p>
+            <p className="text-3xl font-bold text-red-400">{progress}%</p>
             <p className="text-gray-400 text-sm">Complete</p>
           </div>
         </div>
@@ -283,7 +283,7 @@ export function Achievements({ stats, className = '', showLocked = true }: Achie
         {/* Progress Bar */}
         <div className="mt-4 h-3 bg-gray-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all"
+            className="h-full bg-gradient-to-r from-red-500 to-pink-500 transition-all"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -365,7 +365,7 @@ function AchievementCard({ achievement, stats, isUnlocked }: AchievementCardProp
         <div className="mt-3">
           <div className="h-1.5 bg-gray-600 rounded-full overflow-hidden">
             <div
-              className="h-full bg-purple-500 transition-all"
+              className="h-full bg-red-500 transition-all"
               style={{ width: `${Math.min((progressData.current / progressData.target) * 100, 100)}%` }}
             />
           </div>

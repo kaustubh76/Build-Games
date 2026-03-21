@@ -17,10 +17,10 @@ export function MicroMarketCard({ market, onClick, isSelected = false }: MicroMa
   return (
     <div
       onClick={onClick}
-      className={`bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg p-4 border transition-all duration-200 cursor-pointer ${
+      className={`arcade-card p-4 transition-all duration-200 cursor-pointer ${
         isSelected
-          ? 'border-purple-500 ring-2 ring-purple-500/20'
-          : 'border-gray-700 hover:border-purple-500/50'
+          ? 'border-red-500 ring-2 ring-red-500/20'
+          : 'hover:border-red-500/50'
       }`}
     >
       {/* Header */}
@@ -76,7 +76,7 @@ export function MicroMarketCard({ market, onClick, isSelected = false }: MicroMa
 
 function MarketTypeBadge({ type, label }: { type: number; label: string }) {
   const colors: Record<number, string> = {
-    0: 'bg-purple-500/20 text-purple-300', // ROUND_WINNER
+    0: 'bg-red-500/20 text-red-300', // ROUND_WINNER
     1: 'bg-blue-500/20 text-blue-300',     // MOVE_PREDICTION
     2: 'bg-orange-500/20 text-orange-300', // DAMAGE_THRESHOLD
     3: 'bg-red-500/20 text-red-300',       // FIRST_BLOOD

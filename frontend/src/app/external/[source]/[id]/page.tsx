@@ -37,7 +37,7 @@ export default function ExternalMarketDetailPage() {
   const getSourceColor = (src: MarketSource) => {
     switch (src) {
       case MarketSource.POLYMARKET:
-        return 'text-purple-400 bg-purple-500/20';
+        return 'text-red-400 bg-red-500/20';
       case MarketSource.KALSHI:
         return 'text-blue-400 bg-blue-500/20';
       default:
@@ -58,8 +58,8 @@ export default function ExternalMarketDetailPage() {
 
   if (marketLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white">
-        <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="min-h-screen">
+        <div className="container-arcade py-6 md:py-8">
           <div className="text-center py-20">
             <div className="w-12 h-12 mx-auto mb-4 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-gray-400">Loading market details...</p>
@@ -71,8 +71,8 @@ export default function ExternalMarketDetailPage() {
 
   if (marketError || !market) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white">
-        <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="min-h-screen">
+        <div className="container-arcade py-6 md:py-8">
           <div className="text-center py-20">
             <div className="w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center">
               <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,8 +98,8 @@ export default function ExternalMarketDetailPage() {
   const isExpired = timeUntilEnd <= 0;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="min-h-screen">
+      <div className="container-arcade py-6 md:py-8">
         {/* Back Button */}
         <Link
           href="/external"
@@ -115,7 +115,7 @@ export default function ExternalMarketDetailPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Market Header */}
-            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="arcade-card p-6">
               <div className="flex items-center gap-3 mb-4">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getSourceColor(market.source)}`}>
                   {getSourceName(market.source)}
@@ -175,7 +175,7 @@ export default function ExternalMarketDetailPage() {
 
             {/* Mirror Market Info */}
             {mirrorMarket && mirrorMarket.isActive && (
-              <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="arcade-card p-6">
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <svg className="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -204,7 +204,7 @@ export default function ExternalMarketDetailPage() {
             )}
 
             {/* External Link */}
-            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="arcade-card p-6">
               <h2 className="text-lg font-semibold mb-4">Trade on {getSourceName(market.source)}</h2>
               <p className="text-gray-400 text-sm mb-4">
                 View this market on the original platform for additional information and direct trading.
@@ -233,7 +233,7 @@ export default function ExternalMarketDetailPage() {
                 onTradeComplete={refetch}
               />
             ) : (
-              <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="arcade-card p-6">
                 <h3 className="text-lg font-semibold mb-4">Mirror This Market</h3>
                 <p className="text-gray-400 text-sm mb-6">
                   Create a mirror of this market on Avalanche to enable CRwN trading and AI agent participation.
@@ -253,7 +253,7 @@ export default function ExternalMarketDetailPage() {
             )}
 
             {/* Market Info Card */}
-            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="arcade-card p-6">
               <h3 className="text-lg font-semibold mb-4">Market Details</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">

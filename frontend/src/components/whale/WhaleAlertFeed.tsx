@@ -90,7 +90,7 @@ export function WhaleAlertFeed({
 
       {/* Show More */}
       {filteredAlerts.length > maxAlerts && (
-        <button className="w-full py-2 text-purple-400 hover:text-purple-300 text-sm">
+        <button className="w-full py-2 text-red-400 hover:text-red-300 text-sm">
           Show {filteredAlerts.length - maxAlerts} more alerts
         </button>
       )}

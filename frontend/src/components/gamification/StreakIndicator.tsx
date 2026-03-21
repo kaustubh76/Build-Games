@@ -73,8 +73,8 @@ function getStreakLevel(streak: number): StreakLevel {
     return {
       icon: '🌟',
       label: 'LEGENDARY',
-      textClass: 'text-purple-300',
-      bgClass: 'bg-gradient-to-r from-purple-900/80 to-pink-900/80 border border-purple-500',
+      textClass: 'text-red-300',
+      bgClass: 'bg-gradient-to-r from-red-900/80 to-pink-900/80 border border-red-500',
       animationClass: 'animate-legendary-flame',
     };
   }

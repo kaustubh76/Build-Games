@@ -41,7 +41,7 @@ function SummaryCard({
 function SourceBadge({ source }: { source: MarketSource }) {
   const config = {
     [MarketSource.NATIVE]: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Native' },
-    [MarketSource.POLYMARKET]: { bg: 'bg-purple-500/20', text: 'text-purple-400', label: 'Polymarket' },
+    [MarketSource.POLYMARKET]: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Polymarket' },
     [MarketSource.KALSHI]: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Kalshi' },
     [MarketSource.OPINION]: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Opinion' },
   };
@@ -134,7 +134,7 @@ export function UnifiedPortfolio() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500" />
         <span className="ml-3 text-gray-400">Loading portfolio...</span>
       </div>
     );
@@ -203,7 +203,7 @@ export function UnifiedPortfolio() {
             onClick={() => setFilter(key as MarketSource | 'all')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === key
-                ? 'bg-purple-600 text-white'
+                ? 'bg-red-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
@@ -241,8 +241,8 @@ export function UnifiedPortfolio() {
           </div>
         </div>
         <div className="bg-gray-800/50 rounded-xl p-4 flex items-center gap-3">
-          <div className="p-2 bg-purple-500/20 rounded-lg">
-            <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="p-2 bg-red-500/20 rounded-lg">
+            <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </div>

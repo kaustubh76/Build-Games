@@ -298,7 +298,7 @@ export function getOutcomeLabel(outcome: MicroMarketOutcome): string {
 export function getMarketTypeColor(type: MicroMarketType): string {
   const colors: Record<MicroMarketType, string> = {
     [MicroMarketType.ROUND_WINNER]: 'blue',
-    [MicroMarketType.MOVE_PREDICTION]: 'purple',
+    [MicroMarketType.MOVE_PREDICTION]: 'red',
     [MicroMarketType.DAMAGE_THRESHOLD]: 'red',
     [MicroMarketType.FIRST_BLOOD]: 'orange',
     [MicroMarketType.COMEBACK]: 'green',

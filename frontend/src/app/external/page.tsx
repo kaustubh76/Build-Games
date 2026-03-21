@@ -66,21 +66,22 @@ export default function ExternalMarketsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <main className="min-h-screen">
+      <div className="container-arcade py-6 md:py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <Link href="/markets" className="text-gray-400 hover:text-white">
+            <Link href="/markets" className="text-slate-400 hover:text-white text-sm">
               ← Back to Markets
             </Link>
           </div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                External Markets
+              <h1 className="text-xl sm:text-2xl md:text-3xl text-red-400 mb-2 tracking-wider arcade-glow"
+                  style={{ fontFamily: 'Press Start 2P, monospace' }}>
+                EXTERNAL MARKETS
               </h1>
-              <p className="text-gray-400">
+              <p className="text-slate-400 text-sm">
                 Trade on Polymarket and Kalshi markets with AI insights
               </p>
             </div>
@@ -92,7 +93,7 @@ export default function ExternalMarketsPage() {
                   px-4 py-2 rounded-lg font-medium transition-all
                   ${syncing
                     ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                    : 'bg-purple-600 text-white hover:bg-purple-500'
+                    : 'bg-red-600 text-white hover:bg-red-500'
                   }
                 `}
               >
@@ -153,7 +154,7 @@ export default function ExternalMarketsPage() {
               placeholder="Search markets..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+              className="w-full input"
             />
           </div>
 
@@ -161,7 +162,7 @@ export default function ExternalMarketsPage() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+            className="input"
           >
             {CATEGORIES.map((cat) => (
               <option key={cat.value} value={cat.value}>
@@ -174,7 +175,7 @@ export default function ExternalMarketsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as ExternalMarketStatus | '')}
-            className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+            className="input"
           >
             <option value="">All Status</option>
             <option value="active">Active</option>
@@ -187,7 +188,7 @@ export default function ExternalMarketsPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+              className="input"
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -197,7 +198,7 @@ export default function ExternalMarketsPage() {
             </select>
             <button
               onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700"
+              className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white hover:bg-slate-700/50 transition-colors"
             >
               {sortOrder === 'desc' ? '↓' : '↑'}
             </button>
@@ -219,7 +220,7 @@ export default function ExternalMarketsPage() {
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500" />
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500" />
           </div>
         )}
 
@@ -246,7 +247,7 @@ export default function ExternalMarketsPage() {
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-500 disabled:opacity-50"
+              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-500 disabled:opacity-50"
             >
               {syncing ? 'Syncing...' : 'Sync Markets Now'}
             </button>
@@ -268,7 +269,7 @@ export default function ExternalMarketsPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-slate-800/50 text-white rounded-lg border border-slate-700/50 hover:bg-slate-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Previous
             </button>
@@ -278,14 +279,14 @@ export default function ExternalMarketsPage() {
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={markets.length < pageSize || page * pageSize >= total}
-              className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-slate-800/50 text-white rounded-lg border border-slate-700/50 hover:bg-slate-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Next
             </button>
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -294,29 +295,27 @@ function StatCard({
   label,
   value,
   icon,
-  color = 'purple',
+  color = 'red',
 }: {
   label: string;
   value: string;
   icon: string;
-  color?: 'purple' | 'blue' | 'green' | 'yellow';
+  color?: 'red' | 'blue' | 'green' | 'yellow';
 }) {
   const colorClasses = {
-    purple: 'from-purple-500/20 to-purple-600/10 border-purple-500/30',
+    red: 'from-red-500/20 to-red-600/10 border-red-500/30',
     blue: 'from-blue-500/20 to-blue-600/10 border-blue-500/30',
     green: 'from-green-500/20 to-green-600/10 border-green-500/30',
     yellow: 'from-yellow-500/20 to-yellow-600/10 border-yellow-500/30',
   };
 
   return (
-    <div
-      className={`bg-gradient-to-br ${colorClasses[color]} border rounded-xl p-4`}
-    >
+    <div className="arcade-card p-4">
       <div className="flex items-center gap-3">
         <span className="text-2xl">{icon}</span>
         <div>
-          <p className="text-gray-400 text-sm">{label}</p>
-          <p className="text-white text-xl font-bold">{value}</p>
+          <p className="text-slate-400 text-xs" style={{ fontFamily: 'Press Start 2P, monospace' }}>{label}</p>
+          <p className="text-yellow-400 text-lg font-bold mt-1">{value}</p>
         </div>
       </div>
     </div>

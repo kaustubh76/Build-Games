@@ -160,17 +160,18 @@ export default function CreateMarketPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <main className="min-h-screen">
+      <div className="container-arcade py-6 md:py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/markets" className="text-gray-400 hover:text-white mb-4 inline-block">
+          <Link href="/markets" className="text-slate-400 hover:text-white mb-4 inline-block text-sm">
             ← Back to Markets
           </Link>
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Create a Prediction Market
+          <h1 className="text-xl sm:text-2xl md:text-3xl text-red-400 mb-2 tracking-wider arcade-glow"
+              style={{ fontFamily: 'Press Start 2P, monospace' }}>
+            CREATE MARKET
           </h1>
-          <p className="text-gray-400">
+          <p className="text-slate-400 text-sm">
             Create a market on any topic. Earn 2% of all trades as the creator.
           </p>
         </div>
@@ -180,7 +181,7 @@ export default function CreateMarketPage() {
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Question Input */}
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
+              <div className="arcade-card p-5 md:p-6">
                 <label className="block text-white font-medium mb-3">
                   What do you want to predict?
                 </label>
@@ -190,7 +191,7 @@ export default function CreateMarketPage() {
                     setFormData({ ...formData, question: e.target.value })
                   }
                   placeholder="e.g., Will Bitcoin hit $100,000 by end of 2025?"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500 resize-none"
                   rows={3}
                   maxLength={500}
                 />
@@ -224,7 +225,7 @@ export default function CreateMarketPage() {
               </div>
 
               {/* Description */}
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
+              <div className="arcade-card p-5 md:p-6">
                 <label className="block text-white font-medium mb-3">
                   Description (optional)
                 </label>
@@ -234,13 +235,13 @@ export default function CreateMarketPage() {
                     setFormData({ ...formData, description: e.target.value })
                   }
                   placeholder="Add context, resolution criteria, or sources..."
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500 resize-none"
                   rows={3}
                 />
               </div>
 
               {/* Category */}
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
+              <div className="arcade-card p-5 md:p-6">
                 <label className="block text-white font-medium mb-3">
                   Category
                 </label>
@@ -254,7 +255,7 @@ export default function CreateMarketPage() {
                       }
                       className={`p-3 rounded-lg border transition-all ${
                         formData.category === cat.value
-                          ? 'bg-purple-600 border-purple-500 text-white'
+                          ? 'bg-red-600 border-red-500 text-white'
                           : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600'
                       }`}
                     >
@@ -267,7 +268,7 @@ export default function CreateMarketPage() {
 
               {/* End Date & Liquidity */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
+                <div className="arcade-card p-5 md:p-6">
                   <label className="block text-white font-medium mb-3">
                     Resolution Date
                   </label>
@@ -278,7 +279,7 @@ export default function CreateMarketPage() {
                       setFormData({ ...formData, endDate: e.target.value })
                     }
                     min={getMinDate()}
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-red-500"
                   />
                   <input
                     type="time"
@@ -286,11 +287,11 @@ export default function CreateMarketPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, endTime: e.target.value })
                     }
-                    className="w-full px-4 py-2 mt-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-4 py-2 mt-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-red-500"
                   />
                 </div>
 
-                <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
+                <div className="arcade-card p-5 md:p-6">
                   <label className="block text-white font-medium mb-3">
                     Initial Liquidity
                   </label>
@@ -303,7 +304,7 @@ export default function CreateMarketPage() {
                       }
                       min="100"
                       step="100"
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 pr-16"
+                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-red-500 pr-16"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
                       CRwN
@@ -316,7 +317,7 @@ export default function CreateMarketPage() {
               </div>
 
               {/* Creator Fee Info */}
-              <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 rounded-xl p-6 border border-purple-500/30">
+              <div className="bg-gradient-to-r from-red-900/50 to-blue-900/50 rounded-xl p-6 border border-red-500/30">
                 <div className="flex items-start gap-4">
                   <span className="text-3xl">💰</span>
                   <div>
@@ -386,10 +387,10 @@ export default function CreateMarketPage() {
 
               {/* Progress Steps */}
               {isCreating && creationStep !== 'idle' && (
-                <div className="p-4 bg-purple-500/20 border border-purple-500/30 rounded-lg">
+                <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-purple-500 border-t-transparent" />
-                    <span className="text-purple-300">
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-red-500 border-t-transparent" />
+                    <span className="text-red-300">
                       {creationStep === 'checking' && 'Checking balance and approval...'}
                       {creationStep === 'approving' && 'Approving CRwN tokens... (confirm in wallet)'}
                       {creationStep === 'creating' && 'Creating market on-chain... (confirm in wallet)'}
@@ -405,7 +406,7 @@ export default function CreateMarketPage() {
                 className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
                   isCreating || !isConnected || !hasEnoughBalance(formData.initialLiquidity)
                     ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-500 hover:to-blue-500 shadow-lg shadow-purple-500/25'
+                    : 'bg-gradient-to-r from-red-600 to-blue-600 text-white hover:from-red-500 hover:to-blue-500 shadow-lg shadow-red-500/25'
                 }`}
               >
                 {!isConnected
@@ -426,8 +427,8 @@ export default function CreateMarketPage() {
           {/* Preview Sidebar */}
           <div className="space-y-6">
             {/* Live Preview */}
-            <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-white font-bold mb-4">Preview</h3>
+            <div className="arcade-card p-5 md:p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>PREVIEW</h3>
               <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
                 <div className="flex items-center gap-2 mb-2">
                   <span>
@@ -460,8 +461,8 @@ export default function CreateMarketPage() {
             </div>
 
             {/* How It Works */}
-            <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-white font-bold mb-4">How It Works</h3>
+            <div className="arcade-card p-5 md:p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>HOW IT WORKS</h3>
               <div className="space-y-4">
                 <Step
                   number={1}
@@ -492,23 +493,23 @@ export default function CreateMarketPage() {
             </div>
 
             {/* Tips */}
-            <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-white font-bold mb-4">💡 Tips</h3>
+            <div className="arcade-card p-5 md:p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>TIPS</h3>
               <ul className="space-y-2 text-sm text-gray-300">
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-400">•</span>
+                  <span className="text-red-400">•</span>
                   Ask clear yes/no questions
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-400">•</span>
+                  <span className="text-red-400">•</span>
                   Include specific dates/numbers
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-400">•</span>
+                  <span className="text-red-400">•</span>
                   Define resolution criteria clearly
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-400">•</span>
+                  <span className="text-red-400">•</span>
                   More liquidity = more trades
                 </li>
               </ul>
@@ -516,7 +517,7 @@ export default function CreateMarketPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -531,7 +532,7 @@ function Step({
 }) {
   return (
     <div className="flex gap-3">
-      <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+      <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
         {number}
       </div>
       <div>

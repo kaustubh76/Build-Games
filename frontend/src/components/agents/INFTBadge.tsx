@@ -38,7 +38,7 @@ export function INFTBadge({
         className={`
           ${sizeClasses[size]}
           relative flex items-center justify-center
-          bg-gradient-to-br from-purple-500 via-blue-500 to-cyan-400
+          bg-gradient-to-br from-red-500 via-blue-500 to-cyan-400
           rounded-md shadow-lg
           ring-1 ring-white/20
         `}
@@ -71,7 +71,7 @@ export function INFTBadge({
         <span
           className={`
             ${labelSizeClasses[size]}
-            font-semibold bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400
+            font-semibold bg-gradient-to-r from-red-400 via-blue-400 to-cyan-400
             bg-clip-text text-transparent
           `}
         >
@@ -161,13 +161,13 @@ export function INFTIndicator({ className = '' }: { className?: string }) {
     <div
       className={`
         inline-flex items-center gap-1 px-1.5 py-0.5
-        bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20
-        border border-purple-500/30 rounded
+        bg-gradient-to-r from-red-500/20 via-blue-500/20 to-cyan-500/20
+        border border-red-500/30 rounded
         ${className}
       `}
     >
-      <div className="w-2 h-2 rounded-full bg-gradient-to-br from-purple-400 to-cyan-400" />
-      <span className="text-[10px] font-medium text-purple-300">iNFT</span>
+      <div className="w-2 h-2 rounded-full bg-gradient-to-br from-red-400 to-cyan-400" />
+      <span className="text-[10px] font-medium text-red-300">iNFT</span>
     </div>
   );
 }

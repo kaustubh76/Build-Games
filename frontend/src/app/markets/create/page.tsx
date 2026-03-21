@@ -139,25 +139,28 @@ export default function CreateMarketPage() {
   }, [getEndTimestamp]);
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-2xl">
+    <main className="container-arcade py-6 md:py-8">
         {/* Breadcrumb */}
         <div className="mb-6">
-          <Link href="/markets" className="text-purple-400 hover:text-purple-300">
+          <Link href="/markets" className="text-slate-400 hover:text-white text-sm">
             ← Back to Markets
           </Link>
         </div>
 
         {/* Page Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Create Prediction Market</h1>
-          <p className="text-gray-400">
+          <h1 className="text-xl sm:text-2xl md:text-3xl text-red-400 mb-3 tracking-wider arcade-glow"
+              style={{ fontFamily: 'Press Start 2P, monospace' }}>
+            CREATE MARKET
+          </h1>
+          <p className="text-slate-400 text-sm">
             Create a custom prediction market and earn fees from trading activity
           </p>
         </div>
 
         {/* Connect Wallet Prompt */}
         {!isConnected && (
-          <div className="bg-gray-800 rounded-xl p-8 text-center border border-gray-700">
+          <div className="arcade-card p-8 text-center">
             <h2 className="text-xl font-semibold text-white mb-4">Connect Your Wallet</h2>
             <p className="text-gray-400 mb-6">
               You need to connect your wallet to create a prediction market
@@ -168,7 +171,7 @@ export default function CreateMarketPage() {
 
         {/* Create Market Form */}
         {isConnected && (
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700">
+          <div className="arcade-card p-6">
             {/* Success State */}
             {isCreateSuccess && (
               <div className="text-center py-8">
@@ -181,7 +184,7 @@ export default function CreateMarketPage() {
                   <div className="mb-4">
                     <Link
                       href={`/markets/${createdMarketId}`}
-                      className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-lg transition-colors"
+                      className="inline-block px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-medium rounded-lg transition-colors"
                     >
                       View Market #{createdMarketId} →
                     </Link>
@@ -208,7 +211,7 @@ export default function CreateMarketPage() {
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     placeholder="e.g., Will Bitcoin reach $100,000 by the end of 2025?"
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 resize-none"
                     rows={3}
                     maxLength={500}
                     disabled={step !== 'form'}
@@ -229,7 +232,7 @@ export default function CreateMarketPage() {
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                       min={minDate}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500"
                       disabled={step !== 'form'}
                     />
                   </div>
@@ -241,7 +244,7 @@ export default function CreateMarketPage() {
                       type="time"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500"
                       disabled={step !== 'form'}
                     />
                   </div>
@@ -265,7 +268,7 @@ export default function CreateMarketPage() {
                     placeholder="100"
                     min="10"
                     step="1"
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-red-500"
                     disabled={step !== 'form'}
                   />
                   <div className="flex justify-between text-sm mt-1">
@@ -295,7 +298,7 @@ export default function CreateMarketPage() {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          isApproveSuccess ? 'bg-green-500 text-white' : 'bg-purple-500 text-white'
+                          isApproveSuccess ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
                         }`}>
                           {isApproveSuccess ? '✓' : '1'}
                         </div>
@@ -307,7 +310,7 @@ export default function CreateMarketPage() {
                       <div className="flex items-center gap-2">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                           isCreateSuccess ? 'bg-green-500 text-white' :
-                          isApproveSuccess ? 'bg-purple-500 text-white' : 'bg-gray-600 text-gray-400'
+                          isApproveSuccess ? 'bg-red-500 text-white' : 'bg-gray-600 text-gray-400'
                         }`}>
                           {isCreateSuccess ? '✓' : '2'}
                         </div>
@@ -324,7 +327,7 @@ export default function CreateMarketPage() {
                     <div className="flex items-center gap-3">
                       {(isApprovePending || isApproveConfirming) && (
                         <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-purple-500" />
+                          <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-red-500" />
                           <span className="text-gray-300">
                             {isApprovePending ? 'Approve CRwN spending in wallet...' : 'Confirming approval on-chain...'}
                           </span>
@@ -332,7 +335,7 @@ export default function CreateMarketPage() {
                       )}
                       {isApproveSuccess && (isCreatePending || isCreateConfirming) && (
                         <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-purple-500" />
+                          <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-red-500" />
                           <span className="text-gray-300">
                             {isCreatePending ? 'Confirm market creation in wallet...' : 'Creating market on-chain...'}
                           </span>
@@ -362,7 +365,7 @@ export default function CreateMarketPage() {
                 <button
                   type="submit"
                   disabled={!isValidForm || !hasEnoughBalance || step !== 'form'}
-                  className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="w-full py-4 bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold rounded-lg hover:from-red-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {step === 'form' ? 'Create Market' : 'Processing...'}
                 </button>
@@ -387,8 +390,8 @@ export default function CreateMarketPage() {
         )}
 
         {/* Tips Section */}
-        <div className="mt-8 bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-          <h3 className="text-lg font-semibold text-white mb-4">Tips for a Great Market</h3>
+        <div className="mt-8 arcade-card p-6">
+          <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>TIPS</h3>
           <div className="space-y-3 text-sm text-gray-400">
             <p>
               <strong className="text-white">Be specific:</strong> Clear, unambiguous questions attract more traders

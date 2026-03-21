@@ -2355,8 +2355,8 @@ export default function ArenaPage() {
             {(isBattleSyncing || lastSyncedBattleId || battleSyncErrors.length > 0) && (
               <div className="mt-3 flex items-center justify-center gap-2">
                 {isBattleSyncing && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-purple-500/20 text-purple-300 rounded-full">
-                    <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-red-500/20 text-red-300 rounded-full">
+                    <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
                     Syncing...
                   </span>
                 )}
@@ -3285,7 +3285,7 @@ const ArenaModal = ({
                     >
                       <button
                         onClick={ onNextRound }
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded text-sm transition-colors"
+                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded text-sm transition-colors"
                         style={ { fontFamily: 'Press Start 2P, monospace' } }
                       >
                         <Trophy className="w-4 h-4 mr-2 inline" />

@@ -10,7 +10,7 @@ interface CreatorRevenueCardProps {
 
 export function CreatorRevenueCard({ creator, breakdown }: CreatorRevenueCardProps) {
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+    <div className="arcade-card p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-white">Revenue Overview</h3>
         <TierBadge tier={creator.tier} label={creator.tierLabel} color={creator.tierColor} />
@@ -40,7 +40,7 @@ export function CreatorRevenueCard({ creator, breakdown }: CreatorRevenueCardPro
           label="Volume Generated"
           value={creator.totalVolumeFormatted}
           icon=""
-          color="text-purple-400"
+          color="text-red-400"
         />
       </div>
 
@@ -95,7 +95,7 @@ function TierBadge({ tier, label, color }: { tier: number; label: string; color:
     silver: 'bg-gray-400/20 text-gray-300',
     gold: 'bg-yellow-500/20 text-yellow-400',
     platinum: 'bg-cyan-500/20 text-cyan-400',
-    diamond: 'bg-purple-500/20 text-purple-400'
+    diamond: 'bg-red-500/20 text-red-400'
   };
 
   const icons: Record<string, string> = {

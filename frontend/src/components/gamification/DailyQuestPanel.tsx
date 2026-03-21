@@ -45,7 +45,7 @@ export function DailyQuestPanel({
   };
 
   return (
-    <div className={`bg-gray-900/90 border border-purple-700 rounded-lg overflow-hidden ${className}`}>
+    <div className={`bg-gray-900/90 border border-red-700 rounded-lg overflow-hidden ${className}`}>
       {/* Header - always visible */}
       <button
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors"
@@ -90,7 +90,7 @@ export function DailyQuestPanel({
             </div>
             <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                className="h-full bg-gradient-to-r from-red-500 to-pink-500 transition-all duration-500"
                 style={{ width: `${(claimedXP / totalXPAvailable) * 100}%` }}
               />
             </div>
@@ -111,7 +111,7 @@ export function DailyQuestPanel({
           {claimableCount > 1 && (
             <button
               onClick={handleClaimAll}
-              className="w-full mt-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-lg transition-all"
+              className="w-full mt-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold rounded-lg transition-all"
             >
               Claim All ({claimableCount})
             </button>
@@ -231,14 +231,14 @@ export function CompactQuestIndicator({
       className={`
         relative inline-flex items-center gap-1.5
         px-2 py-1 rounded-lg
-        bg-purple-900/50 border border-purple-600
-        hover:bg-purple-800/50 transition-colors
+        bg-red-900/50 border border-red-600
+        hover:bg-red-800/50 transition-colors
         ${className}
       `}
       title="Daily Quests"
     >
       <span className="text-base">📋</span>
-      <span className="text-xs font-bold text-purple-300">
+      <span className="text-xs font-bold text-red-300">
         {completedCount}/{totalCount}
       </span>
 

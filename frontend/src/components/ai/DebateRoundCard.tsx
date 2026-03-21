@@ -42,9 +42,9 @@ const roleConfig: Record<
   supervisor: {
     icon: '👨‍⚖️',
     label: 'Supervisor',
-    bgColor: 'bg-purple-900/20',
-    borderColor: 'border-purple-500/50',
-    textColor: 'text-purple-400',
+    bgColor: 'bg-red-900/20',
+    borderColor: 'border-red-500/50',
+    textColor: 'text-red-400',
   },
 };
 
@@ -100,7 +100,7 @@ export function DebateRoundCard({ round, compact = false }: DebateRoundCardProps
       {compact && round.argument.length > 150 && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-2 text-xs text-purple-400 hover:text-purple-300"
+          className="mt-2 text-xs text-red-400 hover:text-red-300"
         >
           {isExpanded ? 'Show less' : 'Show more'}
         </button>
@@ -141,7 +141,7 @@ export function DebateRoundCard({ round, compact = false }: DebateRoundCardProps
                 : round.agentRole === 'bear'
                 ? 'bg-red-500'
                 : round.agentRole === 'supervisor'
-                ? 'bg-purple-500'
+                ? 'bg-red-500'
                 : 'bg-gray-500'
             }`}
             style={{ width: `${round.confidence}%` }}

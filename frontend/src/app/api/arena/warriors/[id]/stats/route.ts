@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { handleAPIError, applyRateLimit, ErrorResponses, RateLimitPresets } from '@/lib/api';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/arena/warriors/[id]/stats

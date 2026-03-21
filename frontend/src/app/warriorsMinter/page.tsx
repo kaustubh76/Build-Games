@@ -1877,7 +1877,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
                   AI FORGE ASSISTANT
                 </h2>
                 <p 
-                  className="text-purple-200 text-sm"
+                  className="text-red-200 text-sm"
                   style={{fontFamily: 'Press Start 2P, monospace'}}
                 >
                   GET STRATEGIC ADVICE FOR YOUR WARRIORS
@@ -1887,7 +1887,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
               <div className="space-y-6">
                 <div>
                   <label 
-                    className="block text-purple-300 text-xs mb-2"
+                    className="block text-red-300 text-xs mb-2"
                     style={{fontFamily: 'Press Start 2P, monospace'}}
                   >
                     ASK THE AI FORGE MASTER:
@@ -1896,7 +1896,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
                     value={aiPrompt}
                     onChange={(e) => setAiPrompt(e.target.value)}
                     placeholder="What attributes should I prioritize for my next Warriors? How can I optimize my current warriors?"
-                    className="w-full p-4 bg-black/50 border-2 border-purple-600 text-purple-100 text-sm rounded-2xl"
+                    className="w-full p-4 bg-black/50 border-2 border-red-600 text-red-100 text-sm rounded-2xl"
                     style={{fontFamily: 'Press Start 2P, monospace'}}
                     rows={4}
                   />
@@ -1911,19 +1911,19 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
                 </button>
 
                 <div 
-                  className="p-4 border-2 border-purple-600 rounded-2xl"
+                  className="p-4 border-2 border-red-600 rounded-2xl"
                   style={{
                     background: 'rgba(128, 0, 128, 0.1)'
                   }}
                 >
                   <h3 
-                    className="text-purple-300 text-xs mb-3"
+                    className="text-red-300 text-xs mb-3"
                     style={{fontFamily: 'Press Start 2P, monospace'}}
                   >
                     FORGE MASTER&apos;S WISDOM:
                   </h3>
                   <p 
-                    className="text-purple-200 text-xs leading-relaxed"
+                    className="text-red-200 text-xs leading-relaxed"
                     style={{fontFamily: 'Press Start 2P, monospace'}}
                   >
                     {aiPrompt ? 

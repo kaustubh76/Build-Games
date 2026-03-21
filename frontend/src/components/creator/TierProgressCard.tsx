@@ -17,7 +17,7 @@ export function TierProgressCard({ creator }: TierProgressCardProps) {
   const isMaxTier = currentTier === 4; // DIAMOND
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+    <div className="arcade-card p-6">
       <h3 className="text-lg font-semibold text-white mb-6">Tier Progress</h3>
 
       {/* Current Tier */}
@@ -38,7 +38,7 @@ export function TierProgressCard({ creator }: TierProgressCardProps) {
           </div>
           <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-purple-500 to-purple-400 transition-all duration-500"
+              className="h-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-500"
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
@@ -50,8 +50,8 @@ export function TierProgressCard({ creator }: TierProgressCardProps) {
       )}
 
       {isMaxTier && (
-        <div className="text-center mb-6 py-4 bg-purple-500/10 rounded-lg">
-          <p className="text-purple-400 font-medium">Maximum Tier Achieved!</p>
+        <div className="text-center mb-6 py-4 bg-red-500/10 rounded-lg">
+          <p className="text-red-400 font-medium">Maximum Tier Achieved!</p>
         </div>
       )}
 
@@ -88,7 +88,7 @@ export function TierProgressCard({ creator }: TierProgressCardProps) {
 }
 
 function TierIcon({ tier }: { tier: number }) {
-  const colors = ['text-orange-400', 'text-gray-300', 'text-yellow-400', 'text-cyan-400', 'text-purple-400'];
+  const colors = ['text-orange-400', 'text-gray-300', 'text-yellow-400', 'text-cyan-400', 'text-red-400'];
   const icons = ['', '', '', '', ''];
 
   return (
@@ -99,7 +99,7 @@ function TierIcon({ tier }: { tier: number }) {
 }
 
 function TierIconSmall({ tier, isActive }: { tier: number; isActive: boolean }) {
-  const colors = ['text-orange-400', 'text-gray-300', 'text-yellow-400', 'text-cyan-400', 'text-purple-400'];
+  const colors = ['text-orange-400', 'text-gray-300', 'text-yellow-400', 'text-cyan-400', 'text-red-400'];
   const icons = ['', '', '', '', ''];
 
   return (

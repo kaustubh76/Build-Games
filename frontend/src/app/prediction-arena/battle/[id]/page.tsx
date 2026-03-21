@@ -109,9 +109,9 @@ export default function BattleDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
+          <div className="animate-spin w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-gray-400">Loading battle...</p>
         </div>
       </div>
@@ -120,12 +120,12 @@ export default function BattleDetailPage() {
 
   if (error || !battle) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 text-xl mb-4">{error || 'Battle not found'}</p>
           <Link
             href="/prediction-arena"
-            className="px-6 py-3 bg-purple-600 rounded-xl text-white font-medium hover:bg-purple-500 transition-all"
+            className="px-6 py-3 bg-red-600 rounded-xl text-white font-medium hover:bg-red-500 transition-all"
           >
             Back to Arena
           </Link>
@@ -140,13 +140,13 @@ export default function BattleDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen">
+      <div className="container-arcade py-6 md:py-8">
         {/* Navigation */}
         <div className="mb-6">
           <Link
             href="/prediction-arena"
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-slate-400 hover:text-white text-sm transition-colors"
           >
             &larr; Back to Arena
           </Link>
@@ -166,14 +166,14 @@ export default function BattleDetailPage() {
               <button
                 onClick={handleExecuteRound}
                 disabled={isExecuting || battle.currentRound > 5}
-                className="px-6 py-3 bg-purple-600 rounded-xl text-white font-bold hover:bg-purple-500 disabled:opacity-50 transition-all"
+                className="px-6 py-3 bg-red-600 rounded-xl text-white font-bold hover:bg-red-500 disabled:opacity-50 transition-all"
               >
                 {isExecuting ? 'Executing...' : `Execute Round ${battle.currentRound}`}
               </button>
               <button
                 onClick={handleExecuteFullBattle}
                 disabled={isExecuting || battle.currentRound > 5}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white font-bold hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 transition-all"
+                className="px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl text-white font-bold hover:from-red-500 hover:to-pink-500 disabled:opacity-50 transition-all"
               >
                 {isExecuting ? 'Executing...' : 'Execute All Rounds'}
               </button>
@@ -195,7 +195,7 @@ export default function BattleDetailPage() {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Participants */}
           <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Participants</h3>
+            <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>PARTICIPANTS</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -206,7 +206,7 @@ export default function BattleDetailPage() {
                   </p>
                 </div>
                 {isParticipant && battle.warrior1Owner.toLowerCase() === address?.toLowerCase() && (
-                  <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full">
+                  <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full">
                     You
                   </span>
                 )}
@@ -221,7 +221,7 @@ export default function BattleDetailPage() {
                     </p>
                   </div>
                   {isParticipant && battle.warrior2Owner.toLowerCase() === address?.toLowerCase() && (
-                    <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full">
+                    <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full">
                       You
                     </span>
                   )}
@@ -232,7 +232,7 @@ export default function BattleDetailPage() {
 
           {/* Betting Pool */}
           <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Betting Pool</h3>
+            <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>BETTING POOL</h3>
             {pool ? (
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -259,7 +259,7 @@ export default function BattleDetailPage() {
                 </div>
                 {userBet && (
                   <div className="pt-3 border-t border-gray-700">
-                    <p className="text-purple-400 font-medium">Your Bet</p>
+                    <p className="text-red-400 font-medium">Your Bet</p>
                     <p className="text-white">
                       {(BigInt(userBet.amount) / BigInt(10 ** 18)).toString()} CRwN on {userBet.betOnWarrior1 ? 'YES' : 'NO'}
                     </p>
@@ -276,7 +276,7 @@ export default function BattleDetailPage() {
 
           {/* Battle Details */}
           <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Battle Details</h3>
+            <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>BATTLE DETAILS</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-400">Status</span>
@@ -299,7 +299,7 @@ export default function BattleDetailPage() {
               {battle.battleDataHash && (
                 <div className="pt-3 border-t border-gray-700">
                   <p className="text-gray-400 text-sm">Battle Data Hash</p>
-                  <p className="text-purple-400 text-xs font-mono truncate">
+                  <p className="text-red-400 text-xs font-mono truncate">
                     {battle.battleDataHash}
                   </p>
                 </div>

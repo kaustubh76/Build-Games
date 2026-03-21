@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { executeDebateRound, executeFullBattle } from '../../../../../../services/arena/debateService';
 import { WarriorTraits, MarketSource, PredictionRound } from '../../../../../../types/predictionArena';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 /**
  * Store completed battle to Storage

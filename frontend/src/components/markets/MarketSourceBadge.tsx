@@ -19,9 +19,9 @@ const sourceConfig: Record<MarketSource, {
   [MarketSource.NATIVE]: {
     label: 'Native',
     icon: '🏆',
-    bgColor: 'bg-purple-500/20',
-    textColor: 'text-purple-400',
-    borderColor: 'border-purple-500/30',
+    bgColor: 'bg-red-500/20',
+    textColor: 'text-red-400',
+    borderColor: 'border-red-500/30',
   },
   [MarketSource.POLYMARKET]: {
     label: 'Polymarket',

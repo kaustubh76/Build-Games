@@ -48,10 +48,10 @@ export const RARITY_COLORS: Record<AchievementRarity, { bg: string; border: stri
     glow: 'shadow-blue-500/50',
   },
   epic: {
-    bg: 'bg-purple-900/50',
-    border: 'border-purple-500',
-    text: 'text-purple-400',
-    glow: 'shadow-purple-500/60',
+    bg: 'bg-red-900/50',
+    border: 'border-red-500',
+    text: 'text-red-400',
+    glow: 'shadow-red-500/60',
   },
   legendary: {
     bg: 'bg-yellow-900/50',

@@ -74,17 +74,17 @@ export default function CreatorDashboardPage() {
 
           {/* Creator Benefits */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-3xl mx-auto mb-8 md:mb-12">
-            <div className="card hover:border-purple-500/50 transition-colors animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <div className="card hover:border-red-500/50 transition-colors animate-slide-up" style={{ animationDelay: '100ms' }}>
               <div className="text-2xl md:text-3xl mb-3">📊</div>
               <h3 className="text-white font-medium mb-2 text-sm md:text-base">Market Creator</h3>
               <p className="text-slate-400 text-xs md:text-sm">Earn 2% of trading volume on markets you create</p>
             </div>
-            <div className="card hover:border-purple-500/50 transition-colors animate-slide-up" style={{ animationDelay: '150ms' }}>
+            <div className="card hover:border-red-500/50 transition-colors animate-slide-up" style={{ animationDelay: '150ms' }}>
               <div className="text-2xl md:text-3xl mb-3">⚔️</div>
               <h3 className="text-white font-medium mb-2 text-sm md:text-base">Warrior Creator</h3>
               <p className="text-slate-400 text-xs md:text-sm">Earn 1% when users bet on warriors you mint</p>
             </div>
-            <div className="card hover:border-purple-500/50 transition-colors animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <div className="card hover:border-red-500/50 transition-colors animate-slide-up" style={{ animationDelay: '200ms' }}>
               <div className="text-2xl md:text-3xl mb-3">🤖</div>
               <h3 className="text-white font-medium mb-2 text-sm md:text-base">Agent Operator</h3>
               <p className="text-slate-400 text-xs md:text-sm">Earn 0.5% from copy-trade volume</p>
@@ -105,7 +105,7 @@ export default function CreatorDashboardPage() {
                     tier.color === 'silver' ? 'bg-slate-400/20 border border-slate-400/30' :
                     tier.color === 'gold' ? 'bg-arcade-gold/20 border border-arcade-gold/30' :
                     tier.color === 'platinum' ? 'bg-cyan-500/20 border border-cyan-500/30' :
-                    'bg-purple-500/20 border border-purple-500/30'
+                    'bg-red-500/20 border border-red-500/30'
                   }`}>
                     {tier.icon}
                   </div>
@@ -168,7 +168,7 @@ export default function CreatorDashboardPage() {
 
           {/* Revenue History */}
           <div className="card animate-slide-up" style={{ animationDelay: '150ms' }}>
-            <h3 className="text-base md:text-lg font-semibold text-white mb-4">Revenue History</h3>
+            <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>REVENUE HISTORY</h3>
             {history.length === 0 ? (
               <div className="text-center py-8">
                 <div className="text-3xl mb-3">📈</div>

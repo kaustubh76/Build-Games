@@ -141,13 +141,13 @@ export default function WhaleTrackerPage() {
           {/* Main Content */}
           <div className="lg:col-span-2">
             {activeTab === 'live' && (
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
+              <div className="arcade-card p-6">
                 <WhaleAlertFeed maxAlerts={20} />
               </div>
             )}
 
             {activeTab === 'history' && (
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
+              <div className="arcade-card p-6">
                 {/* Source Filter */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-white">
@@ -186,7 +186,7 @@ export default function WhaleTrackerPage() {
             )}
 
             {activeTab === 'traders' && (
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
+              <div className="arcade-card p-6">
                 <TrackedTradersList onTraderSelect={setSelectedTrader} />
               </div>
             )}
@@ -195,9 +195,9 @@ export default function WhaleTrackerPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Hot Markets */}
-            <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-bold text-white mb-4">
-                🔥 Hot Markets
+            <div className="arcade-card p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>
+                🔥 HOT MARKETS
               </h3>
               {hotMarketsLoading ? (
                 <div className="flex justify-center py-4">
@@ -222,9 +222,9 @@ export default function WhaleTrackerPage() {
             </div>
 
             {/* Top Whales */}
-            <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-bold text-white mb-4">
-                🏆 Top Whales (24h)
+            <div className="arcade-card p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>
+                🏆 TOP WHALES (24H)
               </h3>
               {topWhalesLoading ? (
                 <div className="flex justify-center py-4">
@@ -250,9 +250,9 @@ export default function WhaleTrackerPage() {
             </div>
 
             {/* Alert Settings */}
-            <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-bold text-white mb-4">
-                ⚙️ Alert Settings
+            <div className="arcade-card p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>
+                ⚙️ ALERT SETTINGS
               </h3>
               <div className="space-y-4">
                 <div>

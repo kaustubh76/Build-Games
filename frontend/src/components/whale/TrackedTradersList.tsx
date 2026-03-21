@@ -57,7 +57,7 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500" />
       </div>
     );
   }
@@ -88,7 +88,7 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
         </h3>
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded-lg text-white text-sm"
+          className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded-lg text-white text-sm"
         >
           + Track Trader
         </button>
@@ -108,7 +108,7 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
           {traders.map((trader) => (
             <div
               key={trader.id}
-              className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-purple-500/50 transition-all cursor-pointer"
+              className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-red-500/50 transition-all cursor-pointer"
               onClick={() => onTraderSelect?.(trader)}
             >
               <div className="flex items-center justify-between">
@@ -123,7 +123,7 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
                           {trader.alias}
                         </span>
                       )}
-                      <code className="text-purple-400 text-sm">
+                      <code className="text-red-400 text-sm">
                         {shortenAddress(trader.address)}
                       </code>
                       {trader.isWhale && (
@@ -239,7 +239,7 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
               <button
                 onClick={handleAddTrader}
                 disabled={!newTrader.address}
-                className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg text-white"
+                className="flex-1 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg text-white"
               >
                 Track
               </button>

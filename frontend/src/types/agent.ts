@@ -291,7 +291,7 @@ export function getTierColor(tier: AgentTier): string {
   const colors: Record<AgentTier, string> = {
     [AgentTier.NOVICE]: 'gray',
     [AgentTier.SKILLED]: 'blue',
-    [AgentTier.EXPERT]: 'purple',
+    [AgentTier.EXPERT]: 'red',
     [AgentTier.ORACLE]: 'gold'
   };
   return colors[tier] ?? 'gray';

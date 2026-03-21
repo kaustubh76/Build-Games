@@ -338,7 +338,7 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
           <button
             onClick={() => setUseAgent(!useAgent)}
             className={`relative w-12 h-6 rounded-full transition-colors ${
-              useAgent ? 'bg-purple-600' : 'bg-gray-600'
+              useAgent ? 'bg-red-600' : 'bg-gray-600'
             }`}
           >
             <span
@@ -351,7 +351,7 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
 
         {/* Agent Selection & Prediction (shown when useAgent is true) */}
         {useAgent && (
-          <div className="space-y-3 p-3 bg-purple-900/20 rounded-lg border border-purple-500/30">
+          <div className="space-y-3 p-3 bg-red-900/20 rounded-lg border border-red-500/30">
             {/* Agent Selector */}
             <div>
               <label className="text-sm text-gray-400 mb-1 block">Select AI Agent</label>
@@ -361,7 +361,7 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
                   const agent = agents.find(a => a.id.toString() === e.target.value);
                   setSelectedAgent(agent || null);
                 }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-500"
                 disabled={agentsLoading}
               >
                 <option value="">
@@ -407,8 +407,8 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
                 disabled={isGenerating || !canTradeMarket}
                 className={`w-full py-2 rounded-lg font-medium text-sm transition-all ${
                   isGenerating
-                    ? 'bg-purple-700 text-purple-300 cursor-wait'
-                    : 'bg-purple-600 hover:bg-purple-500 text-white'
+                    ? 'bg-red-700 text-red-300 cursor-wait'
+                    : 'bg-red-600 hover:bg-red-500 text-white'
                 }`}
               >
                 {isGenerating
@@ -596,7 +596,7 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
             </span>
             <button
               onClick={setMaxAmount}
-              className="text-purple-400 hover:text-purple-300"
+              className="text-red-400 hover:text-red-300"
             >
               Max
             </button>
@@ -607,7 +607,7 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
               value={amount}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.00"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white text-lg focus:outline-none focus:border-purple-500"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white text-lg focus:outline-none focus:border-red-500"
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
               {mode === 'buy' ? 'CRwN' : 'Shares'}
@@ -668,7 +668,7 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
                 onClick={() => setSlippage(val)}
                 className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                   slippage === val
-                    ? 'bg-purple-500 text-white'
+                    ? 'bg-red-500 text-white'
                     : 'bg-gray-800 text-gray-400 hover:text-white'
                 }`}
               >

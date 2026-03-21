@@ -25,7 +25,7 @@ export function ConsensusIndicator({
   const noPercent = totalWeight > 0 ? (noWeight / totalWeight) * 100 : 50;
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+    <div className="arcade-card p-6">
       <h3 className="text-lg font-semibold text-white mb-6">AI Consensus</h3>
 
       {/* Main Indicator */}

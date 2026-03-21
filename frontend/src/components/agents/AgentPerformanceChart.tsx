@@ -13,7 +13,7 @@ export function AgentPerformanceChart({ performance }: AgentPerformanceChartProp
   const pnlPositive = performance.pnlFormatted.startsWith('+');
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+    <div className="arcade-card p-6">
       <h3 className="text-lg font-semibold text-white mb-6">Performance</h3>
 
       {/* Win Rate Circle */}
@@ -80,7 +80,7 @@ export function AgentPerformanceChart({ performance }: AgentPerformanceChartProp
           label="Current Streak"
           value={performance.streakText}
           icon=""
-          color="text-purple-400"
+          color="text-red-400"
         />
       </div>
 
@@ -94,7 +94,7 @@ export function AgentPerformanceChart({ performance }: AgentPerformanceChartProp
         <PerformanceBar
           label="Best Streak"
           value={Math.min(Number(performance.bestStreak) * 10, 100)}
-          color="bg-purple-500"
+          color="bg-red-500"
         />
       </div>
     </div>

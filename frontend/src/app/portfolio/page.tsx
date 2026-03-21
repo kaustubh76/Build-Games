@@ -356,7 +356,7 @@ function PositionCard({ market, position, showLiquidity }: PositionCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               {isBattleMarket && (
-                <span className="badge badge-purple">
+                <span className="badge badge-red">
                   ⚔️ Battle
                 </span>
               )}
@@ -398,7 +398,7 @@ function PositionCard({ market, position, showLiquidity }: PositionCardProps) {
             ) : (
               <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 text-center min-w-[80px]">
                 <span className="text-[10px] md:text-xs text-slate-400 block mb-0.5">LP Shares</span>
-                <p className="text-sm md:text-lg font-bold text-purple-400">
+                <p className="text-sm md:text-lg font-bold text-red-400">
                   {formatTokenAmount(position.lpShares)}
                 </p>
               </div>

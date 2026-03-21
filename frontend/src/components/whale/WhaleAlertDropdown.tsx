@@ -40,7 +40,7 @@ function formatTimeAgo(timestamp: number): string {
 function getSourceBadgeColor(source: string): string {
   switch (source.toLowerCase()) {
     case 'polymarket':
-      return 'bg-purple-500/20 text-purple-300';
+      return 'bg-red-500/20 text-red-300';
     case 'kalshi':
       return 'bg-blue-500/20 text-blue-300';
     default:

@@ -59,7 +59,7 @@ export function ArbitrageOpportunityList({
         {showControls && (
           <button
             onClick={() => setMinSpread(Math.max(1, minSpread - 2))}
-            className="px-4 py-2 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 rounded-lg text-sm"
+            className="px-4 py-2 bg-red-600/30 hover:bg-red-600/50 text-red-300 rounded-lg text-sm"
           >
             Lower threshold to {Math.max(1, minSpread - 2)}%
           </button>
@@ -78,7 +78,7 @@ export function ArbitrageOpportunityList({
             <select
               value={minSpread}
               onChange={(e) => setMinSpread(parseInt(e.target.value))}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:border-purple-500"
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:border-red-500"
             >
               <option value={1}>1%</option>
               <option value={3}>3%</option>
@@ -126,7 +126,7 @@ export function ArbitrageOpportunityList({
         <div className="text-center pt-4">
           <a
             href="/external?tab=arbitrage"
-            className="text-purple-400 hover:text-purple-300 text-sm"
+            className="text-red-400 hover:text-red-300 text-sm"
           >
             View all {opportunities?.length} opportunities →
           </a>

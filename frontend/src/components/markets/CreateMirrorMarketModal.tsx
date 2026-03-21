@@ -63,7 +63,7 @@ export function CreateMirrorMarketModal({
   const getSourceColor = (source: MarketSource) => {
     switch (source) {
       case MarketSource.POLYMARKET:
-        return 'text-purple-400';
+        return 'text-red-400';
       case MarketSource.KALSHI:
         return 'text-blue-400';
       default:

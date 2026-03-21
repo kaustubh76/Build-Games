@@ -161,7 +161,7 @@ export function AcceptChallengeModal({
               </div>
               <div className="flex-1">
                 <p className="text-gray-400 text-xs">Stakes</p>
-                <p className="text-purple-400 text-sm font-medium">
+                <p className="text-red-400 text-sm font-medium">
                   {formatEther(BigInt(battle.stakes))} CRwN
                 </p>
               </div>

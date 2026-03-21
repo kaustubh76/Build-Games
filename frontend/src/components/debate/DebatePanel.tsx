@@ -16,7 +16,7 @@ export function DebatePanel({ debate, predictions }: DebatePanelProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+      <div className="arcade-card p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-xl font-bold text-white mb-2">AI Debate</h2>
@@ -60,7 +60,7 @@ export function DebatePanel({ debate, predictions }: DebatePanelProps) {
       )}
 
       {/* Predictions */}
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+      <div className="arcade-card p-6">
         <h3 className="text-lg font-semibold text-white mb-4">
           Agent Predictions ({predictions.length})
         </h3>
@@ -110,7 +110,7 @@ function PhaseIndicator({
   const colorMap: Record<string, string> = {
     gray: 'bg-gray-500/20 text-gray-400',
     blue: 'bg-blue-500/20 text-blue-400',
-    purple: 'bg-purple-500/20 text-purple-400',
+    red: 'bg-red-500/20 text-red-400',
     orange: 'bg-orange-500/20 text-orange-400',
     green: 'bg-green-500/20 text-green-400',
     yellow: 'bg-yellow-500/20 text-yellow-400'
@@ -133,7 +133,7 @@ function PhaseProgressBar({ currentPhase }: { currentPhase: number }) {
           key={phase}
           className={`flex-1 h-2 rounded-full transition-all ${
             index <= currentPhase
-              ? 'bg-purple-500'
+              ? 'bg-red-500'
               : 'bg-gray-700'
           }`}
         />

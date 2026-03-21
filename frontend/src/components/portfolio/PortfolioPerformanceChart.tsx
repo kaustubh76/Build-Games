@@ -97,10 +97,10 @@ export function PortfolioPerformanceChart({ markets, userMarketIds }: PortfolioP
   // Loading state
   if (loading) {
     return (
-      <div className="bg-gray-900 rounded-xl p-6 border border-gray-700">
+      <div className="arcade-card p-6">
         <h2 className="text-xl font-semibold text-white mb-4">Performance History</h2>
         <div className="h-48 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500" />
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500" />
         </div>
       </div>
     );
@@ -109,7 +109,7 @@ export function PortfolioPerformanceChart({ markets, userMarketIds }: PortfolioP
   // No history state
   if (history.length === 0) {
     return (
-      <div className="bg-gray-900 rounded-xl p-6 border border-gray-700">
+      <div className="arcade-card p-6">
         <h2 className="text-xl font-semibold text-white mb-4">Performance History</h2>
         <div className="h-48 flex items-center justify-center text-gray-500">
           <div className="text-center">
@@ -159,7 +159,7 @@ export function PortfolioPerformanceChart({ markets, userMarketIds }: PortfolioP
             onClick={() => setTimeRange(range)}
             className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
               timeRange === range
-                ? 'bg-purple-500 text-white'
+                ? 'bg-red-500 text-white'
                 : 'bg-gray-800 text-gray-400 hover:text-white'
             }`}
           >

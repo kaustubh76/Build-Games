@@ -377,8 +377,8 @@ class KalshiService {
   normalizeMarket(kalshi: KalshiMarket): UnifiedMarket {
     // Kalshi prices are in cents (0-100)
     const yesPrice = kalshi.yes_bid
-      ? (kalshi.yes_bid + kalshi.yes_ask) / 2
-      : kalshi.last_price;
+      ? ((kalshi.yes_bid ?? 0) + (kalshi.yes_ask ?? 0)) / 2
+      : (kalshi.last_price ?? 50);
     const noPrice = 100 - yesPrice;
 
     // Determine status
@@ -410,8 +410,8 @@ class KalshiService {
       yesPrice: Math.round(yesPrice * 100) / 100,
       noPrice: Math.round(noPrice * 100) / 100,
 
-      volume: kalshi.volume.toString(),
-      liquidity: kalshi.open_interest.toString(),
+      volume: (kalshi.volume ?? 0).toString(),
+      liquidity: (kalshi.open_interest ?? 0).toString(),
 
       endTime: new Date(kalshi.close_time).getTime(),
       createdAt: Date.now(), // Kalshi doesn't expose creation time

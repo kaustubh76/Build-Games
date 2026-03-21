@@ -134,7 +134,7 @@ export function CopyTradeSettings({ agentId, agentName, onUpdate }: CopyTradeSet
                     setNewMaxAmount(e.target.value);
                     setLocalError(null);
                   }}
-                  className="w-32 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-purple-500"
+                  className="w-32 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-red-500"
                   placeholder="100"
                   min="1"
                   disabled={isLoading}
@@ -172,7 +172,7 @@ export function CopyTradeSettings({ agentId, agentName, onUpdate }: CopyTradeSet
               <button
                 onClick={handleUpdateMaxAmount}
                 disabled={isLoading || needsChainSwitch}
-                className="px-3 py-1 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors disabled:opacity-50"
+                className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50"
               >
                 {isLoading ? 'Saving...' : 'Save'}
               </button>

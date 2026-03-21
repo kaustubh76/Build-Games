@@ -146,7 +146,7 @@ export default function PredictionArenaPage() {
         {/* Create Challenge Button */}
         <div className="flex justify-center mb-8">
           <button
-            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold text-white hover:from-purple-500 hover:to-pink-500 transition-all transform hover:scale-105 shadow-lg shadow-purple-500/25"
+            className="px-8 py-4 bg-gradient-to-r from-red-600 to-red-500 rounded-xl font-bold text-white hover:from-red-500 hover:to-red-400 transition-all transform hover:scale-105 shadow-lg shadow-red-500/25"
             onClick={() => setShowCreateModal(true)}
           >
             ⚔️ Create Prediction Challenge

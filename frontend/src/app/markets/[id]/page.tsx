@@ -50,12 +50,12 @@ export default function MarketDetailPage({ params }: PageProps) {
   // Handle invalid market ID (e.g., /markets/create routes here by mistake)
   if (!isValidId) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center">
+      <div className="container-arcade py-20 text-center">
         <h1 className="text-2xl font-bold text-white mb-4">Invalid Market ID</h1>
         <p className="text-gray-400 mb-6">"{resolvedParams.id}" is not a valid market ID.</p>
         <Link
           href="/markets"
-          className="inline-block bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600"
+          className="inline-block bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600"
         >
           Back to Markets
         </Link>
@@ -66,19 +66,19 @@ export default function MarketDetailPage({ params }: PageProps) {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500" />
       </div>
     );
   }
 
   if (error || !market) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center">
+      <div className="container-arcade py-20 text-center">
         <h1 className="text-2xl font-bold text-white mb-4">Market Not Found</h1>
         <p className="text-gray-400 mb-6">The market you're looking for doesn't exist.</p>
         <Link
           href="/markets"
-          className="inline-block bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600"
+          className="inline-block bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600"
         >
           Back to Markets
         </Link>
@@ -107,20 +107,20 @@ export default function MarketDetailPage({ params }: PageProps) {
   };
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-7xl">
+    <main className="container-arcade py-6 md:py-8">
         {/* Breadcrumb */}
         <div className="mb-6">
-          <Link href="/markets" className="text-purple-400 hover:text-purple-300">
+          <Link href="/markets" className="text-slate-400 hover:text-white text-sm">
             ← Back to Markets
           </Link>
         </div>
 
         {/* Market Header */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 mb-8">
+        <div className="arcade-card p-6 mb-8">
           <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
             <div>
               {isBattleMarket && (
-                <span className="inline-block px-3 py-1 text-sm font-medium bg-purple-500/20 text-purple-300 rounded-full mb-3">
+                <span className="inline-block px-3 py-1 text-sm font-medium bg-red-500/20 text-red-300 rounded-full mb-3">
                   Battle Market
                 </span>
               )}
@@ -143,10 +143,10 @@ export default function MarketDetailPage({ params }: PageProps) {
           {isBattleMarket && (
             <div className="flex items-center justify-center gap-8 p-6 bg-gray-800/50 rounded-xl mb-6">
               <div className="text-center">
-                <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-3xl mb-2">
+                <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-3xl mb-2">
                   ⚔️
                 </div>
-                <p className="text-lg font-bold text-purple-300">
+                <p className="text-lg font-bold text-red-300">
                   Warrior #{market.warrior1Id.toString()}
                 </p>
                 <p className="text-sm text-gray-400">YES outcome</p>
@@ -194,7 +194,7 @@ export default function MarketDetailPage({ params }: PageProps) {
             {/* Resolution Info */}
             {isResolved && (
               <div className="bg-gradient-to-br from-green-900/30 to-gray-900 rounded-xl p-6 border border-green-700/50">
-                <h3 className="text-lg font-semibold text-white mb-4">Market Resolved</h3>
+                <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>MARKET RESOLVED</h3>
                 <div className="flex items-center gap-4">
                   <div className={`text-4xl font-bold ${
                     market.outcome === MarketOutcome.Yes ? 'text-green-400' : 'text-red-400'
@@ -239,8 +239,8 @@ export default function MarketDetailPage({ params }: PageProps) {
 
             {/* User Position */}
             {hasPosition && position && (
-              <div className="bg-gray-900 rounded-xl p-6 border border-gray-700">
-                <h3 className="text-lg font-semibold text-white mb-4">Your Position</h3>
+              <div className="arcade-card p-6">
+                <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>YOUR POSITION</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <span className="text-gray-400 text-sm">YES Tokens</span>
@@ -256,7 +256,7 @@ export default function MarketDetailPage({ params }: PageProps) {
                   </div>
                   <div>
                     <span className="text-gray-400 text-sm">LP Shares</span>
-                    <p className="text-purple-400 font-bold text-xl">
+                    <p className="text-red-400 font-bold text-xl">
                       {formatTokenAmount(position.lpShares)}
                     </p>
                   </div>
@@ -318,11 +318,11 @@ export default function MarketDetailPage({ params }: PageProps) {
             )}
 
             {/* Market Activity */}
-            <div className="bg-gray-900 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
+            <div className="arcade-card p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>RECENT ACTIVITY</h3>
               {activitiesLoading ? (
                 <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500" />
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500" />
                 </div>
               ) : activitiesError ? (
                 <div className="text-center py-8 text-red-400">
@@ -350,21 +350,21 @@ export default function MarketDetailPage({ params }: PageProps) {
             {isActive && <LiquidityPanel market={market} onComplete={handleTradeComplete} />}
 
             {!isConnected && (
-              <div className="bg-gray-900 rounded-xl p-6 border border-gray-700 text-center">
+              <div className="arcade-card p-6 text-center">
                 <p className="text-gray-400 mb-4">Connect your wallet to start trading</p>
                 <w3m-connect-button />
               </div>
             )}
 
             {!isActive && !isResolved && (
-              <div className="bg-gray-900 rounded-xl p-6 border border-gray-700 text-center">
+              <div className="arcade-card p-6 text-center">
                 <p className="text-yellow-400">This market is currently paused or cancelled.</p>
               </div>
             )}
 
             {/* Market Info */}
-            <div className="bg-gray-900 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold text-white mb-4">Market Info</h3>
+            <div className="arcade-card p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>MARKET INFO</h3>
               <div className="space-y-3 text-sm">
                 <InfoRow label="Market ID" value={`#${market.id.toString()}`} />
                 <InfoRow label="Creator" value={truncateAddress(market.creator)} />
@@ -388,9 +388,9 @@ export default function MarketDetailPage({ params }: PageProps) {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-gray-800/50 rounded-lg p-4">
-      <span className="text-sm text-gray-400">{label}</span>
-      <p className="text-lg font-bold text-white">{value}</p>
+    <div className="stat-card">
+      <span className="stat-card-label">{label}</span>
+      <p className="stat-card-value text-yellow-400">{value}</p>
     </div>
   );
 }
@@ -505,7 +505,7 @@ function ActivityItem({ activity }: { activity: MarketActivity }) {
       case 'remove_liquidity':
         return 'text-orange-400';
       case 'claim':
-        return 'text-purple-400';
+        return 'text-red-400';
       default:
         return 'text-gray-400';
     }
@@ -547,7 +547,7 @@ function ActivityItem({ activity }: { activity: MarketActivity }) {
         href={`https://testnet.snowtrace.io/tx/${activity.txHash}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="ml-3 text-purple-400 hover:text-purple-300 text-sm"
+        className="ml-3 text-red-400 hover:text-red-300 text-sm"
       >
         View
       </a>

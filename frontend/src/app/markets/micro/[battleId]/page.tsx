@@ -17,10 +17,10 @@ export default function MicroMarketsPage() {
 
   if (!battleId) {
     return (
-      <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-        <div className="container mx-auto px-4 text-center">
+      <div className="min-h-screen">
+        <div className="container-arcade py-6 md:py-8 text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Invalid Battle</h1>
-          <Link href="/battles" className="text-purple-400 hover:text-purple-300">
+          <Link href="/battles" className="text-red-400 hover:text-red-300">
             Browse Battles
           </Link>
         </div>
@@ -29,17 +29,20 @@ export default function MicroMarketsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen">
+      <div className="container-arcade py-6 md:py-8">
         {/* Back Link */}
-        <Link href="/battles" className="text-gray-400 hover:text-white mb-6 inline-block">
-          &lt; Back to Battles
+        <Link href="/prediction-arena" className="text-slate-400 hover:text-white mb-6 inline-block text-sm">
+          ← Back to Arena
         </Link>
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Micro Markets</h1>
-          <p className="text-gray-400">Battle #{battleId.toString()} - Round {currentRoundNumber}</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl text-red-400 mb-2 tracking-wider arcade-glow"
+              style={{ fontFamily: 'Press Start 2P, monospace' }}>
+            MICRO MARKETS
+          </h1>
+          <p className="text-slate-400 text-sm">Battle #{battleId.toString()} - Round {currentRoundNumber}</p>
         </div>
 
         {/* Round Tabs */}
@@ -50,7 +53,7 @@ export default function MicroMarketsPage() {
                 key={round.roundNumber}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap ${
                   round.isActive
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-red-600 text-white'
                     : round.isResolved
                     ? 'bg-gray-800 text-gray-400'
                     : 'bg-gray-800 text-gray-400 hover:text-white'
@@ -98,7 +101,7 @@ export default function MicroMarketsPage() {
                 onSuccess={() => {}}
               />
             ) : (
-              <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700 text-center">
+              <div className="arcade-card p-6 text-center">
                 <p className="text-gray-400">Select a market to trade</p>
               </div>
             )}
@@ -107,14 +110,14 @@ export default function MicroMarketsPage() {
 
         {/* Battle Warriors Info */}
         {groupedMarkets && (
-          <div className="mt-8 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Battle Info</h3>
+          <div className="mt-8 arcade-card p-6">
+            <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>BATTLE INFO</h3>
             <div className="flex items-center justify-center gap-8">
               <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center text-2xl mb-2">
+                <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center text-2xl mb-2">
                   #{groupedMarkets.warrior1Id.toString()}
                 </div>
-                <span className="text-purple-400 font-medium">Warrior 1</span>
+                <span className="text-red-400 font-medium">Warrior 1</span>
               </div>
               <div className="text-3xl text-gray-600">VS</div>
               <div className="text-center">

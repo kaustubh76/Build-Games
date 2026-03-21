@@ -33,10 +33,10 @@ export default function DebatePage() {
 
   if (!debateId) {
     return (
-      <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-        <div className="container mx-auto px-4 text-center">
+      <div className="min-h-screen">
+        <div className="container-arcade py-6 md:py-8 text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Invalid Debate</h1>
-          <Link href="/markets" className="text-purple-400 hover:text-purple-300">
+          <Link href="/markets" className="text-red-400 hover:text-red-300">
             Browse Markets
           </Link>
         </div>
@@ -46,8 +46,8 @@ export default function DebatePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-        <div className="container mx-auto px-4">
+      <div className="min-h-screen">
+        <div className="container-arcade py-6 md:py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-800 rounded w-1/3 mb-4" />
             <div className="h-64 bg-gray-800 rounded-xl mb-4" />
@@ -60,11 +60,11 @@ export default function DebatePage() {
 
   if (error || !debate) {
     return (
-      <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-        <div className="container mx-auto px-4 text-center">
+      <div className="min-h-screen">
+        <div className="container-arcade py-6 md:py-8 text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Debate Not Found</h1>
           <p className="text-gray-400 mb-6">{error || 'This debate does not exist.'}</p>
-          <Link href="/markets" className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500">
+          <Link href="/markets" className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500">
             Browse Markets
           </Link>
         </div>
@@ -73,17 +73,20 @@ export default function DebatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen">
+      <div className="container-arcade py-6 md:py-8">
         {/* Back Link */}
-        <Link href="/markets" className="text-gray-400 hover:text-white mb-6 inline-block">
-          &lt; Back to Markets
+        <Link href="/markets" className="text-slate-400 hover:text-white mb-6 inline-block text-sm">
+          ← Back to Markets
         </Link>
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">AI Debate #{debateId.toString()}</h1>
-          <p className="text-gray-400">Market #{marketId?.toString()}</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl text-red-400 mb-2 tracking-wider arcade-glow"
+              style={{ fontFamily: 'Press Start 2P, monospace' }}>
+            AI DEBATE #{debateId.toString()}
+          </h1>
+          <p className="text-slate-400 text-sm">Market #{marketId?.toString()}</p>
         </div>
 
         {/* Main Content */}
@@ -105,8 +108,8 @@ export default function DebatePage() {
             )}
 
             {/* Phase Durations */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold text-white mb-4">Phase Durations</h3>
+            <div className="arcade-card p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>PHASE DURATIONS</h3>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Prediction</span>
@@ -128,8 +131,8 @@ export default function DebatePage() {
             </div>
 
             {/* Vote Summary */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold text-white mb-4">Vote Summary</h3>
+            <div className="arcade-card p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>VOTE SUMMARY</h3>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold text-green-400">{yesCount}</p>
@@ -148,7 +151,7 @@ export default function DebatePage() {
 
             {/* Finalize Button */}
             {canFinalize && (
-              <button className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition-colors">
+              <button className="w-full py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors">
                 Finalize Debate
               </button>
             )}
@@ -157,12 +160,12 @@ export default function DebatePage() {
 
         {/* Timeline */}
         {timeline.length > 0 && (
-          <div className="mt-8 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Event Timeline</h3>
+          <div className="mt-8 arcade-card p-6">
+            <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>EVENT TIMELINE</h3>
             <div className="space-y-4">
               {timeline.map((event, index) => (
                 <div key={index} className="flex items-start gap-4">
-                  <div className="w-2 h-2 rounded-full bg-purple-500 mt-2" />
+                  <div className="w-2 h-2 rounded-full bg-red-500 mt-2" />
                   <div>
                     <p className="text-white text-sm">{event.description}</p>
                     <p className="text-xs text-gray-500">

@@ -266,8 +266,8 @@ export default function CreateAgentPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-        <div className="container mx-auto px-4 text-center">
+      <div className="min-h-screen">
+        <div className="container-arcade py-6 md:py-8 text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Connect Wallet</h1>
           <p className="text-gray-400 mb-6">Please connect your wallet to create an AI agent.</p>
         </div>
@@ -276,15 +276,18 @@ export default function CreateAgentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-      <div className="container mx-auto px-4 max-w-2xl">
+    <div className="min-h-screen">
+      <div className="container-arcade py-6 md:py-8 max-w-2xl">
         {/* Back Link */}
-        <Link href="/ai-agents" className="text-gray-400 hover:text-white mb-6 inline-block">
-          &lt; Back to Agents
+        <Link href="/ai-agents" className="text-slate-400 hover:text-white mb-6 inline-block text-sm">
+          ← Back to Agents
         </Link>
 
-        <h1 className="text-3xl font-bold text-white mb-2">Create AI Agent</h1>
-        <p className="text-gray-400 mb-8">Build your own autonomous trading agent</p>
+        <h1 className="text-xl sm:text-2xl md:text-3xl text-red-400 mb-2 tracking-wider arcade-glow"
+            style={{ fontFamily: 'Press Start 2P, monospace' }}>
+          CREATE AGENT
+        </h1>
+        <p className="text-slate-400 text-sm mb-8">Build your own autonomous trading agent</p>
 
         {/* Progress Steps */}
         <div className="flex items-center gap-2 mb-8">
@@ -293,21 +296,21 @@ export default function CreateAgentPage() {
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                   s <= step
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-red-600 text-white'
                     : 'bg-gray-800 text-gray-400'
                 }`}
               >
                 {s}
               </div>
               {s < 4 && (
-                <div className={`w-12 h-1 ${s < step ? 'bg-purple-600' : 'bg-gray-800'}`} />
+                <div className={`w-12 h-1 ${s < step ? 'bg-red-600' : 'bg-gray-800'}`} />
               )}
             </div>
           ))}
         </div>
 
         {/* Step Content */}
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-8 border border-gray-700">
+        <div className="arcade-card p-8">
           {step === 1 && (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-white mb-4">Basic Information</h2>
@@ -318,7 +321,7 @@ export default function CreateAgentPage() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500"
                   placeholder="The Oracle"
                   maxLength={32}
                 />
@@ -329,7 +332,7 @@ export default function CreateAgentPage() {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 h-32"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500 h-32"
                   placeholder="Describe your agent's strategy and approach..."
                   maxLength={256}
                 />
@@ -357,7 +360,7 @@ export default function CreateAgentPage() {
                       onClick={() => setFormData({ ...formData, strategy: strategy.value as AgentStrategy })}
                       className={`p-4 rounded-lg border text-left transition-all ${
                         formData.strategy === strategy.value
-                          ? 'border-purple-500 bg-purple-500/10'
+                          ? 'border-red-500 bg-red-500/10'
                           : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
                       }`}
                     >
@@ -396,7 +399,7 @@ export default function CreateAgentPage() {
                 <select
                   value={formData.specialization}
                   onChange={(e) => setFormData({ ...formData, specialization: Number(e.target.value) as Specialization })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500"
                 >
                   <option value="0">Battle Outcomes</option>
                   <option value="1">Round Markets</option>
@@ -422,7 +425,7 @@ export default function CreateAgentPage() {
                         ...formData,
                         strategyParams: { ...formData.strategyParams, minConfidence: Number(e.target.value) }
                       })}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">Only trade when AI confidence exceeds this</p>
                   </div>
@@ -438,7 +441,7 @@ export default function CreateAgentPage() {
                         ...formData,
                         strategyParams: { ...formData.strategyParams, lookbackPeriod: Number(e.target.value) }
                       })}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">Past battles to analyze</p>
                   </div>
@@ -460,7 +463,7 @@ export default function CreateAgentPage() {
                         })}
                         className={`px-3 py-2 rounded-lg border text-sm transition-all ${
                           formData.strategyParams.marketFocus === option.value
-                            ? 'border-purple-500 bg-purple-500/10 text-white'
+                            ? 'border-red-500 bg-red-500/10 text-white'
                             : 'border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600'
                         }`}
                       >
@@ -496,7 +499,7 @@ export default function CreateAgentPage() {
                           [weight.key]: Number(e.target.value)
                         }
                       })}
-                      className="w-full accent-purple-500 h-1"
+                      className="w-full accent-red-500 h-1"
                     />
                     <p className="text-xs text-gray-600">{weight.desc}</p>
                   </div>
@@ -542,7 +545,7 @@ export default function CreateAgentPage() {
                         [trait.key]: Number(e.target.value)
                       }
                     })}
-                    className="w-full accent-purple-500"
+                    className="w-full accent-red-500"
                   />
                   <div className="flex justify-between text-xs text-gray-500 mt-1">
                     <span>{trait.low}</span>
@@ -558,7 +561,7 @@ export default function CreateAgentPage() {
               <h2 className="text-xl font-semibold text-white mb-4">Stake & Launch</h2>
 
               {/* iNFT Toggle */}
-              <div className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg">
+              <div className="p-4 bg-gradient-to-r from-red-500/10 to-blue-500/10 border border-red-500/30 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <INFTBadge size="md" />
@@ -574,11 +577,11 @@ export default function CreateAgentPage() {
                       onChange={(e) => setFormData({ ...formData, mintAsINFT: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-blue-500"></div>
+                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-red-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-red-500 peer-checked:to-blue-500"></div>
                   </label>
                 </div>
                 {formData.mintAsINFT && (
-                  <div className="mt-3 pt-3 border-t border-purple-500/20">
+                  <div className="mt-3 pt-3 border-t border-red-500/20">
                     <ul className="text-xs text-gray-400 space-y-1">
                       <li className="flex items-center gap-2">
                         <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -618,7 +621,7 @@ export default function CreateAgentPage() {
                   className={`w-full bg-gray-800 border rounded-lg px-4 py-3 text-white focus:outline-none ${
                     insufficientBalanceError
                       ? 'border-red-500 focus:border-red-500'
-                      : 'border-gray-700 focus:border-purple-500'
+                      : 'border-gray-700 focus:border-red-500'
                   }`}
                   min={requirementsFormatted[0]}
                 />
@@ -632,7 +635,7 @@ export default function CreateAgentPage() {
                         type="button"
                         onClick={handleMintCRwN}
                         disabled={isMintingCRwN}
-                        className="text-xs px-2 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white rounded transition-colors"
+                        className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded transition-colors"
                       >
                         {isMintingCRwN ? 'Minting...' : 'Get 0.1 CRwN'}
                       </button>
@@ -671,7 +674,7 @@ export default function CreateAgentPage() {
                         ...formData,
                         tradingLimits: { ...formData.tradingLimits, maxPositionSize: e.target.value }
                       })}
-                      className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                      className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-red-500"
                       min="1"
                     />
                   </div>
@@ -684,7 +687,7 @@ export default function CreateAgentPage() {
                         ...formData,
                         tradingLimits: { ...formData.tradingLimits, maxDailyTrades: Number(e.target.value) }
                       })}
-                      className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                      className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-red-500"
                       min="1"
                       max="100"
                     />
@@ -698,7 +701,7 @@ export default function CreateAgentPage() {
                         ...formData,
                         tradingLimits: { ...formData.tradingLimits, maxDailyExposure: e.target.value }
                       })}
-                      className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500"
+                      className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-red-500"
                       min="1"
                     />
                   </div>
@@ -725,7 +728,7 @@ export default function CreateAgentPage() {
                     type="number"
                     value={formData.copyTradeFee / 100}
                     onChange={(e) => setFormData({ ...formData, copyTradeFee: Number(e.target.value) * 100 })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500"
                     min="0"
                     max="10"
                     step="0.1"
@@ -778,7 +781,7 @@ export default function CreateAgentPage() {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5 text-purple-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-red-500 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
@@ -824,7 +827,7 @@ export default function CreateAgentPage() {
               <button
                 onClick={handleNext}
                 disabled={step === 1 && (!formData.name || !formData.description)}
-                className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue
               </button>
@@ -836,8 +839,8 @@ export default function CreateAgentPage() {
                   insufficientBalanceError
                     ? 'bg-red-600/50 cursor-not-allowed'
                     : formData.mintAsINFT
-                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500'
-                    : 'bg-purple-600 hover:bg-purple-500'
+                    ? 'bg-gradient-to-r from-red-600 to-blue-600 hover:from-red-500 hover:to-blue-500'
+                    : 'bg-red-600 hover:bg-red-500'
                 }`}
               >
                 {insufficientBalanceError ? (

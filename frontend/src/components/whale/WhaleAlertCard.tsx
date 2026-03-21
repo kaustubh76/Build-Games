@@ -41,7 +41,7 @@ export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) 
 
   if (compact) {
     return (
-      <div className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-purple-500/50 transition-all">
+      <div className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-red-500/50 transition-all">
         <span className="text-2xl">🐋</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -65,7 +65,7 @@ export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) 
   }
 
   return (
-    <div className="p-4 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-gray-700 hover:border-purple-500/50 transition-all">
+    <div className="arcade-card p-4 hover:border-red-500/50 transition-all">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) 
       <div className="mb-4">
         <Link
           href={`/markets/${trade.marketId}`}
-          className="text-purple-400 hover:text-purple-300 font-medium line-clamp-2"
+          className="text-red-400 hover:text-red-300 font-medium line-clamp-2"
         >
           {trade.marketQuestion}
         </Link>
@@ -141,7 +141,7 @@ export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) 
         <div className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg">
           <div className="flex items-center gap-2">
             <span className="text-gray-400 text-sm">Trader:</span>
-            <code className="text-purple-400 text-sm">
+            <code className="text-red-400 text-sm">
               {shortenAddress(trade.traderAddress)}
             </code>
           </div>
@@ -162,7 +162,7 @@ export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) 
       <div className="mt-4 flex gap-2">
         <Link
           href={`/markets/${trade.marketId}`}
-          className="flex-1 py-2 text-center bg-purple-600 hover:bg-purple-500 rounded-lg text-white text-sm font-medium"
+          className="flex-1 py-2 text-center bg-red-600 hover:bg-red-500 rounded-lg text-white text-sm font-medium"
         >
           View Market
         </Link>

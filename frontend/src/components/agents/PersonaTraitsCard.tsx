@@ -18,7 +18,7 @@ export function PersonaTraitsCard({ traits }: PersonaTraitsCardProps) {
   const safeTraits = traits ?? defaultTraits;
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+    <div className="arcade-card p-6">
       <h3 className="text-lg font-semibold text-white mb-6">Persona Traits</h3>
 
       <div className="space-y-6">
@@ -109,7 +109,7 @@ function TraitBar({
 }
 
 function getTraitColor(value: number): string {
-  if (value >= 70) return 'bg-gradient-to-r from-purple-500 to-purple-400';
+  if (value >= 70) return 'bg-gradient-to-r from-red-500 to-red-400';
   if (value >= 40) return 'bg-gradient-to-r from-blue-500 to-blue-400';
   return 'bg-gradient-to-r from-gray-500 to-gray-400';
 }

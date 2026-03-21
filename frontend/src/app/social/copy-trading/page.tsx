@@ -123,7 +123,7 @@ export default function CopyTradingPage() {
                       <tr key={trade.id} className="hover:bg-gray-800/50">
                         <td className="px-4 py-3 text-sm text-white">#{agent.tokenId}</td>
                         <td className="px-4 py-3 text-sm text-gray-300">
-                          <Link href={`/markets/${trade.marketId}`} className="hover:text-purple-400">
+                          <Link href={`/markets/${trade.marketId}`} className="hover:text-red-400">
                             Market #{trade.marketId}
                           </Link>
                         </td>
@@ -293,14 +293,14 @@ function CopyTradeAgentRow({
     '0.00';
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+    <div className="arcade-card p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xl font-bold text-white">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-400 flex items-center justify-center text-xl font-bold text-white">
             {agent.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <Link href={`/ai-agents/${agent.id}`} className="text-white font-medium hover:text-purple-300">
+            <Link href={`/ai-agents/${agent.id}`} className="text-white font-medium hover:text-red-300">
               {agent.name}
             </Link>
             <div className="flex items-center gap-3 text-sm">

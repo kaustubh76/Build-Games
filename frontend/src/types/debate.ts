@@ -267,7 +267,7 @@ export function getPhaseColor(phase: DebatePhase): string {
   const colors: Record<DebatePhase, string> = {
     [DebatePhase.INACTIVE]: 'gray',
     [DebatePhase.PREDICTION]: 'blue',
-    [DebatePhase.EVIDENCE]: 'purple',
+    [DebatePhase.EVIDENCE]: 'red',
     [DebatePhase.REBUTTAL]: 'orange',
     [DebatePhase.CONSENSUS]: 'green',
     [DebatePhase.FINALIZED]: 'emerald',

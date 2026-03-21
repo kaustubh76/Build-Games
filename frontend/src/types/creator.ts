@@ -348,7 +348,7 @@ export function getRevenueSourceColor(source: string): string {
   const colors: Record<string, string> = {
     'trade': '#3B82F6',      // blue
     'bet': '#10B981',        // green
-    'copy_trade': '#8B5CF6', // purple
+    'copy_trade': '#EF4444', // red
     'lp': '#F59E0B',         // amber
     'market_creation': '#EC4899', // pink
     'warrior_bet': '#EF4444' // red

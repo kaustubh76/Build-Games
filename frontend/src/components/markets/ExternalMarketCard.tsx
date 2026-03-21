@@ -78,7 +78,7 @@ export function ExternalMarketCard({
   if (compact) {
     return (
       <Link href={detailUrl}>
-        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:border-purple-500/50 transition-all cursor-pointer">
+        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:border-red-500/50 transition-all cursor-pointer">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
@@ -103,7 +103,7 @@ export function ExternalMarketCard({
 
   return (
     <Link href={detailUrl}>
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition-all duration-200 cursor-pointer group">
+      <div className="arcade-card p-6 hover:border-red-500 transition-all duration-200 cursor-pointer group">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
@@ -115,7 +115,7 @@ export function ExternalMarketCard({
                 </span>
               )}
             </div>
-            <h3 className="text-lg font-semibold text-white group-hover:text-purple-300 transition-colors line-clamp-2">
+            <h3 className="text-lg font-semibold text-white group-hover:text-red-300 transition-colors line-clamp-2">
               {market.question}
             </h3>
             {market.description && (
@@ -213,7 +213,7 @@ export function ExternalMarketCard({
               <button
                 onClick={handleGetPrediction}
                 disabled={tradingLoading || !canAgentTrade}
-                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs text-white flex items-center gap-1 transition-colors"
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs text-white flex items-center gap-1 transition-colors"
               >
                 {tradingLoading ? (
                   <>
@@ -232,7 +232,7 @@ export function ExternalMarketCard({
                   </>
                 )}
                 {prediction && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-purple-800 rounded text-[10px]">
+                  <span className="ml-1 px-1.5 py-0.5 bg-red-800 rounded text-[10px]">
                     {prediction.confidence}%
                   </span>
                 )}
@@ -309,7 +309,7 @@ function StatusBadge({
       );
     case ExternalMarketStatus.UNOPENED:
       return (
-        <span className="px-2 py-1 text-xs font-medium bg-purple-500/20 text-purple-400 rounded-full">
+        <span className="px-2 py-1 text-xs font-medium bg-red-500/20 text-red-400 rounded-full">
           Upcoming
         </span>
       );

@@ -20,7 +20,7 @@ export function PredictionCard({ prediction, rank }: PredictionCardProps) {
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           {rank && (
-            <span className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium flex items-center justify-center">
+            <span className="w-6 h-6 rounded-full bg-red-500/20 text-red-400 text-xs font-medium flex items-center justify-center">
               #{rank}
             </span>
           )}
@@ -44,7 +44,7 @@ export function PredictionCard({ prediction, rank }: PredictionCardProps) {
         </div>
         <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-purple-500 to-purple-400 transition-all duration-500"
+            className="h-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-500"
             style={{ width: `${prediction.confidencePercent}%` }}
           />
         </div>
@@ -74,7 +74,7 @@ export function PredictionCard({ prediction, rank }: PredictionCardProps) {
         <div>
           <button
             onClick={() => setShowReasoning(!showReasoning)}
-            className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1"
+            className="text-sm text-red-400 hover:text-red-300 flex items-center gap-1"
           >
             {showReasoning ? 'Hide' : 'Show'} Reasoning
             <svg

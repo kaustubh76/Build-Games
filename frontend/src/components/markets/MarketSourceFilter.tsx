@@ -52,7 +52,7 @@ export function MarketSourceFilter({
               flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
               ${
                 isSelected
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25'
+                  ? 'bg-red-600 text-white shadow-lg shadow-red-500/25'
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
               }
             `}
@@ -111,7 +111,7 @@ export function MarketSourceTabs({
                 relative py-3 px-1 font-medium text-sm transition-colors
                 ${
                   isSelected
-                    ? 'text-purple-400'
+                    ? 'text-red-400'
                     : 'text-gray-400 hover:text-gray-200'
                 }
               `}
@@ -122,7 +122,7 @@ export function MarketSourceTabs({
                   <span
                     className={`
                       px-2 py-0.5 text-xs rounded-full
-                      ${isSelected ? 'bg-purple-500/20 text-purple-300' : 'bg-gray-700 text-gray-400'}
+                      ${isSelected ? 'bg-red-500/20 text-red-300' : 'bg-gray-700 text-gray-400'}
                     `}
                   >
                     {count}
@@ -130,7 +130,7 @@ export function MarketSourceTabs({
                 )}
               </span>
               {isSelected && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500" />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-500" />
               )}
             </button>
           );

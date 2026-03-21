@@ -23,7 +23,7 @@ export function MirrorMarketPositions({ onPositionClick, compact = false }: Mirr
 
   if (!isConnected) {
     return (
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+      <div className="arcade-card p-5">
         <h3 className="text-lg font-semibold text-white mb-4">Mirror Market Positions</h3>
         <div className="text-center py-8">
           <div className="w-12 h-12 mx-auto mb-3 bg-gray-700 rounded-full flex items-center justify-center">
@@ -39,7 +39,7 @@ export function MirrorMarketPositions({ onPositionClick, compact = false }: Mirr
 
   if (loading) {
     return (
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+      <div className="arcade-card p-5">
         <h3 className="text-lg font-semibold text-white mb-4">Mirror Market Positions</h3>
         <div className="text-center py-8">
           <div className="w-8 h-8 mx-auto mb-3 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
@@ -51,7 +51,7 @@ export function MirrorMarketPositions({ onPositionClick, compact = false }: Mirr
 
   if (error) {
     return (
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+      <div className="arcade-card p-5">
         <h3 className="text-lg font-semibold text-white mb-4">Mirror Market Positions</h3>
         <div className="text-center py-8">
           <div className="w-12 h-12 mx-auto mb-3 bg-red-500/20 rounded-full flex items-center justify-center">
@@ -73,7 +73,7 @@ export function MirrorMarketPositions({ onPositionClick, compact = false }: Mirr
 
   if (positions.length === 0) {
     return (
-      <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+      <div className="arcade-card p-5">
         <h3 className="text-lg font-semibold text-white mb-4">Mirror Market Positions</h3>
         <div className="text-center py-8">
           <div className="w-12 h-12 mx-auto mb-3 bg-gray-700 rounded-full flex items-center justify-center">
@@ -96,7 +96,7 @@ export function MirrorMarketPositions({ onPositionClick, compact = false }: Mirr
     : 0;
 
   return (
-    <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+    <div className="arcade-card p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white">Mirror Market Positions</h3>
         <button

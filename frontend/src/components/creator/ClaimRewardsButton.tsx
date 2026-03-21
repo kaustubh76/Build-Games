@@ -32,7 +32,7 @@ export function ClaimRewardsButton({ onSuccess }: ClaimRewardsButtonProps) {
   }
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+    <div className="arcade-card p-6">
       {/* Pending Rewards Display */}
       <div className="text-center mb-6">
         <p className="text-gray-400 text-sm mb-2">Available to Claim</p>
@@ -46,7 +46,7 @@ export function ClaimRewardsButton({ onSuccess }: ClaimRewardsButtonProps) {
         disabled={isLoading || !hasRewards}
         className={`w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 ${
           hasRewards
-            ? 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white'
+            ? 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white'
             : 'bg-gray-700 text-gray-400 cursor-not-allowed'
         } disabled:opacity-50`}
       >

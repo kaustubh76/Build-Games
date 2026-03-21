@@ -41,7 +41,7 @@ function getSourceIcon(source: string): string {
 function getSourceColor(source: string): string {
   switch (source.toLowerCase()) {
     case 'polymarket':
-      return 'text-purple-400 bg-purple-500/20 border-purple-500/30';
+      return 'text-red-400 bg-red-500/20 border-red-500/30';
     case 'kalshi':
       return 'text-blue-400 bg-blue-500/20 border-blue-500/30';
     default:
@@ -172,7 +172,7 @@ export function ArbitrageCard({ opportunity, onExecute }: ArbitrageCardProps) {
             href={`https://polymarket.com/event/${market1.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 py-2 px-3 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg text-sm text-center transition-colors"
+            className="flex-1 py-2 px-3 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg text-sm text-center transition-colors"
           >
             Open Polymarket
           </a>

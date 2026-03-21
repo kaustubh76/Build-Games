@@ -157,7 +157,7 @@ export function AuthorizeUsageModal({
                   className={`
                     flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all
                     ${mode === 'grant'
-                      ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white'
+                      ? 'bg-gradient-to-r from-red-500 to-blue-500 text-white'
                       : 'text-gray-400 hover:text-white'
                     }
                   `}
@@ -191,7 +191,7 @@ export function AuthorizeUsageModal({
                   className={`
                     w-full px-4 py-3 bg-gray-800 border rounded-lg
                     text-white placeholder-gray-500
-                    focus:outline-none focus:ring-2 focus:ring-purple-500
+                    focus:outline-none focus:ring-2 focus:ring-red-500
                     ${executorAddress && !isValidAddress ? 'border-red-500' : 'border-gray-600'}
                   `}
                 />
@@ -240,7 +240,7 @@ export function AuthorizeUsageModal({
                         className={`
                           py-2 px-3 rounded-lg text-sm font-medium transition-all
                           ${selectedDuration === option.days
-                            ? 'bg-purple-500 text-white'
+                            ? 'bg-red-500 text-white'
                             : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                           }
                         `}
@@ -282,7 +282,7 @@ export function AuthorizeUsageModal({
                   w-full py-3 px-4 rounded-lg font-medium transition-all
                   ${isValidAddress && !isSelfAuth
                     ? mode === 'grant'
-                      ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600'
+                      ? 'bg-gradient-to-r from-red-500 to-blue-500 text-white hover:from-red-600 hover:to-blue-600'
                       : 'bg-red-500 text-white hover:bg-red-600'
                     : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                   }
@@ -297,7 +297,7 @@ export function AuthorizeUsageModal({
           {step === 'processing' && (
             <div className="text-center py-8">
               <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center animate-pulse ${
-                mode === 'grant' ? 'bg-gradient-to-r from-purple-500 to-blue-500' : 'bg-red-500'
+                mode === 'grant' ? 'bg-gradient-to-r from-red-500 to-blue-500' : 'bg-red-500'
               }`}>
                 <svg className="w-8 h-8 text-white animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -335,7 +335,7 @@ export function AuthorizeUsageModal({
                   href={`https://testnet.snowtrace.io/tx/${txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-purple-400 hover:text-purple-300 text-sm underline"
+                  className="text-red-400 hover:text-red-300 text-sm underline"
                 >
                   View Transaction
                 </a>

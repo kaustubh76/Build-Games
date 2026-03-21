@@ -25,18 +25,18 @@ export function MarketCard({ market }: MarketCardProps) {
 
   return (
     <Link href={`/markets/${market.id.toString()}`}>
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition-all duration-200 cursor-pointer group">
+      <div className="arcade-card p-6 hover:border-red-500 transition-all duration-200 cursor-pointer group">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               {isBattleMarket && (
-                <span className="inline-block px-2 py-1 text-xs font-medium bg-purple-500/20 text-purple-300 rounded-full">
+                <span className="inline-block px-2 py-1 text-xs font-medium bg-red-500/20 text-red-300 rounded-full">
                   Battle Market
                 </span>
               )}
             </div>
-            <h3 className="text-lg font-semibold text-white group-hover:text-purple-300 transition-colors line-clamp-2">
+            <h3 className="text-lg font-semibold text-white group-hover:text-red-300 transition-colors line-clamp-2">
               {market.question}
             </h3>
           </div>
@@ -48,7 +48,7 @@ export function MarketCard({ market }: MarketCardProps) {
           <div className="flex items-center gap-4 mb-4 p-3 bg-gray-800/50 rounded-lg">
             <div className="flex-1 text-center">
               <span className="text-sm text-gray-400">Warrior</span>
-              <p className="text-lg font-bold text-purple-300">#{market.warrior1Id.toString()}</p>
+              <p className="text-lg font-bold text-red-300">#{market.warrior1Id.toString()}</p>
             </div>
             <div className="text-2xl">⚔️</div>
             <div className="flex-1 text-center">
@@ -109,7 +109,7 @@ export function MarketCard({ market }: MarketCardProps) {
               Outcome: {getOutcomeLabel(market.outcome)}
             </span>
           )}
-          <span className="text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
             View Details →
           </span>
         </div>

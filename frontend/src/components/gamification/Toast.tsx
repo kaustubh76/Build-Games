@@ -45,8 +45,8 @@ const TYPE_STYLES: Record<NotificationType, { bg: string; border: string; icon: 
     icon: '🔥',
   },
   quest: {
-    bg: 'bg-gradient-to-r from-purple-900/90 to-indigo-800/90',
-    border: 'border-purple-500',
+    bg: 'bg-gradient-to-r from-red-900/90 to-indigo-800/90',
+    border: 'border-red-500',
     icon: '📋',
   },
   levelup: {

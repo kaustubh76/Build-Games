@@ -38,11 +38,11 @@ export function ResearchSources({
             href={source.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block p-3 bg-gray-800/50 hover:bg-gray-800 rounded-lg border border-gray-700 hover:border-purple-500/50 transition-all group"
+            className="block p-3 bg-gray-800/50 hover:bg-gray-800 rounded-lg border border-gray-700 hover:border-red-500/50 transition-all group"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <div className="text-purple-400 text-sm font-medium group-hover:text-purple-300 truncate">
+                <div className="text-red-400 text-sm font-medium group-hover:text-red-300 truncate">
                   {source.title}
                 </div>
                 <div className="text-gray-400 text-xs mt-1 line-clamp-2">
@@ -73,7 +73,7 @@ export function ResearchSources({
       {sources.length > maxVisible && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-3 w-full py-2 text-sm text-purple-400 hover:text-purple-300 border border-gray-700 hover:border-purple-500/50 rounded-lg transition-colors"
+          className="mt-3 w-full py-2 text-sm text-red-400 hover:text-red-300 border border-gray-700 hover:border-red-500/50 rounded-lg transition-colors"
         >
           {showAll ? 'Show fewer sources' : `Show ${sources.length - maxVisible} more sources`}
         </button>

@@ -121,7 +121,7 @@ export function LiquidityPanel({ market, onComplete }: LiquidityPanelProps) {
           onClick={() => setMode('add')}
           className={`flex-1 py-3 text-center font-medium transition-colors ${
             mode === 'add'
-              ? 'bg-purple-500/20 text-purple-400 border-b-2 border-purple-500'
+              ? 'bg-red-500/20 text-red-400 border-b-2 border-red-500'
               : 'text-gray-400 hover:text-white'
           }`}
         >
@@ -168,7 +168,7 @@ export function LiquidityPanel({ market, onComplete }: LiquidityPanelProps) {
           </div>
           <div>
             <span className="text-sm text-gray-400">Your LP Shares</span>
-            <p className="text-purple-400 font-medium">
+            <p className="text-red-400 font-medium">
               {position ? formatTokenAmount(position.lpShares) : '0.00'}
             </p>
           </div>
@@ -182,7 +182,7 @@ export function LiquidityPanel({ market, onComplete }: LiquidityPanelProps) {
             </span>
             <button
               onClick={setMaxAmount}
-              className="text-purple-400 hover:text-purple-300"
+              className="text-red-400 hover:text-red-300"
             >
               Max
             </button>
@@ -193,7 +193,7 @@ export function LiquidityPanel({ market, onComplete }: LiquidityPanelProps) {
               value={amount}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0.00"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white text-lg focus:outline-none focus:border-purple-500"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white text-lg focus:outline-none focus:border-red-500"
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
               {mode === 'add' ? 'CRwN' : 'LP'}
@@ -259,7 +259,7 @@ export function LiquidityPanel({ market, onComplete }: LiquidityPanelProps) {
           className={`w-full py-4 rounded-lg font-bold text-lg transition-all ${
             canSubmit
               ? mode === 'add'
-                ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white'
+                ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white'
                 : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white'
               : 'bg-gray-700 text-gray-400 cursor-not-allowed'
           }`}

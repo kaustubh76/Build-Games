@@ -25,7 +25,7 @@ export function AIDebatePanel({
   );
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+    <div className="arcade-card p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -40,7 +40,7 @@ export function AIDebatePanel({
 
       {/* Prediction Summary */}
       {debate?.finalPrediction && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/50 to-blue-900/50 rounded-lg border border-purple-500/30">
+        <div className="mb-6 p-4 bg-gradient-to-r from-red-900/50 to-blue-900/50 rounded-lg border border-red-500/30">
           <div className="flex items-center justify-between mb-3">
             <span className="text-gray-300 font-medium">AI Prediction</span>
             <span
@@ -71,7 +71,7 @@ export function AIDebatePanel({
                 key={i}
                 className="flex items-start gap-2 text-gray-300 text-sm"
               >
-                <span className="text-purple-400 mt-1">•</span>
+                <span className="text-red-400 mt-1">•</span>
                 <span>{factor}</span>
               </li>
             ))}
@@ -115,7 +115,7 @@ export function AIDebatePanel({
             ${
               isLoading
                 ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-500 hover:to-blue-500 shadow-lg shadow-purple-500/25'
+                : 'bg-gradient-to-r from-red-600 to-blue-600 text-white hover:from-red-500 hover:to-blue-500 shadow-lg shadow-red-500/25'
             }
           `}
         >
@@ -159,7 +159,7 @@ export function AIDebatePanel({
             🔄 Re-run Debate
           </button>
           <button
-            className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white text-sm"
+            className="flex-1 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-white text-sm"
           >
             📊 View Full Analysis
           </button>

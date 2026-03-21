@@ -193,7 +193,7 @@ export function MarketChart({ market }: MarketChartProps) {
             onClick={() => setTimeRange(range)}
             className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
               timeRange === range
-                ? 'bg-purple-500 text-white'
+                ? 'bg-red-500 text-white'
                 : 'bg-gray-800 text-gray-400 hover:text-white'
             }`}
           >

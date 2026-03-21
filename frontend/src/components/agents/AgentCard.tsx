@@ -22,12 +22,12 @@ export function AgentCard({ agent, showFollowButton = true, isINFT = false, inft
 
   return (
     <Link href={`/ai-agents/${agent.id.toString()}`}>
-      <div className="card hover:border-purple-500/50 transition-all duration-200 cursor-pointer group h-full">
+      <div className="card hover:border-red-500/50 transition-all duration-200 cursor-pointer group h-full">
         {/* Header */}
         <div className="flex items-start justify-between mb-3 md:mb-4">
           <div className="flex items-center gap-2 md:gap-3">
             <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-lg md:text-xl font-bold text-white">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-red-500 to-blue-500 flex items-center justify-center text-lg md:text-xl font-bold text-white">
                 {agent.name.charAt(0).toUpperCase()}
               </div>
               {isOnline && (
@@ -36,7 +36,7 @@ export function AgentCard({ agent, showFollowButton = true, isINFT = false, inft
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm md:text-base font-semibold text-white group-hover:text-purple-300 transition-colors truncate">
+                <h3 className="text-sm md:text-base font-semibold text-white group-hover:text-red-300 transition-colors truncate">
                   {agent.name}
                 </h3>
                 {isINFT && <INFTBadge size="sm" />}
@@ -47,13 +47,13 @@ export function AgentCard({ agent, showFollowButton = true, isINFT = false, inft
                   <span className="text-[10px] md:text-xs text-arcade-gold font-medium">Official</span>
                 )}
                 {isINFT && inftTokenId !== undefined && (
-                  <span className="text-[10px] md:text-xs text-purple-400">#{inftTokenId.toString()}</span>
+                  <span className="text-[10px] md:text-xs text-red-400">#{inftTokenId.toString()}</span>
                 )}
               </div>
             </div>
           </div>
           {isFollowing && (
-            <span className="badge badge-purple flex-shrink-0 text-[10px] md:text-xs">
+            <span className="badge badge-red flex-shrink-0 text-[10px] md:text-xs">
               Following
             </span>
           )}
@@ -111,14 +111,14 @@ export function AgentCard({ agent, showFollowButton = true, isINFT = false, inft
           </span>
           <div className="flex items-center gap-2 md:gap-3">
             {isINFT && (
-              <span className="text-purple-400 text-[10px] md:text-xs flex items-center gap-1">
+              <span className="text-red-400 text-[10px] md:text-xs flex items-center gap-1">
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                 </svg>
                 <span className="hidden sm:inline">Tradeable</span>
               </span>
             )}
-            <span className="text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+            <span className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
               View
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -135,7 +135,7 @@ function TierBadge({ tier, label }: { tier: number; label: string }) {
   const configs = {
     0: { classes: 'bg-slate-500/20 text-slate-300 border border-slate-500/30', icon: '🌱' },
     1: { classes: 'bg-blue-500/20 text-blue-300 border border-blue-500/30', icon: '⚡' },
-    2: { classes: 'bg-purple-500/20 text-purple-300 border border-purple-500/30', icon: '💎' },
+    2: { classes: 'bg-red-500/20 text-red-300 border border-red-500/30', icon: '💎' },
     3: { classes: 'bg-arcade-gold/20 text-arcade-gold border border-arcade-gold/30', icon: '👑' }
   };
 
@@ -185,12 +185,12 @@ export function INFTAgentCard({
   const pnlPositive = agent.pnlFormatted.startsWith('+');
 
   return (
-    <div className="card border-purple-500/30 hover:border-purple-500 overflow-hidden p-0">
+    <div className="card border-red-500/30 hover:border-red-500 overflow-hidden p-0">
       {/* iNFT Header Bar */}
-      <div className="px-3 md:px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-b border-purple-500/30 flex items-center justify-between">
+      <div className="px-3 md:px-4 py-2 bg-gradient-to-r from-red-500/20 to-blue-500/20 border-b border-red-500/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <INFTBadge size="sm" />
-          <span className="text-[10px] md:text-xs text-purple-300 font-medium">#{tokenId.toString()}</span>
+          <span className="text-[10px] md:text-xs text-red-300 font-medium">#{tokenId.toString()}</span>
         </div>
         <span className="text-[10px] md:text-xs text-slate-400">ERC-7857</span>
       </div>
@@ -201,7 +201,7 @@ export function INFTAgentCard({
           <div className="flex items-start justify-between mb-3 md:mb-4">
             <div className="flex items-center gap-2 md:gap-3">
               <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-lg md:text-xl font-bold text-white">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-red-500 to-blue-500 flex items-center justify-center text-lg md:text-xl font-bold text-white">
                   {agent.name.charAt(0).toUpperCase()}
                 </div>
                 {isOnline && (
@@ -209,7 +209,7 @@ export function INFTAgentCard({
                 )}
               </div>
               <div className="min-w-0">
-                <h3 className="text-sm md:text-base font-semibold text-white group-hover:text-purple-300 transition-colors truncate">
+                <h3 className="text-sm md:text-base font-semibold text-white group-hover:text-red-300 transition-colors truncate">
                   {agent.name}
                 </h3>
                 <div className="flex items-center gap-1.5 md:gap-2">
@@ -218,7 +218,7 @@ export function INFTAgentCard({
               </div>
             </div>
             {isFollowing && (
-              <span className="badge badge-purple flex-shrink-0 text-[10px] md:text-xs">
+              <span className="badge badge-red flex-shrink-0 text-[10px] md:text-xs">
                 Following
               </span>
             )}
@@ -263,7 +263,7 @@ export function INFTAgentCard({
           {onTransfer && (
             <button
               onClick={(e) => { e.preventDefault(); onTransfer(); }}
-              className="btn btn-ghost flex-1 text-purple-300 border-purple-500/30 hover:bg-purple-500/10"
+              className="btn btn-ghost flex-1 text-red-300 border-red-500/30 hover:bg-red-500/10"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />

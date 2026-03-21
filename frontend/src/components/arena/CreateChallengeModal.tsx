@@ -160,7 +160,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
       {/* Modal */}
       <div className="relative bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-lg mx-4 overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b border-gray-700 bg-gradient-to-r from-purple-900/30 to-pink-900/30">
+        <div className="p-6 border-b border-gray-700 bg-gradient-to-r from-red-900/30 to-pink-900/30">
           <h2 id="create-challenge-title" className="text-2xl font-bold text-white">Create Challenge</h2>
           <p id="create-challenge-description" className="text-gray-400 text-sm mt-1">
             Challenge another warrior to a prediction debate
@@ -188,7 +188,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
                     onClick={() => setSelectedWarrior(warrior.tokenId)}
                     className={`p-3 rounded-lg border transition-all ${
                       selectedWarrior === warrior.tokenId
-                        ? 'bg-purple-600/30 border-purple-500 text-white'
+                        ? 'bg-red-600/30 border-red-500 text-white'
                         : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:border-gray-500'
                     }`}
                   >
@@ -226,7 +226,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
                   onClick={() => setSource(source)}
                   className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                     sourceFilter === source
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-red-600 text-white'
                       : 'text-gray-400 hover:text-white hover:bg-gray-600/50'
                   }`}
                 >
@@ -248,7 +248,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
                 value={searchQuery}
                 onChange={(e) => searchMarkets(e.target.value)}
                 onFocus={() => setIsDropdownOpen(true)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500 pr-10"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 pr-10"
               />
               <svg
                 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -273,7 +273,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
                       <p className="text-red-400 text-sm mb-2">{marketsError}</p>
                       <button
                         onClick={() => refetchMarkets()}
-                        className="text-purple-400 hover:text-purple-300 text-sm underline"
+                        className="text-red-400 hover:text-red-300 text-sm underline"
                       >
                         Retry
                       </button>
@@ -292,7 +292,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
                           setIsDropdownOpen(false);
                         }}
                         className={`w-full px-4 py-3 text-left hover:bg-gray-700 transition-colors border-b border-gray-700/50 last:border-b-0 ${
-                          selectedMarket?.id === market.id ? 'bg-purple-900/30' : ''
+                          selectedMarket?.id === market.id ? 'bg-red-900/30' : ''
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -395,7 +395,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
                 step="0.1"
                 value={stakeAmount}
                 onChange={(e) => setStakeAmount(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
                 placeholder="1.0"
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -427,7 +427,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
           <button
             onClick={handleSubmit}
             disabled={loading || !selectedWarrior || !selectedMarket || !address}
-            className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold text-white hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 transition-all"
+            className="flex-1 py-3 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl font-bold text-white hover:from-red-500 hover:to-pink-500 disabled:opacity-50 transition-all"
           >
             {loading ? 'Creating...' : 'Create Challenge'}
           </button>

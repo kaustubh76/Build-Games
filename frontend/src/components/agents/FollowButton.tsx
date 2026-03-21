@@ -173,7 +173,7 @@ export function FollowButton({ agentId, onSuccess }: FollowButtonProps) {
             ? 'bg-gray-700 text-white hover:bg-red-500/20 hover:text-red-400 hover:border-red-500 border border-gray-600'
             : isDisabled
             ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-            : 'bg-purple-600 text-white hover:bg-purple-500'
+            : 'bg-red-600 text-white hover:bg-red-500'
         } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isLoading ? (
@@ -231,7 +231,7 @@ export function FollowButton({ agentId, onSuccess }: FollowButtonProps) {
                   setMaxAmount(e.target.value);
                   setLocalError(null);
                 }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500"
                 placeholder="100"
                 min="1"
               />
@@ -253,7 +253,7 @@ export function FollowButton({ agentId, onSuccess }: FollowButtonProps) {
               <button
                 onClick={handleConfirmFollow}
                 disabled={isPending || isConfirming}
-                className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50"
               >
                 {isPending || isConfirming ? 'Confirming...' : 'Enable Copy Trading'}
               </button>

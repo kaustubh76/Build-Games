@@ -23,7 +23,7 @@ const MOVE_COLORS: Record<string, string> = {
   STRIKE: 'text-red-400',
   TAUNT: 'text-yellow-400',
   DODGE: 'text-blue-400',
-  SPECIAL: 'text-purple-400',
+  SPECIAL: 'text-red-400',
   RECOVER: 'text-green-400',
 };
 
@@ -48,7 +48,7 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
   return (
     <div className="bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden">
       {/* Battle Header */}
-      <div className="bg-gradient-to-r from-purple-900/50 to-pink-900/50 p-6 border-b border-gray-700">
+      <div className="bg-gradient-to-r from-red-900/50 to-pink-900/50 p-6 border-b border-gray-700">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <span className={`px-3 py-1 rounded-full text-sm font-bold ${
@@ -66,7 +66,7 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
           </div>
           <div className="text-right">
             <p className="text-gray-400 text-sm">Stakes (each)</p>
-            <p className="text-xl font-bold text-purple-400">
+            <p className="text-xl font-bold text-red-400">
               {formatEther(BigInt(battle.stakes))} CRwN
             </p>
           </div>
@@ -140,7 +140,7 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
             {pool && (
               <div className="text-right">
                 <p className="text-sm text-gray-400">Total Pool</p>
-                <p className="text-lg font-bold text-purple-400">
+                <p className="text-lg font-bold text-red-400">
                   {formatEther(BigInt(pool.totalPool || '0'))} CRwN
                 </p>
               </div>
@@ -196,13 +196,13 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
                   onChange={(e) => setBetAmount(e.target.value)}
                   min="0.1"
                   step="0.1"
-                  className="flex-1 bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none"
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none"
                   placeholder="Amount in CRwN"
                 />
                 <button
                   onClick={handlePlaceBet}
                   disabled={isPlacingBet || !betAmount}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-bold text-white hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl font-bold text-white hover:from-red-500 hover:to-pink-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {isPlacingBet ? 'Placing...' : 'Place Bet'}
                 </button>
@@ -227,7 +227,7 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
                 onClick={() => setSelectedRound(isCompleted ? roundNum : null)}
                 className={`flex-1 p-4 rounded-xl transition-all ${
                   isCurrentRound
-                    ? 'bg-purple-500/30 border-2 border-purple-500 animate-pulse'
+                    ? 'bg-red-500/30 border-2 border-red-500 animate-pulse'
                     : isCompleted
                     ? round.roundWinner === 'warrior1'
                       ? 'bg-green-500/20 border border-green-500/50 hover:border-green-500 cursor-pointer'
@@ -239,7 +239,7 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
               >
                 <p className="text-gray-400 text-xs mb-1">Round {roundNum}</p>
                 {isCurrentRound ? (
-                  <p className="text-purple-400 font-bold">In Progress...</p>
+                  <p className="text-red-400 font-bold">In Progress...</p>
                 ) : isCompleted ? (
                   <>
                     <p className="text-white font-medium text-sm">
@@ -277,7 +277,7 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
               <button
                 onClick={onExecuteRound}
                 disabled={isExecuting}
-                className="px-4 py-2 bg-purple-600 rounded-lg text-white font-medium hover:bg-purple-500 disabled:opacity-50 transition-all"
+                className="px-4 py-2 bg-red-600 rounded-lg text-white font-medium hover:bg-red-500 disabled:opacity-50 transition-all"
               >
                 {isExecuting ? 'Executing...' : 'Execute Round'}
               </button>
@@ -296,7 +296,7 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
 
       {/* Battle Complete */}
       {battle.status === 'completed' && (
-        <div className="p-8 bg-gradient-to-r from-purple-900/30 to-pink-900/30">
+        <div className="p-8 bg-gradient-to-r from-red-900/30 to-pink-900/30">
           <div className="text-center">
             <p className="text-2xl mb-2">🏆</p>
             <h3 className="text-2xl font-bold text-white mb-2">

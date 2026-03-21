@@ -78,8 +78,8 @@ export default function AgentProfilePage() {
 
   if (agentLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-        <div className="container mx-auto px-4">
+      <div className="min-h-screen">
+        <div className="container-arcade py-6 md:py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-800 rounded w-1/3 mb-4" />
             <div className="h-4 bg-gray-800 rounded w-1/2 mb-8" />
@@ -95,13 +95,13 @@ export default function AgentProfilePage() {
 
   if (error || !agent) {
     return (
-      <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-        <div className="container mx-auto px-4 text-center">
+      <div className="min-h-screen">
+        <div className="container-arcade py-6 md:py-8 text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Agent Not Found</h1>
           <p className="text-gray-400 mb-6">{error || 'This agent does not exist or has been deactivated.'}</p>
           <Link
             href="/ai-agents"
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500"
           >
             Browse Agents
           </Link>
@@ -113,19 +113,19 @@ export default function AgentProfilePage() {
   const pnlPositive = agent.pnlFormatted.startsWith('+');
 
   return (
-    <div className="min-h-screen bg-gray-950 pt-24 pb-12">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen">
+      <div className="container-arcade py-6 md:py-8">
         {/* Back Link */}
-        <Link href="/ai-agents" className="text-gray-400 hover:text-white mb-6 inline-block">
-          &lt; Back to Agents
+        <Link href="/ai-agents" className="text-slate-400 hover:text-white mb-6 inline-block text-sm">
+          ← Back to Agents
         </Link>
 
         {/* Hero Section */}
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-8 border border-gray-700 mb-8">
+        <div className="arcade-card p-8 mb-8">
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Avatar */}
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-4xl font-bold text-white">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-red-500 to-blue-500 flex items-center justify-center text-4xl font-bold text-white">
                 {agent.name.charAt(0).toUpperCase()}
               </div>
               {agent.isOnline && (
@@ -144,14 +144,14 @@ export default function AgentProfilePage() {
                   </span>
                 )}
                 {isINFT && inftTokenId !== undefined && (
-                  <span className="px-2 py-1 text-xs bg-purple-500/20 text-purple-400 rounded-full">
+                  <span className="px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded-full">
                     #{inftTokenId.toString()}
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-3 mb-4">
-                <span className="px-3 py-1 text-sm bg-purple-500/20 text-purple-400 rounded-full">
+                <span className="px-3 py-1 text-sm bg-red-500/20 text-red-400 rounded-full">
                   {agent.tierLabel}
                 </span>
                 <span className="px-3 py-1 text-sm bg-blue-500/20 text-blue-400 rounded-full">
@@ -189,7 +189,7 @@ export default function AgentProfilePage() {
                 <>
                   <button
                     onClick={() => setIsTransferModalOpen(true)}
-                    className="px-4 py-2 text-sm font-medium rounded-lg border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 transition-colors flex items-center justify-center gap-2"
+                    className="px-4 py-2 text-sm font-medium rounded-lg border border-red-500/30 text-red-300 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -210,7 +210,7 @@ export default function AgentProfilePage() {
 
               {/* iNFT indicator for non-owners */}
               {isINFT && !canManageINFT && (
-                <div className="px-3 py-2 text-xs bg-purple-500/10 border border-purple-500/30 rounded-lg text-purple-300 text-center">
+                <div className="px-3 py-2 text-xs bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-center">
                   <span className="flex items-center justify-center gap-1">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
@@ -247,7 +247,7 @@ export default function AgentProfilePage() {
 
         {/* External Market Trading Section */}
         {isINFT && (
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700 mb-8">
+          <div className="arcade-card p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <h3 className="text-xl font-bold text-white">External Market Trading</h3>
@@ -271,8 +271,8 @@ export default function AgentProfilePage() {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-purple-400" viewBox="0 0 24 24" fill="currentColor">
+                  <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-red-400" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                     </svg>
                   </div>
@@ -285,7 +285,7 @@ export default function AgentProfilePage() {
                   onClick={() => enableExternalTrading(!canTradePolymarket, canTradeKalshi)}
                   disabled={externalLoading || !canManageINFT}
                   className={`relative w-12 h-6 rounded-full transition-colors ${
-                    canTradePolymarket ? 'bg-purple-600' : 'bg-gray-600'
+                    canTradePolymarket ? 'bg-red-600' : 'bg-gray-600'
                   } ${!canManageINFT ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
@@ -367,7 +367,7 @@ export default function AgentProfilePage() {
                         <span className="text-gray-500 text-sm">#{index + 1}</span>
                         <span className={`px-2 py-0.5 text-xs rounded ${
                           market.source === 'polymarket'
-                            ? 'bg-purple-500/20 text-purple-400'
+                            ? 'bg-red-500/20 text-red-400'
                             : 'bg-orange-500/20 text-orange-400'
                         }`}>
                           {market.source === 'polymarket' ? 'Polymarket' : 'Kalshi'}
@@ -413,7 +413,7 @@ export default function AgentProfilePage() {
             {performance && <AgentPerformanceChart performance={performance} />}
 
             {/* Trade History */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="arcade-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white">Trade History</h3>
                 {isINFT && (
@@ -422,7 +422,7 @@ export default function AgentProfilePage() {
                       onClick={() => setActiveTradeTab('native')}
                       className={`px-3 py-1 text-sm rounded-md transition-colors ${
                         activeTradeTab === 'native'
-                          ? 'bg-purple-600 text-white'
+                          ? 'bg-red-600 text-white'
                           : 'text-gray-400 hover:text-white'
                       }`}
                     >
@@ -432,7 +432,7 @@ export default function AgentProfilePage() {
                       onClick={() => setActiveTradeTab('external')}
                       className={`px-3 py-1 text-sm rounded-md transition-colors ${
                         activeTradeTab === 'external'
-                          ? 'bg-purple-600 text-white'
+                          ? 'bg-red-600 text-white'
                           : 'text-gray-400 hover:text-white'
                       }`}
                     >
@@ -534,7 +534,7 @@ export default function AgentProfilePage() {
                             <div className="flex items-center gap-2">
                               <span className={`px-1.5 py-0.5 text-xs rounded ${
                                 market.source === 'polymarket'
-                                  ? 'bg-purple-500/20 text-purple-400'
+                                  ? 'bg-red-500/20 text-red-400'
                                   : 'bg-orange-500/20 text-orange-400'
                               }`}>
                                 {market.source === 'polymarket' ? 'Polymarket' : 'Kalshi'}
@@ -580,8 +580,8 @@ export default function AgentProfilePage() {
             <PersonaTraitsCard traits={agent.personaTraits} />
 
             {/* Followers */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold text-white mb-4">Followers ({followerCount})</h3>
+            <div className="arcade-card p-6">
+              <h3 className="text-yellow-400 font-bold mb-4 text-sm" style={{ fontFamily: 'Press Start 2P, monospace' }}>FOLLOWERS ({followerCount})</h3>
               {followers.length === 0 ? (
                 <p className="text-gray-400 text-center py-4">No followers yet</p>
               ) : (

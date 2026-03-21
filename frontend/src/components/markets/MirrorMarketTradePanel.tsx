@@ -102,7 +102,7 @@ export function MirrorMarketTradePanel({
   };
 
   return (
-    <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+    <div className="arcade-card p-5">
       <h3 className="text-lg font-semibold text-white mb-4">Trade Mirror Market</h3>
 
       {/* Mirror Market Status */}

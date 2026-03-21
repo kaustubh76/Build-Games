@@ -61,14 +61,14 @@ export function MicroMarketTradePanel({ market, onSuccess }: MicroMarketTradePan
 
   if (!isConnected) {
     return (
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+      <div className="arcade-card p-6">
         <p className="text-center text-gray-400">Connect wallet to trade</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 border border-gray-700">
+    <div className="arcade-card p-6">
       {/* Market Info */}
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-white mb-2">Trade</h3>
@@ -152,7 +152,7 @@ export function MicroMarketTradePanel({ market, onSuccess }: MicroMarketTradePan
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500"
                 placeholder="0.00"
                 min="0"
                 step="0.01"
@@ -160,7 +160,7 @@ export function MicroMarketTradePanel({ market, onSuccess }: MicroMarketTradePan
               {tradeType === 'buy' && (
                 <button
                   onClick={() => setAmount(formatEther(balance))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-purple-400 hover:text-purple-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-400 hover:text-red-300"
                 >
                   Max
                 </button>
@@ -201,7 +201,7 @@ export function MicroMarketTradePanel({ market, onSuccess }: MicroMarketTradePan
         <button
           onClick={handleClaim}
           disabled={isLoading}
-          className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+          className="w-full py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
         >
           {isLoading ? 'Processing...' : 'Claim Winnings'}
         </button>
