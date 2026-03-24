@@ -730,7 +730,7 @@ class PredictionMarketService {
   /**
    * Get market activity from blockchain events
    * Fetches TokensPurchased, TokensSold, LiquidityAdded, LiquidityRemoved, WinningsClaimed events
-   * Note: Flow testnet RPC has limitations, so we use a conservative approach
+   * Note: Avalanche Fuji testnet RPC has limitations, so we use a conservative approach
    */
   async getMarketActivity(marketId: bigint, limit: number = 50): Promise<MarketActivity[]> {
     if (!this.isContractDeployed()) {

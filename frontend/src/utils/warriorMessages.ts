@@ -214,9 +214,9 @@ export const WARRIOR_MESSAGES = {
   // CRwN Token Operations (Home Page)
   CRWN_TOKEN: {
     MINT_START: [
-      "By the royal mint! Thy FLOW shall be transformed into precious CRwN tokens!",
+      "By the royal mint! Thy AVAX shall be transformed into precious CRwN tokens!",
       "The alchemical process begins! Watch as thy currency becomes battle-ready CRwN!",
-      "Hark! The forges burn bright as thy FLOW transforms into crown currency!"
+      "Hark! The forges burn bright as thy AVAX transforms into crown currency!"
     ],
     MINT_SUCCESS: [
       "Behold! Fresh CRwN tokens gleam in thy treasury! Ready for battle and wagers!",
@@ -224,14 +224,14 @@ export const WARRIOR_MESSAGES = {
       "Excellent! New CRwN tokens await thy command in future battles, Chief!"
     ],
     BURN_START: [
-      "The fires of conversion ignite! Thy CRwN tokens shall return to pure FLOW!",
-      "By ancient alchemy! Thy battle currency transforms back to base FLOW!",
-      "The reverse transmutation begins! CRwN becomes FLOW once more!"
+      "The fires of conversion ignite! Thy CRwN tokens shall return to pure AVAX!",
+      "By ancient alchemy! Thy battle currency transforms back to base AVAX!",
+      "The reverse transmutation begins! CRwN becomes AVAX once more!"
     ],
     BURN_SUCCESS: [
-      "The ritual is complete! Thy CRwN has been converted back to FLOW currency!",
+      "The ritual is complete! Thy CRwN has been converted back to AVAX currency!",
       "Successful transformation! Thy tokens have returned to their original form!",
-      "Well done! Thy FLOW has been reclaimed from the warrior's treasury!"
+      "Well done! Thy AVAX has been reclaimed from the warrior's treasury!"
     ],
     TRANSACTION_PENDING: [
       "The blockchain spirits work their magic! Patience, Chief, thy transaction processes!",

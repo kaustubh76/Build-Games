@@ -216,7 +216,7 @@ export function useBattleHistorySync(arenaAddress?: Address, chainId: number = g
     setProgress({ synced: 0, total: 0 });
 
     try {
-      // Get current block and calculate safe range (Flow limits to 10,000 blocks)
+      // Get current block and calculate safe range (Avalanche limits to 10,000 blocks)
       const currentBlock = await publicClient.getBlockNumber();
       const fromBlock = currentBlock > BigInt(5000) ? currentBlock - BigInt(5000) : BigInt(0);
 
