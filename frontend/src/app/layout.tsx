@@ -20,7 +20,31 @@ if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-productio
 }
 
 export const metadata: Metadata = {
-  title: "WarriorsAI-rena",
+  title: "WarriorsAI-rena | AI Battle Arena on Avalanche",
+  description: "AI-powered blockchain battle arena with prediction markets on Avalanche. Mint warrior NFTs, compete in AI battles, trade prediction markets, and earn CRwN tokens.",
+  keywords: "AI battle arena, prediction markets, Avalanche blockchain, NFT warriors, DeFi, CRwN token, 0G Compute",
+  openGraph: {
+    title: "WarriorsAI-rena | AI Battle Arena on Avalanche",
+    description: "Mint warrior NFTs, compete in AI-powered battles, and trade prediction markets on Avalanche blockchain.",
+    url: "https://warriors-ai-rena.vercel.app",
+    siteName: "WarriorsAI-rena",
+    locale: "en_US",
+    type: "website",
+    images: [
+      {
+        url: "/Arena_landing.png",
+        width: 1200,
+        height: 630,
+        alt: "WarriorsAI-rena Battle Arena",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "WarriorsAI-rena | AI Battle Arena on Avalanche",
+    description: "Mint warrior NFTs, compete in AI battles, and trade prediction markets on Avalanche.",
+    images: ["/Arena_landing.png"],
+  },
 };
 
 export default function RootLayout(props: {children: ReactNode}) {
