@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
     // Step 1: Upload image to 0G Storage
     const imageBuffer = Buffer.from(await file.arrayBuffer());
     const imageResult = await zgUpload(imageBuffer, file.name);
+    if (!imageResult.rootHash) {
+      throw new Error('0G Storage upload returned empty rootHash for image');
+    }
     console.log("Image uploaded to 0G Storage, rootHash:", imageResult.rootHash);
 
     // Step 2: Create metadata JSON with storage:// image URI

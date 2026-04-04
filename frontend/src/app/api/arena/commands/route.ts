@@ -1,100 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createPublicClient, http } from 'viem';
+import { avalancheFuji } from 'viem/chains';
+import { ArenaAbi, getAvalancheRpcUrl, getAvalancheFallbackRpcUrl } from '@/constants';
 
-// Try to import prisma, but gracefully handle if DB is not configured
-let prisma: any = null;
-try {
-  prisma = require('@/lib/prisma').prisma;
-} catch {
-  // DB not available
+const RPC_TIMEOUT = 15000;
+
+function createClient() {
+  return createPublicClient({
+    chain: avalancheFuji,
+    transport: http(getAvalancheRpcUrl(), { timeout: RPC_TIMEOUT }),
+  });
 }
 
-// Helper to check if DB and ArenaGameState table are available
-async function getDb() {
-  if (!prisma) return null;
+function createFallbackClient() {
+  return createPublicClient({
+    chain: avalancheFuji,
+    transport: http(getAvalancheFallbackRpcUrl(), { timeout: RPC_TIMEOUT }),
+  });
+}
+
+async function readContract<T>(fn: (client: ReturnType<typeof createClient>) => Promise<T>): Promise<T> {
   try {
-    await prisma.$queryRaw`SELECT 1 FROM "ArenaGameState" LIMIT 0`;
-    return prisma;
+    return await fn(createClient());
   } catch {
-    return null;
+    return await fn(createFallbackClient());
   }
 }
 
-// Helper to format DB state into the shape the frontend expects
-function formatState(state: {
-  id: string;
-  gameState: string;
-  phase: string;
-  timeRemaining: number;
-  totalTime: number;
-  lastUpdate: Date;
-  currentRound: number;
-  totalRounds: number;
-  warriors1Id: number | null;
-  warriors2Id: number | null;
-  automationEnabled: boolean;
-  type: string;
-}) {
-  return {
-    battleId: state.id,
-    gameState: state.gameState,
-    phase: state.phase,
-    timeRemaining: state.timeRemaining,
-    totalTime: state.totalTime,
-    lastUpdate: state.lastUpdate.getTime(),
-    currentRound: state.currentRound,
-    totalRounds: state.totalRounds,
-    warriors1Id: state.warriors1Id,
-    warriors2Id: state.warriors2Id,
-    automationEnabled: state.automationEnabled,
-    type: state.type,
-  };
-}
-
-// GET /api/arena/commands?battleId=xxx
-// Replaces arena-backend GET endpoint with timestamp-based timer calculation
+// GET /api/arena/commands?battleId=<arenaAddress>
+// Reads on-chain state and determines if a command should be issued
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const battleId = searchParams.get('battleId');
 
   if (!battleId) {
-    return NextResponse.json({ error: 'Battle ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Battle ID (arena address) is required' }, { status: 400 });
   }
 
-  const db = await getDb();
-  if (!db) {
-    // No database configured — return graceful default
-    return NextResponse.json({ hasCommand: false, gameState: null, dbStatus: 'not_configured' });
+  if (!/^0x[a-fA-F0-9]{40}$/.test(battleId)) {
+    return NextResponse.json({ hasCommand: false, gameState: null });
   }
 
   try {
-    const state = await db.arenaGameState.findUnique({
-      where: { id: battleId },
-    });
+    const arenaAddress = battleId as `0x${string}`;
 
-    if (!state) {
+    const [
+      isInitialized,
+      currentRound,
+      isBettingPeriod,
+      gameInitializedAt,
+      lastRoundEndedAt,
+      minBettingPeriod,
+      minBattleRoundsInterval,
+    ] = await Promise.all([
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getInitializationStatus' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getCurrentRound' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getIsBettingPeriodGoingOn' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getGameInitializedAt' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getLastRoundEndedAt' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getMinWarriorsBettingPeriod' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getMinBattleRoundsInterval' })),
+    ]);
+
+    const round = Number(currentRound);
+    const initialized = Boolean(isInitialized);
+    const betting = Boolean(isBettingPeriod);
+    const initAt = Number(gameInitializedAt);
+    const lastRoundAt = Number(lastRoundEndedAt);
+    const bettingDuration = Number(minBettingPeriod);
+    const roundInterval = Number(minBattleRoundsInterval);
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    if (!initialized) {
       return NextResponse.json({ hasCommand: false, gameState: null });
     }
 
-    // Calculate time remaining based on timestamps (replaces setInterval countdown)
-    const elapsed = Math.floor((Date.now() - state.lastUpdate.getTime()) / 1000);
-    const timeRemaining = Math.max(0, state.totalTime - elapsed);
+    // Game finished
+    if (round > 5) {
+      return NextResponse.json({ hasCommand: false, gameState: { gameState: 'finished', currentRound: round } });
+    }
 
-    // Check if timer expired and state transition is needed
-    if (timeRemaining <= 0 && state.gameState === 'playing') {
-      if (state.phase === 'startGame') {
-        // 70 seconds expired -> send startGame command
-        const updated = await db.arenaGameState.update({
-          where: { id: battleId, phase: 'startGame' }, // optimistic lock
-          data: {
-            phase: 'battle',
-            currentRound: 1,
-            totalTime: 60,
-            timeRemaining: 60,
-            lastUpdate: new Date(),
-            pendingAction: null,
-          },
-        });
-
+    // Betting period active — check if it's expired (time to start game)
+    if (betting) {
+      const bettingTimeElapsed = nowSec - initAt;
+      if (bettingTimeElapsed >= bettingDuration) {
         return NextResponse.json({
           hasCommand: true,
           command: {
@@ -103,75 +92,68 @@ export async function GET(request: NextRequest) {
             battleId,
             requiresVerification: true,
           },
-          gameState: { ...formatState(updated), timeRemaining: 60 },
-        });
-      } else if (state.phase === 'battle' && state.currentRound <= 5) {
-        // 60 seconds expired -> send nextRound command
-        const roundToSend = state.currentRound;
-        const nextRound = state.currentRound + 1;
-        const isFinished = nextRound > 5;
-
-        const updated = await db.arenaGameState.update({
-          where: { id: battleId, phase: 'battle', currentRound: state.currentRound }, // optimistic lock
-          data: {
-            currentRound: nextRound,
-            totalTime: isFinished ? 0 : 60,
-            timeRemaining: isFinished ? 0 : 60,
-            lastUpdate: new Date(),
-            gameState: isFinished ? 'finished' : 'playing',
-            pendingAction: null,
+          gameState: {
+            gameState: 'playing',
+            phase: 'startGame',
+            currentRound: round,
+            timeRemaining: 0,
           },
         });
+      }
+      // Betting still active
+      return NextResponse.json({
+        hasCommand: false,
+        gameState: {
+          gameState: 'playing',
+          phase: 'startGame',
+          currentRound: round,
+          timeRemaining: Math.max(0, bettingDuration - bettingTimeElapsed),
+        },
+      });
+    }
 
+    // Battle phase — check if round interval has elapsed (time for next round)
+    if (round > 0 && round <= 5) {
+      const roundTimeElapsed = nowSec - lastRoundAt;
+      if (roundTimeElapsed >= roundInterval) {
         return NextResponse.json({
           hasCommand: true,
           command: {
             action: 'nextRound',
             timestamp: Date.now(),
             battleId,
-            round: roundToSend,
+            round,
           },
-          gameState: { ...formatState(updated), timeRemaining: isFinished ? 0 : 60 },
+          gameState: {
+            gameState: 'playing',
+            phase: 'battle',
+            currentRound: round,
+            timeRemaining: 0,
+          },
         });
       }
-    }
-
-    // Check for pending action that hasn't been consumed
-    if (state.pendingAction) {
-      const command = {
-        action: state.pendingAction,
-        timestamp: state.pendingActionAt?.getTime() || Date.now(),
-        battleId,
-        round: state.pendingRound || undefined,
-      };
-
-      await db.arenaGameState.update({
-        where: { id: battleId },
-        data: { pendingAction: null, pendingActionAt: null, pendingRound: null },
-      });
-
+      // Waiting for round interval
       return NextResponse.json({
-        hasCommand: true,
-        command,
-        gameState: { ...formatState(state), timeRemaining },
+        hasCommand: false,
+        gameState: {
+          gameState: 'playing',
+          phase: 'battle',
+          currentRound: round,
+          timeRemaining: Math.max(0, roundInterval - roundTimeElapsed),
+        },
       });
     }
 
-    // No command pending, return current state
-    return NextResponse.json({
-      hasCommand: false,
-      gameState: { ...formatState(state), timeRemaining },
-    });
+    // Default: no command
+    return NextResponse.json({ hasCommand: false, gameState: null });
   } catch (error) {
-    console.error('Command automation error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    console.error('Command chain read error:', error);
+    return NextResponse.json({ hasCommand: false, gameState: null });
   }
 }
 
-// POST /api/arena/commands?battleId=xxx
+// POST /api/arena/commands?battleId=<arenaAddress>
+// No-op — battle initialization and cleanup happen on-chain
 export async function POST(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const battleId = searchParams.get('battleId');
@@ -180,98 +162,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Battle ID is required' }, { status: 400 });
   }
 
-  const db = await getDb();
-  if (!db) {
-    return NextResponse.json(
-      { error: 'Database not configured. Arena automation requires PostgreSQL.', dbStatus: 'not_configured' },
-      { status: 503 }
-    );
-  }
-
   try {
     const body = await request.json();
-    const { action, warriors1Id, warriors2Id } = body;
+    const { action } = body;
 
     switch (action) {
-      case 'initialize': {
-        const newState = await db.arenaGameState.upsert({
-          where: { id: battleId },
-          create: {
-            id: battleId,
-            gameState: 'playing',
-            phase: 'startGame',
-            timeRemaining: 70,
-            totalTime: 70,
-            lastUpdate: new Date(),
-            currentRound: 0,
-            totalRounds: 5,
-            warriors1Id,
-            warriors2Id,
-            automationEnabled: true,
-            type: 'command-based',
-          },
-          update: {
-            gameState: 'playing',
-            phase: 'startGame',
-            timeRemaining: 70,
-            totalTime: 70,
-            lastUpdate: new Date(),
-            currentRound: 0,
-            warriors1Id,
-            warriors2Id,
-            automationEnabled: true,
-          },
-        });
-
+      case 'initialize':
+        // No-op: arena initialization happens on-chain via initializeGame()
         return NextResponse.json({
-          ...formatState(newState),
-          message: 'Command-based automation initialized',
-          arenaAddress: battleId,
-          contractAddress: battleId,
+          message: 'Arena initialization is handled on-chain',
+          battleId,
+          type: 'on-chain',
         });
-      }
 
-      case 'cleanup': {
-        await db.arenaGameState.deleteMany({ where: { id: battleId } });
-        return NextResponse.json({ message: 'Command automation cleaned up' });
-      }
+      case 'cleanup':
+        // No-op: game cleanup happens on-chain via finishGame()
+        return NextResponse.json({ message: 'Arena cleanup is handled on-chain' });
 
-      case 'resume': {
-        const existing = await db.arenaGameState.findUnique({ where: { id: battleId } });
-        if (!existing) {
-          return NextResponse.json({ error: 'Battle not found' }, { status: 404 });
-        }
-        await db.arenaGameState.update({
-          where: { id: battleId },
-          data: { gameState: 'playing', lastUpdate: new Date() },
-        });
-        return NextResponse.json({ message: 'Command automation resumed' });
-      }
+      case 'resume':
+        return NextResponse.json({ message: 'Arena automation reads from chain — always active' });
 
-      case 'reset': {
-        const current = await db.arenaGameState.findUnique({ where: { id: battleId } });
-        if (!current) {
-          return NextResponse.json({ error: 'Battle not found' }, { status: 404 });
-        }
-        const updated = await db.arenaGameState.update({
-          where: { id: battleId },
-          data: {
-            automationEnabled: false,
-            gameState: 'stopped',
-            phase: 'startGame',
-            currentRound: 0,
-            timeRemaining: 0,
-            totalTime: 70,
-            lastUpdate: new Date(),
-            pendingAction: null,
-          },
-        });
-        return NextResponse.json({
-          message: 'Automation stopped due to failed startGame verification',
-          gameState: formatState(updated),
-          automationStopped: true,
-        });
-      }
+      case 'reset':
+        return NextResponse.json({ message: 'Arena reset is handled on-chain' });
 
       default:
         return NextResponse.json(
@@ -280,10 +192,7 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('Command automation error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    console.error('Command POST error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

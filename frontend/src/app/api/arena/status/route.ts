@@ -1,70 +1,137 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createPublicClient, http } from 'viem';
+import { avalancheFuji } from 'viem/chains';
+import { ArenaAbi, getAvalancheRpcUrl, getAvalancheFallbackRpcUrl } from '@/constants';
 
-// Try to import prisma, but gracefully handle if DB is not configured
-let prisma: any = null;
-try {
-  prisma = require('@/lib/prisma').prisma;
-} catch {
-  // DB not available
+const RPC_TIMEOUT = 15000;
+
+function createClient() {
+  return createPublicClient({
+    chain: avalancheFuji,
+    transport: http(getAvalancheRpcUrl(), { timeout: RPC_TIMEOUT }),
+  });
 }
 
-// Helper to check if DB and ArenaGameState table are available
-async function getDb() {
-  if (!prisma) return null;
+function createFallbackClient() {
+  return createPublicClient({
+    chain: avalancheFuji,
+    transport: http(getAvalancheFallbackRpcUrl(), { timeout: RPC_TIMEOUT }),
+  });
+}
+
+async function readContract<T>(fn: (client: ReturnType<typeof createClient>) => Promise<T>): Promise<T> {
   try {
-    await prisma.$queryRaw`SELECT 1 FROM "ArenaGameState" LIMIT 0`;
-    return prisma;
+    return await fn(createClient());
   } catch {
-    return null;
+    return await fn(createFallbackClient());
   }
 }
 
-// GET /api/arena/status?battleId=xxx
+// GET /api/arena/status?battleId=<arenaAddress>
+// Reads game state directly from the on-chain Arena contract
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const battleId = searchParams.get('battleId');
 
   if (!battleId) {
-    return NextResponse.json({ error: 'Battle ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Battle ID (arena address) is required' }, { status: 400 });
   }
 
-  const db = await getDb();
-  if (!db) {
-    // No database configured — return graceful default
-    return NextResponse.json({ gameState: null, dbStatus: 'not_configured' });
+  // Validate address format
+  if (!/^0x[a-fA-F0-9]{40}$/.test(battleId)) {
+    return NextResponse.json({ gameState: null });
   }
 
   try {
-    const state = await db.arenaGameState.findUnique({
-      where: { id: battleId },
-    });
+    const arenaAddress = battleId as `0x${string}`;
 
-    if (!state) {
-      return NextResponse.json({ gameState: null });
+    const [
+      isInitialized,
+      currentRound,
+      isBettingPeriod,
+      gameInitializedAt,
+      lastRoundEndedAt,
+      minBettingPeriod,
+      minBattleRoundsInterval,
+      warriorsOneNFTId,
+      warriorsTwoNFTId,
+      damageOnOne,
+      damageOnTwo,
+    ] = await Promise.all([
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getInitializationStatus' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getCurrentRound' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getIsBettingPeriodGoingOn' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getGameInitializedAt' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getLastRoundEndedAt' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getMinWarriorsBettingPeriod' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getMinBattleRoundsInterval' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getWarriorsOneNFTId' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getWarriorsTwoNFTId' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getDamageOnWarriorsOne' })),
+      readContract((c) => c.readContract({ address: arenaAddress, abi: ArenaAbi, functionName: 'getDamageOnWarriorsTwo' })),
+    ]);
+
+    const round = Number(currentRound);
+    const initialized = Boolean(isInitialized);
+    const betting = Boolean(isBettingPeriod);
+    const initAt = Number(gameInitializedAt);
+    const lastRoundAt = Number(lastRoundEndedAt);
+    const bettingDuration = Number(minBettingPeriod);
+    const roundInterval = Number(minBattleRoundsInterval);
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    // Compute game phase and time remaining
+    let gameState: 'idle' | 'playing' | 'finished' = 'idle';
+    let phase: 'startGame' | 'battle' = 'startGame';
+    let timeRemaining = 0;
+    let totalTime = 0;
+
+    if (!initialized) {
+      gameState = 'idle';
+    } else if (round > 5) {
+      gameState = 'finished';
+    } else if (betting) {
+      gameState = 'playing';
+      phase = 'startGame';
+      totalTime = bettingDuration;
+      const elapsed = nowSec - initAt;
+      timeRemaining = Math.max(0, bettingDuration - elapsed);
+    } else if (round > 0) {
+      gameState = 'playing';
+      phase = 'battle';
+      totalTime = roundInterval;
+      const elapsed = nowSec - lastRoundAt;
+      timeRemaining = Math.max(0, roundInterval - elapsed);
+    } else {
+      // Initialized but round 0 and not betting — game about to start
+      gameState = 'playing';
+      phase = 'startGame';
+      totalTime = bettingDuration;
+      const elapsed = nowSec - initAt;
+      timeRemaining = Math.max(0, bettingDuration - elapsed);
     }
-
-    // Calculate live timeRemaining from timestamps
-    const elapsed = Math.floor((Date.now() - state.lastUpdate.getTime()) / 1000);
-    const timeRemaining = Math.max(0, state.totalTime - elapsed);
 
     return NextResponse.json({
       gameState: {
-        battleId: state.id,
-        gameState: state.gameState,
-        phase: state.phase,
+        battleId,
+        gameState,
+        phase,
         timeRemaining,
-        totalTime: state.totalTime,
-        lastUpdate: state.lastUpdate.getTime(),
-        currentRound: state.currentRound,
-        totalRounds: state.totalRounds,
-        warriors1Id: state.warriors1Id,
-        warriors2Id: state.warriors2Id,
-        automationEnabled: state.automationEnabled,
-        type: state.type,
+        totalTime,
+        lastUpdate: Date.now(),
+        currentRound: round,
+        totalRounds: 5,
+        warriors1Id: Number(warriorsOneNFTId),
+        warriors2Id: Number(warriorsTwoNFTId),
+        damageOnWarriors1: Number(damageOnOne),
+        damageOnWarriors2: Number(damageOnTwo),
+        automationEnabled: true,
+        type: 'on-chain',
       },
     });
   } catch (error) {
-    console.error('Status API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Arena status chain read error:', error);
+    // Return null gameState on contract read failure (e.g., invalid arena address)
+    return NextResponse.json({ gameState: null });
   }
 }

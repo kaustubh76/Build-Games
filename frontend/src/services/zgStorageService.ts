@@ -61,7 +61,12 @@ export async function download(rootHash: string): Promise<Buffer> {
   const indexer = new Indexer(ZG_INDEXER_RPC);
   const outPath = join(tmpdir(), `0g-download-${Date.now()}`);
 
-  const err = await indexer.download(rootHash, outPath, false);
+  // Download with 30s timeout
+  const downloadPromise = indexer.download(rootHash, outPath, false);
+  const timeoutPromise = new Promise<string>((_, reject) =>
+    setTimeout(() => reject(new Error('0G Storage download timed out after 30s')), 30000)
+  );
+  const err = await Promise.race([downloadPromise, timeoutPromise]);
   if (err) throw new Error(`0G download error: ${err}`);
 
   try {

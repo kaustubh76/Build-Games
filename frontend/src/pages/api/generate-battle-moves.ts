@@ -23,10 +23,10 @@ export default async function handler(
 
     const userMessage = `You are a battle AI. Given the following warriors and their stats, determine what move each warrior should make.
 
-Warrior 1: ${JSON.stringify(battlePrompt.warrior1)}
-Warrior 2: ${JSON.stringify(battlePrompt.warrior2)}
+Warrior 1: ${JSON.stringify(battlePrompt.agent_1)}
+Warrior 2: ${JSON.stringify(battlePrompt.agent_2)}
 
-Available moves: ${battlePrompt.availableMoves?.join(', ') || 'strike, taunt, dodge, recover, special_move'}
+Available moves: ${battlePrompt.moveset?.join(', ') || 'strike, taunt, dodge, recover, special_move'}
 
 Respond with JSON only: {"agent_1": "<move>", "agent_2": "<move>"}`;
 

@@ -1102,7 +1102,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
                 background: activeSection === 'manage' ? undefined : 'rgba(0, 0, 0, 0.3)'
               }}
             >
-              MANAGE WARRIORSS
+              MANAGE WARRIORS
             </button>
           </div>
         </div>
@@ -1604,7 +1604,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
                     className="text-gray-400 text-sm"
                     style={{fontFamily: 'Press Start 2P, monospace'}}
                   >
-                    NO WARRIORSS FOUND. CREATE YOUR FIRST WARRIOR!
+                    NO WARRIORS FOUND. CREATE YOUR FIRST WARRIOR!
                   </p>
                   <button
                     onClick={() => setActiveSection('create')}

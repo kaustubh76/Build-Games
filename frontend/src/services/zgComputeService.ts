@@ -49,21 +49,27 @@ export async function chatCompletion(
       await broker.inference.acknowledgeProviderSigner(ZG_COMPUTE_PROVIDER);
       providerAcknowledged = true;
     } catch (e: any) {
-      // May already be acknowledged — continue
-      if (!e.message?.includes('already')) {
-        console.warn('0G provider acknowledgment warning:', e.message);
+      if (e.message?.includes('already')) {
+        providerAcknowledged = true;
+      } else {
+        // Don't set the flag — let it retry on the next request
+        console.error('0G provider acknowledgment failed:', e.message);
+        throw new Error(`0G provider acknowledgment failed: ${e.message}`);
       }
-      providerAcknowledged = true;
     }
 
-    // Top up compute account to ensure sufficient balance (2 0G)
+    // Top up compute account to ensure sufficient balance
     try {
       const topUpAmount = BigInt(2) * BigInt(10 ** 18); // 2 0G
       await broker.ledger.transferFund(ZG_COMPUTE_PROVIDER, 'inference', topUpAmount);
       console.log('0G Compute: topped up inference account with 2 0G');
     } catch (e: any) {
-      // May fail if already funded — not critical
-      console.warn('0G top-up note:', e.message?.slice(0, 100));
+      if (e.message?.includes('already') || e.message?.includes('insufficient')) {
+        // Already funded or wallet has no 0G — not fatal for inference
+        console.warn('0G top-up skipped:', e.message?.slice(0, 120));
+      } else {
+        console.error('0G top-up failed:', e.message?.slice(0, 200));
+      }
     }
   }
 
@@ -81,21 +87,40 @@ export async function chatCompletion(
   // Generate per-request headers (single-use, must be new for each request)
   const headers = await broker.inference.getRequestHeaders(ZG_COMPUTE_PROVIDER, body);
 
-  // Make OpenAI-compatible HTTP request to provider endpoint
-  const response = await fetch(`${endpoint}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-    body,
-  });
+  // Make OpenAI-compatible HTTP request with 30s timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`0G Compute error (${response.status}): ${errText}`);
+  try {
+    const response = await fetch(`${endpoint}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      if (response.status === 429) {
+        throw new Error('0G Compute rate limited. Try again in a few seconds.');
+      }
+      if (response.status === 503) {
+        throw new Error('0G Compute provider temporarily unavailable.');
+      }
+      throw new Error(`0G Compute error (${response.status}): ${errText}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+  } catch (e: any) {
+    if (e.name === 'AbortError') {
+      throw new Error('0G Compute request timed out after 30s');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
 }

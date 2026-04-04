@@ -1,12 +1,21 @@
 /**
  * API Route: Arena Storage
- * Handles storing and retrieving prediction arena battles via database
+ * Stores and retrieves battle records via 0G Storage (decentralized)
+ * Falls back to database when 0G is unavailable
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
-import { prisma } from '@/lib/prisma';
+import { upload as zgUpload, download as zgDownload, isZgConfigured } from '@/services/zgStorageService';
+
+// Lazy-load prisma for DB fallback
+let prisma: any = null;
+try {
+  prisma = require('@/lib/prisma').prisma;
+} catch {
+  // DB not available
+}
 
 interface BattleStorageRecord {
   version: string;
@@ -64,11 +73,10 @@ interface BattleStorageRecord {
 
 /**
  * POST /api/arena/storage
- * Store a completed battle record to database
+ * Upload a completed battle record to 0G Storage (with DB fallback)
  */
 export async function POST(request: NextRequest) {
   try {
-    // Apply rate limiting for storage operations
     applyRateLimit(request, {
       prefix: 'arena-storage',
       maxRequests: 20,
@@ -82,7 +90,6 @@ export async function POST(request: NextRequest) {
       throw ErrorResponses.badRequest('Battle data with battleId is required');
     }
 
-    // Validate battle structure
     if (!battle.warriors || battle.warriors.length !== 2) {
       throw ErrorResponses.badRequest('Battle must have exactly 2 warriors');
     }
@@ -91,45 +98,56 @@ export async function POST(request: NextRequest) {
       throw ErrorResponses.badRequest('Battle must have at least 1 round');
     }
 
-    // Generate a data hash from the battle content
+    // Generate data hash for integrity
     const dataHash = createHash('sha256')
       .update(JSON.stringify(battle))
       .digest('hex');
 
-    // Use the data hash as the rootHash identifier
-    const rootHash = `0x${dataHash}`;
+    const battleJson = JSON.stringify({ ...battle, dataHash });
 
-    // Store battle data hash in the prediction battle record
-    await prisma.predictionBattle.update({
-      where: { id: battle.battleId },
-      data: { battleDataHash: rootHash },
-    });
+    // Try 0G Storage first (decentralized)
+    let rootHash = '';
+    let txHash = '';
+    let storageMethod = 'none';
 
-    // Store the full battle data in MarketSnapshot for retrieval
-    await prisma.marketSnapshot.upsert({
-      where: { rootHash },
-      create: {
-        rootHash,
-        marketId: battle.market.externalId,
-        source: battle.market.source,
-        question: battle.market.question,
-        yesPrice: battle.totalScores.warrior1,
-        noPrice: battle.totalScores.warrior2,
-        volume: battle.stakes,
-        timestamp: new Date(battle.timestamp),
-      },
-      update: {
-        volume: battle.stakes,
-        timestamp: new Date(battle.timestamp),
-      },
-    });
+    if (isZgConfigured()) {
+      try {
+        const result = await zgUpload(Buffer.from(battleJson), `battle-${battle.battleId}.json`);
+        rootHash = result.rootHash;
+        txHash = result.txHash;
+        storageMethod = '0g';
+        console.log(`Battle ${battle.battleId} stored on 0G Storage: rootHash=${rootHash}`);
+      } catch (zgError) {
+        console.error('0G Storage upload failed, falling back to DB:', zgError);
+      }
+    }
+
+    // Fallback: store hash reference in DB
+    if (!rootHash) {
+      rootHash = `0x${dataHash}`;
+      storageMethod = 'db-fallback';
+    }
+
+    // Update battle record with storage hash (if DB available)
+    if (prisma) {
+      try {
+        await prisma.predictionBattle.update({
+          where: { id: battle.battleId },
+          data: { battleDataHash: rootHash },
+        });
+      } catch (dbError) {
+        // DB update is non-critical — the battle data is already on 0G
+        console.warn('DB update for battleDataHash failed (non-critical):', dbError);
+      }
+    }
 
     return NextResponse.json({
       success: true,
       rootHash,
-      transactionHash: rootHash,
+      transactionHash: txHash || rootHash,
       dataHash,
-      message: `Battle ${battle.battleId} stored`,
+      storageMethod,
+      message: `Battle ${battle.battleId} stored via ${storageMethod}`,
     });
   } catch (error) {
     return handleAPIError(error, 'API:Arena:Storage:POST');
@@ -138,11 +156,10 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/arena/storage?rootHash=xxx
- * Retrieve a battle record from database
+ * Download a battle record from 0G Storage (with DB fallback)
  */
 export async function GET(request: NextRequest) {
   try {
-    // Apply rate limiting for retrieval operations
     applyRateLimit(request, {
       prefix: 'arena-storage-get',
       maxRequests: 60,
@@ -156,34 +173,56 @@ export async function GET(request: NextRequest) {
       throw ErrorResponses.badRequest('rootHash is required');
     }
 
-    // Look up battle by its data hash
-    const battle = await prisma.predictionBattle.findFirst({
-      where: { battleDataHash: rootHash },
-    });
-
-    if (!battle) {
-      throw ErrorResponses.badRequest('Battle record not found');
+    // Try 0G Storage download first (for non-SHA256 hashes — real 0G root hashes)
+    if (!rootHash.startsWith('0x') && isZgConfigured()) {
+      try {
+        const data = await zgDownload(rootHash);
+        const battle = JSON.parse(data.toString());
+        return NextResponse.json({
+          success: true,
+          rootHash,
+          data: battle,
+          source: '0g',
+        });
+      } catch (zgError) {
+        console.error('0G Storage download failed:', zgError);
+      }
     }
 
-    // Return the battle data
-    return NextResponse.json({
-      success: true,
-      rootHash,
-      data: {
-        battleId: battle.id,
-        externalMarketId: battle.externalMarketId,
-        source: battle.source,
-        question: battle.question,
-        warrior1Id: battle.warrior1Id,
-        warrior1Owner: battle.warrior1Owner,
-        warrior2Id: battle.warrior2Id,
-        warrior2Owner: battle.warrior2Owner,
-        warrior1Score: battle.warrior1Score,
-        warrior2Score: battle.warrior2Score,
-        stakes: battle.stakes,
-        status: battle.status,
-      },
-    });
+    // Fallback: look up by hash in DB
+    if (prisma) {
+      try {
+        const battle = await prisma.predictionBattle.findFirst({
+          where: { battleDataHash: rootHash },
+        });
+
+        if (battle) {
+          return NextResponse.json({
+            success: true,
+            rootHash,
+            data: {
+              battleId: battle.id,
+              externalMarketId: battle.externalMarketId,
+              source: battle.source,
+              question: battle.question,
+              warrior1Id: battle.warrior1Id,
+              warrior1Owner: battle.warrior1Owner,
+              warrior2Id: battle.warrior2Id,
+              warrior2Owner: battle.warrior2Owner,
+              warrior1Score: battle.warrior1Score,
+              warrior2Score: battle.warrior2Score,
+              stakes: battle.stakes,
+              status: battle.status,
+            },
+            source: 'database',
+          });
+        }
+      } catch (dbError) {
+        console.error('DB lookup failed:', dbError);
+      }
+    }
+
+    throw ErrorResponses.badRequest('Battle record not found');
   } catch (error) {
     return handleAPIError(error, 'API:Arena:Storage:GET');
   }

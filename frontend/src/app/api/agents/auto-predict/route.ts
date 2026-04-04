@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
         try {
           const data = await zgDl(metadataHash);
           storageResponse = new Response(data, { status: 200 });
-        } catch { storageResponse = null; }
+        } catch (e) { console.error('0G Storage download failed for metadata:', e); storageResponse = null; }
       }
       if (!storageResponse && (metadataHash.startsWith('Qm') || metadataHash.startsWith('bafy'))) {
         storageResponse = await fetch(`https://ipfs.io/ipfs/${metadataHash}`);
