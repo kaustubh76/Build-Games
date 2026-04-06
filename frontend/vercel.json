@@ -9,9 +9,20 @@
   "functions": {
     "app/api/**/*": {
       "maxDuration": 60
+    },
+    "app/api/cron/**/*": {
+      "maxDuration": 300
+    },
+    "app/api/game-master/**/*": {
+      "maxDuration": 120
     }
   },
-  "crons": [],
+  "crons": [
+    {
+      "path": "/api/cron/game-loop",
+      "schedule": "* * * * *"
+    }
+  ],
   "env": {
     "NODE_ENV": "production"
   },

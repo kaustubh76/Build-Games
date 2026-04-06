@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createPublicClient, createWalletClient, http } from 'viem';
-import { avalancheFuji } from 'viem/chains';
+import { avalancheFuji, avalanche } from 'viem/chains';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
-import { getAvalancheRpcUrl, getAvalancheFallbackRpcUrl } from '@/constants';
+import { getAvalancheRpcUrl, getAvalancheFallbackRpcUrl, getChainId } from '@/constants';
 
 const RPC_TIMEOUT = 30000; // 30 seconds
+
+// Select chain based on NEXT_PUBLIC_CHAIN_ID (43114 = mainnet, else Fuji)
+function getChain() {
+  return getChainId() === 43114 ? avalanche : avalancheFuji;
+}
 
 // Create Avalanche public client
 function createAvalanchePublicClient() {
   return createPublicClient({
-    chain: avalancheFuji,
+    chain: getChain(),
     transport: http(getAvalancheRpcUrl(), { timeout: RPC_TIMEOUT }),
   });
 }
@@ -18,7 +23,7 @@ function createAvalanchePublicClient() {
 // Create Avalanche fallback client
 function createAvalancheFallbackClient() {
   return createPublicClient({
-    chain: avalancheFuji,
+    chain: getChain(),
     transport: http(getAvalancheFallbackRpcUrl(), { timeout: RPC_TIMEOUT }),
   });
 }
@@ -26,7 +31,7 @@ function createAvalancheFallbackClient() {
 // Create Avalanche wallet client
 function createAvalancheWalletClient(account: ReturnType<typeof privateKeyToAccount>) {
   return createWalletClient({
-    chain: avalancheFuji,
+    chain: getChain(),
     transport: http(getAvalancheRpcUrl(), { timeout: RPC_TIMEOUT }),
     account,
   });
@@ -284,7 +289,7 @@ async function startGame(arenaAddress: string): Promise<boolean> {
       address: arenaAddress as `0x${string}`,
       abi: ArenaAbi,
       functionName: 'startGame',
-      chain: avalancheFuji,
+      chain: getChain(),
     });
 
     console.log(`Game Master: Start game transaction sent: ${hash}`);
@@ -300,7 +305,7 @@ async function startGame(arenaAddress: string): Promise<boolean> {
   }
 }
 
-async function generateAIMoves(arenaAddress: string): Promise<{ agent_1: { move: string }, agent_2: { move: string } } | null> {
+async function generateAIMoves(arenaAddress: string): Promise<{ moves: { agent_1: { move: string }, agent_2: { move: string } } } | { error: string }> {
   try {
     // Get current battle data from contract
     const [currentRound, damageOnWarriorsOne, damageOnWarriorsTwo, warriorsOneNFTId, warriorsTwoNFTId] = await Promise.all([
@@ -374,13 +379,13 @@ async function generateAIMoves(arenaAddress: string): Promise<{ agent_1: { move:
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Game Master: AI API Error:', errorText);
-      return null;
+      return { error: `AI API HTTP error (${response.status}): ${errorText.slice(0, 200)}` };
     }
 
     const data = await response.json();
     if (!data.success) {
       console.error('Game Master: AI API Error:', data.error);
-      return null;
+      return { error: `AI API returned failure: ${data.error}` };
     }
 
     console.log('Game Master: AI Response:', data.response);
@@ -415,33 +420,36 @@ async function generateAIMoves(arenaAddress: string): Promise<{ agent_1: { move:
       
       if (agent1Move && agent2Move) {
         return {
-          agent_1: { move: agent1Move },
-          agent_2: { move: agent2Move }
+          moves: {
+            agent_1: { move: agent1Move },
+            agent_2: { move: agent2Move }
+          }
         };
       } else {
         console.error('Game Master: Invalid AI response format');
-        return null;
+        return { error: 'Invalid AI response format — could not extract agent moves' };
       }
     } catch (parseError) {
       console.error('Game Master: Failed to parse AI response:', parseError);
-      return null;
+      return { error: `Failed to parse AI JSON response: ${(parseError as Error).message}` };
     }
-  } catch (error) {  
+  } catch (error) {
     console.error('Game Master: Failed to generate AI moves:', error);
-    return null;
+    return { error: `Failed to generate AI moves: ${(error as Error).message}` };
   }
 }
 
-async function executeNextRound(arenaAddress: string): Promise<boolean> {
+async function executeNextRound(arenaAddress: string): Promise<{ success: boolean; error?: string }> {
   try {
     console.log(`Game Master: Executing next round for arena ${arenaAddress}`);
-    
+
     // Generate AI moves
-    const moves = await generateAIMoves(arenaAddress);
-    if (!moves) {
-      console.error('Game Master: Failed to generate AI moves');
-      return false;
+    const result = await generateAIMoves(arenaAddress);
+    if ('error' in result) {
+      console.error('Game Master: Failed to generate AI moves:', result.error);
+      return { success: false, error: result.error };
     }
+    const moves = result.moves;
 
     console.log(`Game Master: AI selected moves - Agent 1: ${moves.agent_1.move}, Agent 2: ${moves.agent_2.move}`);
 
@@ -458,27 +466,23 @@ async function executeNextRound(arenaAddress: string): Promise<boolean> {
     const warriorsOneMove = moveMapping[moves.agent_1.move.toLowerCase()] ?? 0;
     const warriorsTwoMove = moveMapping[moves.agent_2.move.toLowerCase()] ?? 0;
 
-    // Create signature for the battle moves (this would normally be done by AI agent)
-    // For automation, we'll use the game master's signature
-    // The contract expects: keccak256(abi.encodePacked(_warriorsOneMove, _warriorsTwoMove))
-    // followed by MessageHashUtils.toEthSignedMessageHash()
-    
-    const { encodePacked, keccak256, toHex } = await import('viem');
-    
-    // Encode the moves as the contract expects: abi.encodePacked(uint8, uint8)
+    // Create signature for the battle moves.
+    // Contract flow (Arena.sol):
+    //   dataHash = keccak256(abi.encodePacked(move1, move2))
+    //   ethSignedMessage = MessageHashUtils.toEthSignedMessageHash(dataHash)
+    //   recovered = ECDSA.recover(ethSignedMessage, signature)
+    //
+    // viem's signMessage({ message: { raw: dataHash } }) internally applies the
+    // same EIP-191 prefix ("\x19Ethereum Signed Message:\n32") before signing.
+    // So we pass the RAW dataHash — NOT the prefixed hash.
+
+    const { encodePacked, keccak256 } = await import('viem');
+
     const encodedMoves = encodePacked(['uint8', 'uint8'], [warriorsOneMove, warriorsTwoMove]);
-    
-    // Create the keccak256 hash
     const dataHash = keccak256(encodedMoves);
-    
-    // The contract uses MessageHashUtils.toEthSignedMessageHash() which prefixes with "\x19Ethereum Signed Message:\n32"
-    const ethSignedMessageHash = keccak256(
-      encodePacked(['string', 'bytes32'], ['\x19Ethereum Signed Message:\n32', dataHash])
-    );
-    
-    // Sign the Ethereum signed message hash
+
     const signature = await getGameMasterAccount().signMessage({
-      message: { raw: ethSignedMessageHash }
+      message: { raw: dataHash }
     });
 
     console.log(`Game Master: Executing battle with moves ${warriorsOneMove} vs ${warriorsTwoMove}`);
@@ -488,7 +492,7 @@ async function executeNextRound(arenaAddress: string): Promise<boolean> {
       abi: ArenaAbi,
       functionName: 'battle',
       args: [warriorsOneMove, warriorsTwoMove, signature as `0x${string}`],
-      chain: avalancheFuji,
+      chain: getChain(),
     });
 
     console.log(`Game Master: Battle transaction sent: ${hash}`);
@@ -497,10 +501,10 @@ async function executeNextRound(arenaAddress: string): Promise<boolean> {
     const receipt = await waitForReceiptWithFallback(hash);
 
     console.log(`Game Master: Next round executed successfully for arena ${arenaAddress}`);
-    return receipt.status === 'success';
+    return { success: receipt.status === 'success' };
   } catch (error) {
     console.error(`Game Master: Failed to execute next round for arena ${arenaAddress}:`, error);
-    return false;
+    return { success: false, error: `Round execution failed: ${(error as Error).message}` };
   }
 }
 
@@ -570,8 +574,8 @@ export async function POST(request: NextRequest) {
 
         if (shouldExecuteRound) {
           console.log(`Game Master: Executing next round for arena ${arenaAddress} - round interval passed`);
-          const success = await executeNextRound(arenaAddress);
-          results[arenaAddress] = { success, action: 'executed_round', roundEndTime, currentTime, round: arenaState.currentRound };
+          const roundResult = await executeNextRound(arenaAddress);
+          results[arenaAddress] = { success: roundResult.success, action: 'executed_round', error: roundResult.error, roundEndTime, currentTime, round: arenaState.currentRound };
         } else {
           results[arenaAddress] = { 
             success: true, 

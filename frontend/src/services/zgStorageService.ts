@@ -17,6 +17,36 @@ const ZG_PRIVATE_KEY = process.env.ZG_PRIVATE_KEY || process.env.PRIVATE_KEY;
 
 export const isZgConfigured = (): boolean => !!ZG_PRIVATE_KEY;
 
+// Cached instances (singleton pattern, same as zgComputeService)
+let _provider: ethers.JsonRpcProvider | null = null;
+let _signer: ethers.Wallet | null = null;
+let _indexer: Indexer | null = null;
+
+function getProvider(): ethers.JsonRpcProvider {
+  if (!_provider) {
+    const zgChainId = parseInt(process.env.NEXT_PUBLIC_0G_CHAIN_ID || '16602', 10);
+    const network = new ethers.Network('0g-network', zgChainId);
+    network.attachPlugin(new EnsPlugin('0x0000000000000000000000000000000000000000', zgChainId));
+    _provider = new ethers.JsonRpcProvider(ZG_EVM_RPC, network, { staticNetwork: network });
+  }
+  return _provider;
+}
+
+function getSigner(): ethers.Wallet {
+  if (!_signer) {
+    if (!ZG_PRIVATE_KEY) throw new Error('ZG_PRIVATE_KEY not configured');
+    _signer = new ethers.Wallet(ZG_PRIVATE_KEY, getProvider());
+  }
+  return _signer;
+}
+
+function getIndexer(): Indexer {
+  if (!_indexer) {
+    _indexer = new Indexer(ZG_INDEXER_RPC);
+  }
+  return _indexer;
+}
+
 /**
  * Upload data to 0G Storage.
  * Writes buffer to a temp file, uploads via SDK, then cleans up.
@@ -25,14 +55,8 @@ export async function upload(
   data: Buffer,
   fileName?: string
 ): Promise<{ rootHash: string; txHash: string }> {
-  if (!ZG_PRIVATE_KEY) throw new Error('ZG_PRIVATE_KEY not configured');
-
-  // Use a static network with dummy ENS plugin to avoid ENS resolution errors on 0G testnet
-  const network = new ethers.Network('0g-testnet', 16602);
-  network.attachPlugin(new EnsPlugin('0x0000000000000000000000000000000000000000', 16602));
-  const provider = new ethers.JsonRpcProvider(ZG_EVM_RPC, network, { staticNetwork: network });
-  const signer = new ethers.Wallet(ZG_PRIVATE_KEY, provider);
-  const indexer = new Indexer(ZG_INDEXER_RPC);
+  const signer = getSigner();
+  const indexer = getIndexer();
 
   const tempPath = join(tmpdir(), `0g-upload-${Date.now()}-${fileName || 'data'}`);
   await writeFile(tempPath, data);
@@ -43,7 +67,13 @@ export async function upload(
     if (treeErr) throw new Error(`Merkle tree error: ${treeErr}`);
 
     const rootHash = tree!.rootHash() ?? '';
-    const [uploadResult, uploadErr] = await indexer.upload(file, ZG_EVM_RPC, signer);
+
+    // Upload with 60s timeout (upload can hang on slow/unreachable 0G network)
+    const uploadPromise = indexer.upload(file, ZG_EVM_RPC, signer);
+    const uploadTimeout = new Promise<[null, string]>((resolve) =>
+      setTimeout(() => resolve([null, '0G Storage upload timed out after 60s']), 60000)
+    );
+    const [uploadResult, uploadErr] = await Promise.race([uploadPromise, uploadTimeout]);
     if (uploadErr) throw new Error(`0G upload error: ${uploadErr}`);
 
     await file.close();
@@ -58,7 +88,7 @@ export async function upload(
  * Downloads to a temp file, reads into buffer, then cleans up.
  */
 export async function download(rootHash: string): Promise<Buffer> {
-  const indexer = new Indexer(ZG_INDEXER_RPC);
+  const indexer = getIndexer();
   const outPath = join(tmpdir(), `0g-download-${Date.now()}`);
 
   // Download with 30s timeout

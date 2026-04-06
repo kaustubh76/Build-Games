@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     // Require 0G Storage
     if (!isZgConfigured()) {
-      throw ErrorResponses.serviceUnavailable('0G Storage not configured. Set ZG_PRIVATE_KEY.');
+      throw ErrorResponses.serviceUnavailable('File upload unavailable: 0G Storage not configured. Set ZG_PRIVATE_KEY environment variable.');
     }
 
     const data = await request.formData();

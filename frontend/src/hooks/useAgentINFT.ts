@@ -269,7 +269,7 @@ export function useMintINFT(): UseMintINFTResult {
 
               // No client-side timeout - Avalanche uploads can take several minutes
               // The server will handle the upload and return when complete
-              const response = await fetch('/api/storage/upload', {
+              const response = await fetch('/api/files', {
                 method: 'POST',
                 body: formData
               });
@@ -584,10 +584,10 @@ export function useDecryptedMetadata(
 
         if (metadataRef.startsWith('storage://') || metadataRef.startsWith('0g://')) {
           const rootHash = metadataRef.replace('storage://', '').replace('0g://', '');
-          console.log('Fetching encrypted metadata from IPFS:', rootHash);
+          console.log('Fetching encrypted metadata from Storage:', rootHash);
 
           // Use internal API route for downloading
-          const response = await fetch(`/api/storage/upload?rootHash=${encodeURIComponent(rootHash)}`, {
+          const response = await fetch(`/api/storage/download/${encodeURIComponent(rootHash)}`, {
             signal: AbortSignal.timeout(30000) // 30 second timeout for SDK operations
           });
 
@@ -605,7 +605,7 @@ export function useDecryptedMetadata(
         } else {
           // Unknown format - try as raw hash via internal API
           console.log('Trying metadata reference as raw hash:', metadataRef);
-          const response = await fetch(`/api/storage/upload?rootHash=${encodeURIComponent(metadataRef)}`, {
+          const response = await fetch(`/api/storage/download/${encodeURIComponent(metadataRef)}`, {
             signal: AbortSignal.timeout(30000)
           });
 

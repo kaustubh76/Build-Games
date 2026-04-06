@@ -64,17 +64,8 @@ export default function BattleDetailPage() {
 
   const handleExecuteRound = async () => {
     if (!battle) return;
-
-    // Default traits - in production would fetch from chain
-    const defaultTraits = {
-      strength: 5000 + Math.floor(Math.random() * 3000),
-      wit: 5000 + Math.floor(Math.random() * 3000),
-      charisma: 5000 + Math.floor(Math.random() * 3000),
-      defence: 5000 + Math.floor(Math.random() * 3000),
-      luck: 5000 + Math.floor(Math.random() * 3000),
-    };
-
-    const result = await executeRound(battle.id, defaultTraits, defaultTraits);
+    // Traits omitted — server fetches real on-chain traits from WarriorsNFT.getTraits()
+    const result = await executeRound(battle.id);
     if (result) {
       setBattle(result.battle);
     }
@@ -82,16 +73,7 @@ export default function BattleDetailPage() {
 
   const handleExecuteFullBattle = async () => {
     if (!battle) return;
-
-    const defaultTraits = {
-      strength: 5000 + Math.floor(Math.random() * 3000),
-      wit: 5000 + Math.floor(Math.random() * 3000),
-      charisma: 5000 + Math.floor(Math.random() * 3000),
-      defence: 5000 + Math.floor(Math.random() * 3000),
-      luck: 5000 + Math.floor(Math.random() * 3000),
-    };
-
-    const result = await executeFullBattle(battle.id, defaultTraits, defaultTraits);
+    const result = await executeFullBattle(battle.id);
     if (result) {
       setBattle(result.battle);
     }

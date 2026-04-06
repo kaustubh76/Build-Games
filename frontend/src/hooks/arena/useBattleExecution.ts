@@ -42,17 +42,17 @@ interface UseBattleExecutionReturn {
   currentRound: number | null;
   error: string | null;
 
-  // Actions
+  // Actions — traits are optional; the server fetches them from chain when omitted
   executeRound: (
     battleId: string,
-    warrior1Traits: WarriorTraits,
-    warrior2Traits: WarriorTraits
+    warrior1Traits?: WarriorTraits,
+    warrior2Traits?: WarriorTraits
   ) => Promise<ExecuteRoundResult | null>;
 
   executeFullBattle: (
     battleId: string,
-    warrior1Traits: WarriorTraits,
-    warrior2Traits: WarriorTraits
+    warrior1Traits?: WarriorTraits,
+    warrior2Traits?: WarriorTraits
   ) => Promise<ExecuteFullBattleResult | null>;
 }
 
@@ -66,8 +66,8 @@ export function useBattleExecution(): UseBattleExecutionReturn {
    */
   const executeRound = useCallback(async (
     battleId: string,
-    warrior1Traits: WarriorTraits,
-    warrior2Traits: WarriorTraits
+    warrior1Traits?: WarriorTraits,
+    warrior2Traits?: WarriorTraits
   ): Promise<ExecuteRoundResult | null> => {
     setIsExecuting(true);
     setError(null);
@@ -105,8 +105,8 @@ export function useBattleExecution(): UseBattleExecutionReturn {
    */
   const executeFullBattle = useCallback(async (
     battleId: string,
-    warrior1Traits: WarriorTraits,
-    warrior2Traits: WarriorTraits
+    warrior1Traits?: WarriorTraits,
+    warrior2Traits?: WarriorTraits
   ): Promise<ExecuteFullBattleResult | null> => {
     setIsExecuting(true);
     setError(null);

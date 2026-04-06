@@ -1,202 +1,265 @@
 #!/bin/bash
+################################################################################
+# Vercel Environment Variables Setup
+#
+# Configures all required environment variables in Vercel by reading contract
+# addresses from the deployment JSON. Supports both testnet and mainnet.
+#
+# Usage:
+#   ./scripts/setup-vercel-env.sh                # defaults to testnet
+#   ./scripts/setup-vercel-env.sh mainnet         # mainnet deployment
+#   ./scripts/setup-vercel-env.sh mainnet --env production  # explicit env
+#   ./scripts/setup-vercel-env.sh --from-file deployments/vercel-mainnet-env.txt
+#
+# Prerequisites:
+#   - Vercel CLI installed: npm i -g vercel
+#   - Logged into Vercel: vercel login
+#   - Deployment JSON exists at deployments/avalanche-{network}.json
+################################################################################
 
-# ============================================================================
-# Vercel Environment Variables Setup Script
-# ============================================================================
-# This script helps you configure all required environment variables in Vercel
-# Run: ./scripts/setup-vercel-env.sh
-# ============================================================================
+set -euo pipefail
 
-set -e
+# ── Colours ──────────────────────────────────────────────────────────────────
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+FRONTEND_DIR="$PROJECT_ROOT/frontend"
 
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}🔧 Vercel Environment Variables Setup${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
+# ── Argument parsing ─────────────────────────────────────────────────────────
+NETWORK="testnet"
+VERCEL_ENV="production"
+FROM_FILE=""
 
-# Check if vercel CLI is installed
-if ! command -v vercel &> /dev/null; then
-    echo -e "${RED}❌ Vercel CLI not found${NC}"
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        mainnet|testnet) NETWORK="$1"; shift ;;
+        --env)           VERCEL_ENV="$2"; shift 2 ;;
+        --from-file)     FROM_FILE="$2"; shift 2 ;;
+        --help|-h)
+            echo "Usage: $0 [mainnet|testnet] [--env production|preview|development] [--from-file path]"
+            exit 0 ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+done
+
+# ── Mode: from-file ─────────────────────────────────────────────────────────
+if [ -n "$FROM_FILE" ]; then
+    if [ ! -f "$FROM_FILE" ]; then
+        echo -e "${RED}File not found: $FROM_FILE${NC}"
+        exit 1
+    fi
+
+    if ! command -v vercel &>/dev/null; then
+        echo -e "${RED}Vercel CLI not found. Install with: npm i -g vercel${NC}"
+        exit 1
+    fi
+
+    cd "$FRONTEND_DIR"
+    echo -e "${BOLD}Applying env vars from $FROM_FILE to Vercel ($VERCEL_ENV)${NC}"
     echo ""
-    echo "Install with: npm install -g vercel"
-    exit 1
-fi
 
-echo -e "${GREEN}✓${NC} Vercel CLI found"
-echo ""
+    count=0
+    while IFS='=' read -r key value; do
+        # Skip comments, empty lines
+        [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+        # Strip leading/trailing whitespace
+        key=$(echo "$key" | xargs)
+        value=$(echo "$value" | xargs)
+        [ -z "$key" ] && continue
 
-# Navigate to frontend directory
-cd "$(dirname "$0")/../frontend" || exit 1
+        echo -ne "  $key ... "
+        if echo "$value" | vercel env add "$key" "$VERCEL_ENV" --force 2>/dev/null; then
+            echo -e "${GREEN}OK${NC}"
+            count=$((count + 1))
+        else
+            echo -e "${RED}FAILED${NC}"
+        fi
+    done < "$FROM_FILE"
 
-# Check if .env file exists
-if [ ! -f ".env" ]; then
-    echo -e "${RED}❌ .env file not found${NC}"
-    echo "Please create a .env file in the frontend directory"
-    exit 1
-fi
-
-echo -e "${YELLOW}📋 This script will add environment variables to Vercel${NC}"
-echo -e "${YELLOW}   Environment: production${NC}"
-echo ""
-echo -e "${YELLOW}⚠️  IMPORTANT:${NC}"
-echo -e "   - DO NOT use test/development keys in production"
-echo -e "   - Generate new keys for production deployment"
-echo -e "   - Keep private keys secure"
-echo ""
-read -p "Continue? (y/n) " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Aborted."
+    echo ""
+    echo -e "${GREEN}Applied $count env vars to Vercel ($VERCEL_ENV).${NC}"
+    echo "Redeploy with: vercel --prod"
     exit 0
 fi
 
+# ── Network config ───────────────────────────────────────────────────────────
+case "$NETWORK" in
+    mainnet)
+        CHAIN_ID=43114
+        RPC_URL="https://api.avax.network/ext/bc/C/rpc"
+        FALLBACK_RPC="https://avalanche.public-rpc.com"
+        DEPLOYMENT_FILE="$PROJECT_ROOT/deployments/avalanche-mainnet.json"
+        ;;
+    testnet)
+        CHAIN_ID=43113
+        RPC_URL="https://api.avax-test.network/ext/bc/C/rpc"
+        FALLBACK_RPC="https://avalanche-fuji-c-chain-rpc.publicnode.com"
+        DEPLOYMENT_FILE="$PROJECT_ROOT/deployments/avalanche-testnet.json"
+        ;;
+esac
+
+# ── Checks ───────────────────────────────────────────────────────────────────
+if ! command -v vercel &>/dev/null; then
+    echo -e "${RED}Vercel CLI not found. Install with: npm i -g vercel${NC}"
+    exit 1
+fi
+
+if [ ! -f "$DEPLOYMENT_FILE" ]; then
+    echo -e "${RED}Deployment file not found: $DEPLOYMENT_FILE${NC}"
+    echo "Deploy contracts first with: ./scripts/deploy-mainnet.sh"
+    exit 1
+fi
+
+# ── Read contract addresses from deployment JSON ─────────────────────────────
+get_addr() {
+    python3 -c "import json; d=json.load(open('$DEPLOYMENT_FILE')); print(d['contracts'].get('$1', ''))" 2>/dev/null
+}
+
+CROWN=$(get_addr crownToken)
+WARRIORS=$(get_addr warriorsNFT)
+ARENA_FACTORY=$(get_addr arenaFactory)
+PRED_AMM=$(get_addr predictionMarketAMM)
+AI_REGISTRY=$(get_addr aiAgentRegistry)
+DEBATE_ORACLE=$(get_addr aiDebateOracle)
+OUTCOME=$(get_addr outcomeToken)
+REVENUE_SHARE=$(get_addr creatorRevenueShare)
+EXT_MIRROR=$(get_addr externalMarketMirror)
+AI_INFT=$(get_addr aiAgentINFT)
+MOCK_ORACLE=$(get_addr mockOracle)
+MICRO_FACTORY=$(get_addr microMarketFactory)
+AI_LIQ=$(get_addr aiLiquidityManager)
+MKT_FACTORY=$(get_addr marketFactory)
+PRED_ARENA=$(get_addr predictionArena)
+
+cd "$FRONTEND_DIR"
+
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BOLD}  Vercel Environment Setup - Avalanche $NETWORK${NC}"
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}📦 Avalanche Blockchain Configuration${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "  Network:    $NETWORK (chain $CHAIN_ID)"
+echo -e "  Vercel env: $VERCEL_ENV"
+echo -e "  Source:     $DEPLOYMENT_FILE"
 echo ""
 
-# Flow RPC URLs
-echo "Setting NEXT_PUBLIC_AVALANCHE_TESTNET_RPC..."
-echo "https://api.avax-test.network/ext/bc/C/rpc" | vercel env add NEXT_PUBLIC_AVALANCHE_TESTNET_RPC production --force
+if [ "$NETWORK" = "mainnet" ]; then
+    echo -e "${YELLOW}${BOLD}WARNING: Setting MAINNET contract addresses in Vercel.${NC}"
+    echo -e "${YELLOW}Users will interact with REAL AVAX on the live site.${NC}"
+    echo ""
+    read -p "Continue? (y/n) " -n 1 -r
+    echo ""
+    [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Aborted."; exit 0; }
+fi
 
-echo "Setting NEXT_PUBLIC_CHAIN_ID..."
-echo "43113" | vercel env add NEXT_PUBLIC_CHAIN_ID production --force
+# ── Helper to set a var ──────────────────────────────────────────────────────
+set_var() {
+    local key="$1"
+    local value="$2"
+    echo -ne "  $key ... "
+    if echo "$value" | vercel env add "$key" "$VERCEL_ENV" --force 2>/dev/null; then
+        echo -e "${GREEN}OK${NC}"
+    else
+        echo -e "${RED}FAILED${NC}"
+    fi
+}
 
-echo "Setting NEXT_PUBLIC_AVALANCHE_FALLBACK_RPC..."
-echo "https://ava-testnet.public.blastapi.io/ext/bc/C/rpc" | vercel env add NEXT_PUBLIC_AVALANCHE_FALLBACK_RPC production --force
+# ── Chain Configuration ──────────────────────────────────────────────────────
+echo ""
+echo -e "${CYAN}${BOLD}Avalanche Chain Configuration${NC}"
+set_var "NEXT_PUBLIC_CHAIN_ID" "$CHAIN_ID"
+set_var "NEXT_PUBLIC_AVALANCHE_TESTNET_RPC" "https://api.avax-test.network/ext/bc/C/rpc"
+set_var "NEXT_PUBLIC_AVALANCHE_MAINNET_RPC" "https://api.avax.network/ext/bc/C/rpc"
+set_var "NEXT_PUBLIC_AVALANCHE_FALLBACK_RPC" "$FALLBACK_RPC"
 
+# ── Contract Addresses ───────────────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}✓ Avalanche blockchain configuration added${NC}"
-echo ""
+echo -e "${CYAN}${BOLD}Contract Addresses (from deployment JSON)${NC}"
+set_var "NEXT_PUBLIC_CROWN_TOKEN" "$CROWN"
+set_var "NEXT_PUBLIC_WARRIORS_NFT" "$WARRIORS"
+set_var "NEXT_PUBLIC_ARENA_FACTORY" "$ARENA_FACTORY"
+set_var "NEXT_PUBLIC_PREDICTION_MARKET" "$PRED_AMM"
+set_var "NEXT_PUBLIC_AI_AGENT_REGISTRY" "$AI_REGISTRY"
+set_var "NEXT_PUBLIC_AI_DEBATE_ORACLE" "$DEBATE_ORACLE"
+set_var "NEXT_PUBLIC_OUTCOME_TOKEN" "$OUTCOME"
+set_var "NEXT_PUBLIC_CREATOR_REVENUE" "$REVENUE_SHARE"
+set_var "NEXT_PUBLIC_EXTERNAL_MARKET_MIRROR" "$EXT_MIRROR"
+set_var "NEXT_PUBLIC_AI_AGENT_INFT" "$AI_INFT"
+set_var "NEXT_PUBLIC_AGENT_INFT_ORACLE" "$MOCK_ORACLE"
 
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}📝 Smart Contract Addresses${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
+# Duplicate keys used by different parts of the frontend
+set_var "NEXT_PUBLIC_CRWN_TOKEN_ADDRESS" "$CROWN"
+set_var "NEXT_PUBLIC_AI_AGENT_INFT_ADDRESS" "$AI_INFT"
+set_var "NEXT_PUBLIC_WARRIORS_ARENA_ADDRESS" "$ARENA_FACTORY"
+set_var "NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS" "$PRED_AMM"
+set_var "NEXT_PUBLIC_ARENA_CONTRACT_ADDRESS" "$ARENA_FACTORY"
+set_var "NEXT_PUBLIC_EXTERNAL_MARKET_MIRROR_ADDRESS" "$EXT_MIRROR"
+set_var "EXTERNAL_MARKET_MIRROR_ADDRESS" "$EXT_MIRROR"
 
-echo "Setting EXTERNAL_MARKET_MIRROR_ADDRESS..."
-echo "0x7485019de6Eca5665057bAe08229F9E660ADEfDa" | vercel env add EXTERNAL_MARKET_MIRROR_ADDRESS production --force
+# ── Avalanche Network Config ────────────────────────────────────────────────
+echo ""
+echo -e "${CYAN}${BOLD}Avalanche Network${NC}"
+set_var "NEXT_PUBLIC_AVALANCHE_RPC" "$RPC_URL"
+set_var "NEXT_PUBLIC_AVALANCHE_CHAIN_ID" "$CHAIN_ID"
 
-echo "Setting NEXT_PUBLIC_CRWN_TOKEN_ADDRESS..."
-echo "0x9Fd6CCEE1243EaC173490323Ed6B8b8E0c15e8e6" | vercel env add NEXT_PUBLIC_CRWN_TOKEN_ADDRESS production --force
+# ── WalletConnect ────────────────────────────────────────────────────────────
+echo ""
+echo -e "${CYAN}${BOLD}WalletConnect${NC}"
+set_var "NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID" "70324e2b10f46c36029a6e5b927db0db"
 
-echo "Setting NEXT_PUBLIC_PREDICTION_MARKET_AMM_ADDRESS..."
-echo "0x1b26203A2752557ecD4763a9A8A26119AC5e18e4" | vercel env add NEXT_PUBLIC_PREDICTION_MARKET_AMM_ADDRESS production --force
+# ── 0G Compute & Storage ─────────────────────────────────────────────────────
+# Services read: ZG_COMPUTE_PROVIDER, ZG_EVM_RPC, ZG_INDEXER_RPC
+# ZG_PRIVATE_KEY falls back to PRIVATE_KEY (set in manual section below)
+echo ""
+echo -e "${CYAN}${BOLD}0G Compute & Storage${NC}"
+set_var "ZG_COMPUTE_PROVIDER" "0xa48f01287233509FD694a22Bf840225062E67836"
+set_var "ZG_EVM_RPC" "https://evmrpc-testnet.0g.ai"
+set_var "ZG_INDEXER_RPC" "https://indexer-storage-testnet-turbo.0g.ai"
+set_var "NEXT_PUBLIC_USE_AI_COMPUTE" "true"
 
-echo "Setting NEXT_PUBLIC_WARRIORS_NFT_ADDRESS..."
-echo "0x3838510eCa30EdeF7b264499F2B590ab4ED4afB1" | vercel env add NEXT_PUBLIC_WARRIORS_NFT_ADDRESS production --force
-
-echo "Setting NEXT_PUBLIC_ARENA_FACTORY_ADDRESS..."
-echo "0xf77840febD42325F83cB93F9deaE0F8b14Eececf" | vercel env add NEXT_PUBLIC_ARENA_FACTORY_ADDRESS production --force
-
-echo "Setting NEXT_PUBLIC_FLOW_VRF_ORACLE_ADDRESS..."
-echo "0xd81373eEd88FacE56c21CFA4787c80C325e0bC6E" | vercel env add NEXT_PUBLIC_FLOW_VRF_ORACLE_ADDRESS production --force
-
+# ── Summary ──────────────────────────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}✓ Contract addresses added${NC}"
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}${BOLD}  Automatic configuration complete${NC}"
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}🔐 Avalanche Network Configuration${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${YELLOW}${BOLD}MANUAL CONFIGURATION REQUIRED:${NC}"
 echo ""
-
-echo "Setting NEXT_PUBLIC_AVALANCHE_RPC..."
-echo "https://api.avax-test.network/ext/bc/C/rpc" | vercel env add NEXT_PUBLIC_AVALANCHE_RPC production --force
-
-echo "Setting NEXT_PUBLIC_AVALANCHE_CHAIN_ID..."
-echo "43113" | vercel env add NEXT_PUBLIC_AVALANCHE_CHAIN_ID production --force
-
-echo "Setting NEXT_PUBLIC_STORAGE_INDEXER..."
-echo "https://indexer-storage-testnet-turbo.0g.ai" | vercel env add NEXT_PUBLIC_STORAGE_INDEXER production --force
-
-echo "Setting NEXT_PUBLIC_USE_AI_COMPUTE..."
-echo "true" | vercel env add NEXT_PUBLIC_USE_AI_COMPUTE production --force
-
+echo -e "The following sensitive variables must be added manually."
+echo -e "Do NOT reuse testnet keys for mainnet."
 echo ""
-echo -e "${GREEN}✓ Avalanche network configuration added${NC}"
+echo -e "  ${RED}1. PRIVATE_KEY${NC}"
+echo "     Server-side private key for contract interactions (0G compute, market ops)"
+echo "     vercel env add PRIVATE_KEY $VERCEL_ENV"
 echo ""
-
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}🌐 WalletConnect Configuration${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "  ${RED}2. AI_SIGNER_PRIVATE_KEY${NC}"
+echo "     Signs warrior traits and battle moves (must match AI_SIGNER_ADDRESS on-chain)"
+echo "     vercel env add AI_SIGNER_PRIVATE_KEY $VERCEL_ENV"
 echo ""
-
-echo "Setting NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID..."
-echo "70324e2b10f46c36029a6e5b927db0db" | vercel env add NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID production --force
-
+echo -e "  ${RED}3. GAME_MASTER_PRIVATE_KEY${NC}"
+echo "     Signs game master operations (warrior generation, arena management)"
+echo "     vercel env add GAME_MASTER_PRIVATE_KEY $VERCEL_ENV"
 echo ""
-echo -e "${GREEN}✓ WalletConnect configuration added${NC}"
+echo -e "  ${RED}4. DATABASE_URL${NC}"
+echo "     PostgreSQL connection string (Neon, Supabase, Railway, etc.)"
+echo "     vercel env add DATABASE_URL $VERCEL_ENV"
 echo ""
-
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${YELLOW}⚠️  MANUAL CONFIGURATION REQUIRED${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "  ${RED}5. NEXT_PUBLIC_STORAGE_API_URL${NC}"
+echo "     Your frontend URL for storage proxy (e.g. https://warriors-ai-rena.vercel.app)"
+echo "     vercel env add NEXT_PUBLIC_STORAGE_API_URL $VERCEL_ENV"
 echo ""
-echo "The following variables MUST be configured manually:"
+echo -e "  ${RED}6. NEXT_PUBLIC_API_URL${NC}"
+echo "     Same as above — the base URL for internal API calls"
+echo "     vercel env add NEXT_PUBLIC_API_URL $VERCEL_ENV"
 echo ""
-echo -e "${RED}1. PRIVATE_KEY${NC}"
-echo "   Description: Private key for 0G compute operations"
-echo "   ⚠️  Generate a NEW key for production (DO NOT use dev key)"
-echo "   Add with: vercel env add PRIVATE_KEY production"
+echo -e "  ${RED}7. NEXT_PUBLIC_BASE_URL${NC}"
+echo "     Public-facing URL of the app"
+echo "     vercel env add NEXT_PUBLIC_BASE_URL $VERCEL_ENV"
 echo ""
-echo -e "${RED}2. ORACLE_PRIVATE_KEY${NC}"
-echo "   Description: Private key for oracle operations"
-echo "   ⚠️  Generate a NEW key for production (DO NOT use dev key)"
-echo "   Add with: vercel env add ORACLE_PRIVATE_KEY production"
+echo -e "${BOLD}After adding all variables:${NC}"
+echo "  vercel --prod"
 echo ""
-echo -e "${RED}3. AI_SIGNER_PRIVATE_KEY${NC}"
-echo "   Description: Private key for AI signing"
-echo "   ⚠️  Generate a NEW key for production (DO NOT use dev key)"
-echo "   Add with: vercel env add AI_SIGNER_PRIVATE_KEY production"
-echo ""
-echo -e "${RED}4. GAME_MASTER_PRIVATE_KEY${NC}"
-echo "   Description: Private key for game master operations"
-echo "   ⚠️  Generate a NEW key for production (DO NOT use dev key)"
-echo "   Add with: vercel env add GAME_MASTER_PRIVATE_KEY production"
-echo ""
-echo -e "${RED}5. DATABASE_URL${NC}"
-echo "   Description: PostgreSQL connection string"
-echo "   Options:"
-echo "   - Vercel Postgres: vercel postgres create"
-echo "   - External: Use Supabase, Neon, Railway, etc."
-echo "   Format: postgresql://user:password@host:5432/db?sslmode=require"
-echo "   Add with: vercel env add DATABASE_URL production"
-echo ""
-echo -e "${RED}6. NEXT_PUBLIC_STORAGE_API_URL${NC}"
-echo "   Description: URL of your deployed 0G storage service"
-echo "   ⚠️  0G storage must be deployed separately (cannot run on Vercel)"
-echo "   Deploy 0G storage first, then add URL here"
-echo "   Add with: vercel env add NEXT_PUBLIC_STORAGE_API_URL production"
-echo ""
-echo -e "${RED}7. NEXT_PUBLIC_API_URL${NC}"
-echo "   Description: Your Vercel deployment URL"
-echo "   Example: https://frontend-xxx.vercel.app"
-echo "   Add with: vercel env add NEXT_PUBLIC_API_URL production"
-echo ""
-
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}✅ Setup Complete!${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
-echo -e "${GREEN}✓${NC} Automatic configuration completed"
-echo -e "${YELLOW}⚠️${NC} Manual configuration required (see above)"
-echo ""
-echo "Next steps:"
-echo "1. Add the manual environment variables listed above"
-echo "2. Deploy 0G storage service to a separate server"
-echo "3. Configure database (Vercel Postgres or external)"
-echo "4. Redeploy: vercel --prod"
-echo ""
-echo "For complete instructions, see:"
-echo "  - VERCEL_DEPLOYMENT_GUIDE.md"
-echo "  - VERCEL_DEPLOYMENT_SUCCESS.md"
+echo "Or use the generated env file:"
+echo "  ./scripts/setup-vercel-env.sh --from-file deployments/vercel-mainnet-env.txt"
 echo ""

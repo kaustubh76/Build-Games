@@ -26,6 +26,20 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FRONTEND_DIR="$PROJECT_ROOT/frontend"
 BASE_URL="${BASE_URL:-http://localhost:3000}"
 
+# Network selection: mainnet or testnet
+NETWORK="${1:-testnet}"
+if [ "$NETWORK" = "mainnet" ]; then
+    CHAIN_ID=43114
+    CHAIN_NAME="Avalanche C-Chain Mainnet"
+    EXPLORER_URL="https://snowtrace.io"
+    DEPLOYMENT_FILE="$PROJECT_ROOT/deployments/avalanche-mainnet.json"
+else
+    CHAIN_ID=43113
+    CHAIN_NAME="Avalanche Fuji Testnet"
+    EXPLORER_URL="https://testnet.snowtrace.io"
+    DEPLOYMENT_FILE="$PROJECT_ROOT/deployments/avalanche-testnet.json"
+fi
+
 # Counters
 TOTAL_CHECKS=0
 PASSED_CHECKS=0
@@ -69,8 +83,9 @@ check_info() {
 # Verification Tests
 ################################################################################
 
-print_header "🔍 Warriors AI Avalanche Deployment Verification"
+print_header "Warriors AI Avalanche Deployment Verification"
 echo -e "${BOLD}Date:${NC}    $(date '+%Y-%m-%d %H:%M:%S')"
+echo -e "${BOLD}Network:${NC} $CHAIN_NAME (Chain ID: $CHAIN_ID)"
 echo -e "${BOLD}Base URL:${NC} $BASE_URL"
 echo ""
 
@@ -254,19 +269,39 @@ fi
 # 5. Contract Deployment Verification
 # ============================================================================
 
-print_section "5. Contract Deployment on Avalanche Fuji"
+print_section "5. Contract Deployment on $CHAIN_NAME"
 
-check_info "Verifying contract addresses from constants.ts..."
+if [ -f "$DEPLOYMENT_FILE" ]; then
+    check_pass "Deployment file found: $(basename $DEPLOYMENT_FILE)"
 
-# Extract contract addresses
-EXTERNAL_MARKET_MIRROR="0x7485019de6Eca5665057bAe08229F9E660ADEfDa"
-CRWN_TOKEN="0x9Fd6CCEE1243EaC173490323Ed6B8b8E0c15e8e6"
+    # Read contract addresses from deployment JSON
+    CONTRACT_COUNT=$(python3 -c "import json; d=json.load(open('$DEPLOYMENT_FILE')); print(len(d.get('contracts', {})))" 2>/dev/null || echo "0")
+    check_info "Contracts in deployment: $CONTRACT_COUNT"
+
+    # Verify key contracts have non-zero addresses
+    for contract in crownToken warriorsNFT arenaFactory predictionArena; do
+        addr=$(python3 -c "import json; d=json.load(open('$DEPLOYMENT_FILE')); print(d['contracts'].get('$contract', ''))" 2>/dev/null)
+        if [ -n "$addr" ] && [ "$addr" != "0x0000000000000000000000000000000000000000" ]; then
+            check_pass "$contract: $addr"
+        else
+            check_fail "$contract: not deployed"
+        fi
+    done
+
+    # For mainnet, check if contracts are verified on Snowtrace
+    if [ "$NETWORK" = "mainnet" ]; then
+        check_info "Run ./scripts/verify-contracts-snowtrace.sh mainnet to verify contracts on Snowtrace"
+    fi
+else
+    check_fail "Deployment file not found: $DEPLOYMENT_FILE"
+    if [ "$NETWORK" = "mainnet" ]; then
+        check_info "Deploy to mainnet first: forge script script/DeployAvalancheSimplified.s.sol --rpc-url https://api.avax.network/ext/bc/C/rpc --broadcast --verify -vvvv"
+    fi
+fi
 
 echo ""
-check_info "ExternalMarketMirror: $EXTERNAL_MARKET_MIRROR"
-check_info "CRwN Token: $CRWN_TOKEN"
-check_info "Avalanche Fuji Chain ID: 43113"
-check_info "RPC: https://api.avax-test.network/ext/bc/C/rpc"
+check_info "Chain: $CHAIN_NAME (ID: $CHAIN_ID)"
+check_info "Explorer: $EXPLORER_URL"
 
 # ============================================================================
 # 6. File Structure Verification
@@ -309,21 +344,28 @@ echo -e "  ${RED}Failed:        ${FAILED_CHECKS}${NC}"
 echo ""
 
 if [ $FAILED_CHECKS -eq 0 ]; then
-    echo -e "${GREEN}${BOLD}✅ All checks passed! Deployment is ready for production.${NC}"
+    echo -e "${GREEN}${BOLD}All checks passed! Deployment is ready for production.${NC}"
     echo ""
     echo -e "${BOLD}Next Steps:${NC}"
-    echo "  1. Start the server: npm start"
-    echo "  2. Start event listener: curl -X POST http://localhost:3000/api/events/start"
-    echo "  3. Monitor metrics: curl http://localhost:3000/api/metrics"
-    echo "  4. Check logs: tail -f .next/server.log"
+    if [ "$NETWORK" = "mainnet" ]; then
+        echo "  1. Verify contracts on Snowtrace: ./scripts/verify-contracts-snowtrace.sh mainnet"
+        echo "  2. Apply at retro9000.avax.network with deployer wallet"
+        echo "  3. Set NEXT_PUBLIC_CHAIN_ID=43114 on Vercel and redeploy"
+        echo "  4. Monitor AVAX burned at $EXPLORER_URL"
+    else
+        echo "  1. Start the server: npm start"
+        echo "  2. Start event listener: curl -X POST http://localhost:3000/api/events/start"
+        echo "  3. Monitor metrics: curl http://localhost:3000/api/metrics"
+        echo "  4. When ready for mainnet: ./scripts/verify-deployment.sh mainnet"
+    fi
     exit 0
 else
-    echo -e "${RED}${BOLD}❌ Deployment verification failed with ${FAILED_CHECKS} issues.${NC}"
+    echo -e "${RED}${BOLD}Deployment verification failed with ${FAILED_CHECKS} issues.${NC}"
     echo ""
     echo -e "${BOLD}Recommended Actions:${NC}"
     echo "  1. Review failed checks above"
     echo "  2. Run: npm run build"
     echo "  3. Check environment configuration"
-    echo "  4. Re-run this script"
+    echo "  4. Re-run this script: ./scripts/verify-deployment.sh $NETWORK"
     exit 1
 fi

@@ -85,6 +85,16 @@ export async function GET(
       if (data[0] === 0xFF && data[1] === 0xD8) contentType = 'image/jpeg';
       else if (data[0] === 0x89 && data[1] === 0x50) contentType = 'image/png';
       else if (data[0] === 0x47 && data[1] === 0x49) contentType = 'image/gif';
+      else if (
+        data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46 &&
+        data[8] === 0x57 && data[9] === 0x45 && data[10] === 0x42 && data[11] === 0x50
+      ) contentType = 'image/webp';
+      else {
+        const textStart = data.subarray(0, 256).toString('utf-8').trimStart().toLowerCase();
+        if (textStart.startsWith('<svg') || textStart.startsWith('<?xml')) {
+          contentType = 'image/svg+xml';
+        }
+      }
     }
 
     return new NextResponse(data, {

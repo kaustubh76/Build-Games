@@ -1,15 +1,21 @@
-# WarriorsAI-rena: AI-Powered Blockchain Battle Arena
+# WarriorsAI-rena
 
-> **The Future of Blockchain Gaming**: Where AI agents orchestrate epic battles, players influence outcomes, and every warrior NFT tells a unique story.
+AI-powered NFT battle arena on Avalanche C-Chain (Fuji Testnet).
 
-## Project Overview
+## Core Features
 
-**WarriorsAI-rena** is a blockchain-based battle arena game that combines:
-- **AI-Powered Combat**: Real AI agents make strategic decisions during battles
-- **Player Agency**: Bet, influence, and directly impact battle outcomes
-- **True Ownership**: Warriors as dynamic NFTs with evolving traits and abilities
-- **Sustainable Economics**: Crown Token (CRwN) with 1:1 AVAX backing
-- **Avalanche C-Chain**: Fast, low-cost transactions on Avalanche
+### 1. Warrior NFT Minting
+Mint unique warrior NFTs with AI-generated personalities and traits. Each warrior gets 5 core stats (Strength, Wit, Charisma, Defence, Luck) and 5 personalized combat moves (Strike, Taunt, Dodge, Special, Recover) — all generated via **0G Compute** decentralized AI inference. Warrior metadata and images are stored on **0G Storage**. Warriors can be promoted through rank tiers (Unranked → Bronze → Silver → Gold → Platinum) via battle victories.
+
+### 2. Arena Battle System
+Fully on-chain 5-round battles between two warrior NFTs. The battle flow:
+- **Initialize** → select two warriors and create an arena contract via ArenaFactory
+- **Betting Phase** → players bet CRwN tokens on which warrior wins
+- **Battle Rounds** → 0G Compute AI analyzes warrior traits and selects optimal moves each round. Moves are cryptographically signed and submitted on-chain. The Arena contract executes damage/recovery calculations.
+- **Rewards** → winner's backers split the betting pool; warrior stats update on-chain
+
+### 3. CRwN Token
+ERC-20 Crown Token backed 1:1 by AVAX. Mint CRwN by depositing AVAX, burn CRwN to withdraw AVAX. Used for betting, influence/defluence mechanics, and arena participation.
 
 ## System Architecture
 
@@ -194,16 +200,27 @@ enum Ranking {
 - Deflationary mechanics through gameplay
 ```
 
-### Contract Addresses (Avalanche Fuji Testnet)
+### Contract Addresses (Avalanche Fuji Testnet — Chain ID 43113)
 
-> **Note**: Deploy contracts using `DeployAvalancheSimplified.s.sol` and update addresses below.
+Deployed via `script/DeployAvalancheSimplified.s.sol`. Full record: `deployments/avalanche-testnet.json`
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| MockOracle | *Deploy and update* | Random number generation |
-| CrownToken | *Deploy and update* | Game currency and governance |
-| WarriorsNFT | *Deploy and update* | Warrior character NFTs |
-| ArenaFactory | *Deploy and update* | Arena creation and management |
+| CrownToken | `0xF0011ca65e3F6314B180a8848ae373042bAEc9b4` | ERC-20 game currency (1:1 AVAX) |
+| WarriorsNFT | `0x218d3efaB076bd03E278CDCf3B488AA107215b8a` | Warrior character NFTs |
+| ArenaFactory | `0xe9faCA292CEF42489AF4d20266964Fb6425AE122` | Arena creation (5 rank tiers) |
+| MockOracle | `0xf986215373Bc8E5A1a698Be72270c0e1FC4716e3` | Proof verification |
+| OutcomeToken | `0x578F5D284F1Ac91115293cC36eD2DF487550C1da` | ERC-1155 prediction tokens |
+| PredictionMarketAMM | `0xeBe1DB030bBFC5bCdD38593C69e4899887D2e487` | AMM for prediction markets |
+| ExternalMarketMirror | `0x1cfa9eD162f90B1eD6d9A01c504fFc28B7412473` | Polymarket/Kalshi integration |
+| PredictionArena | `0xE80C2eaDf7B4d0e2acD51a475c1a2ED4134D4Ad5` | Debate arena for predictions |
+| AIAgentINFT | `0xbAE259eeA7fd49F631dE44Ac8d4fd2eb6C7F8Cb8` | ERC-7857 AI agent iNFTs |
+| AIAgentRegistry | `0x5e0Df8750114ecBC0850494fb1a2b9001b61254e` | Agent metadata registry |
+| AIDebateOracle | `0x17f63e80bd0db1ed77f6dcf54d2bb7ae3fb43f7d` | Debate round scoring |
+| MicroMarketFactory | `0xd81373eEd88FacE56c21CFA4787c80C325e0bC6E` | Per-round micro markets |
+| MarketFactory | `0x7E2e6eb2Ad58c4a9CE1aD5ccfFfc7e5e715753BA` | Market creation |
+| AILiquidityManager | `0x625A38bD9B7941d79f1da95982c51B197eC4Bdfd` | AI liquidity management |
+| CreatorRevenueShare | `0x05Ca49f32B482e0Dce58e39A22F31e5f56A43Ee7` | Revenue distribution |
 
 ## Getting Started
 
@@ -233,7 +250,7 @@ cd frontend
 npm install
 ```
 
-4. **Backend Setup** (if arena-backend exists)
+4. **Backend Setup**
 ```bash
 cd arena-backend
 npm install
@@ -241,19 +258,28 @@ npm install
 
 ### Environment Configuration
 
-Create `.env.local` in the frontend directory:
+Copy `frontend/.env` for local development. Key variables:
+
 ```bash
-# Avalanche Configuration
-NEXT_PUBLIC_CHAIN_ID=43113
+# Avalanche Chain
+NEXT_PUBLIC_CHAIN_ID=43113                                          # Fuji testnet (43114 for mainnet)
 NEXT_PUBLIC_AVALANCHE_TESTNET_RPC=https://api.avax-test.network/ext/bc/C/rpc
-NEXT_PUBLIC_GAME_MASTER_PRIVATE_KEY=your_private_key_here
 
-# Storage Configuration
-NEXT_PUBLIC_STORAGE_API_URL=http://localhost:3001
+# Server-side keys (NEVER prefix with NEXT_PUBLIC_)
+PRIVATE_KEY=your_deployer_private_key                               # Used for contract calls + 0G
+GAME_MASTER_PRIVATE_KEY=your_game_master_key                        # Signs battle moves
+AI_SIGNER_PRIVATE_KEY=your_ai_signer_key                            # Signs warrior traits
 
-# Pinata IPFS Configuration
-PINATA_JWT=your_pinata_jwt_here
-NEXT_PUBLIC_GATEWAY_URL=your_gateway_url_here
+# 0G Compute (decentralized AI inference)
+ZG_COMPUTE_PROVIDER=0xa48f01287233509FD694a22Bf840225062E67836
+ZG_EVM_RPC=https://evmrpc-testnet.0g.ai
+ZG_INDEXER_RPC=https://indexer-storage-testnet-turbo.0g.ai
+
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/warriors
+
+# Cron (Vercel sets CRON_SECRET automatically in production)
+CRON_SECRET=local-dev-cron-secret
 ```
 
 ### Running the Project
@@ -376,6 +402,35 @@ npm run dev
 
 # Build for production
 npm run build
+```
+
+## Deployment Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/deploy-mainnet.sh` | Full mainnet deployment: build, deploy 16 contracts, verify on Snowtrace, update constants.ts, generate Vercel env |
+| `scripts/verify-contracts-snowtrace.sh mainnet` | Verify all contracts on Snowtrace (3-retry logic per contract) |
+| `scripts/setup-vercel-env.sh mainnet` | Push contract addresses + chain config to Vercel env vars |
+| `scripts/deploy-vercel.sh production` | Deploy frontend to Vercel production |
+| `scripts/verify-deployment.sh mainnet` | Run 16+ checks against the deployment |
+
+### Mainnet Deployment (Retro9000)
+
+```bash
+# 1. Generate fresh deployer wallet
+cast wallet new
+
+# 2. Configure
+cp .env.mainnet .env   # Fill in deployer key + Snowtrace API key
+
+# 3. Deploy + verify + update frontend
+./scripts/deploy-mainnet.sh
+
+# 4. Push env vars to Vercel
+./scripts/setup-vercel-env.sh mainnet
+
+# 5. Deploy frontend
+./scripts/deploy-vercel.sh production
 ```
 
 ## License

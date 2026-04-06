@@ -27,6 +27,7 @@ import {
   TRADING_LIMITS,
 } from '@/lib/apiConfig';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { safeParseAIResponse } from '@/lib/safeParseAIResponse';
 
 // Strategy type mapping
 const STRATEGY_NAMES: Record<number, string> = {
@@ -513,22 +514,22 @@ function parsePredictionResponse(
   response: string,
   metadata: AgentMetadata
 ): { prediction: 'YES' | 'NO'; confidence: number; reasoning: string } {
-  try {
-    // Try to extract JSON from the response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        prediction: parsed.prediction?.toUpperCase() === 'YES' ? 'YES' : 'NO',
-        confidence: Math.min(100, Math.max(0, Number(parsed.confidence) || 50)),
-        reasoning: parsed.reasoning || 'No reasoning provided'
-      };
-    }
-  } catch (err) {
-    console.warn('Failed to parse JSON response, using fallback parsing');
+  // Use shared safe parser for AI JSON extraction
+  const parsed = safeParseAIResponse<{
+    prediction?: string;
+    confidence?: number;
+    reasoning?: string;
+  }>(response);
+
+  if (parsed?.prediction && parsed?.confidence !== undefined) {
+    return {
+      prediction: parsed.prediction.toUpperCase() === 'YES' ? 'YES' : 'NO',
+      confidence: Math.min(100, Math.max(0, Number(parsed.confidence) || 50)),
+      reasoning: parsed.reasoning || 'No reasoning provided',
+    };
   }
 
-  // Fallback: Try to extract from text
+  // Fallback: extract from free text
   const isYes = response.toLowerCase().includes('yes') &&
     !response.toLowerCase().includes('no prediction');
 
@@ -538,6 +539,6 @@ function parsePredictionResponse(
   return {
     prediction: isYes ? 'YES' : 'NO',
     confidence: Math.min(100, Math.max(0, confidence)),
-    reasoning: response.slice(0, 200) + '...'
+    reasoning: response.slice(0, 200) + '...',
   };
 }

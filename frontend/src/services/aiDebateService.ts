@@ -13,6 +13,11 @@ import {
   DebateSource,
   DebateAgentRole,
 } from '@/types/externalMarket';
+import {
+  chatCompletion as zgChatCompletion,
+  isZgComputeConfigured,
+} from '@/services/zgComputeService';
+import { safeParseAIResponse } from '@/lib/safeParseAIResponse';
 
 // ============================================
 // CONSTANTS
@@ -171,45 +176,63 @@ class AIDebateService {
   }
 
   /**
-   * Conduct research for an agent role
+   * Conduct research for an agent role using 0G Compute
    */
   private async conductResearch(
     question: string,
     role: DebateAgentRole
   ): Promise<ResearchResult> {
-    // In production, this would:
-    // 1. Call web search APIs (Tavily, SerpAPI)
-    // 2. Scrape news sources
-    // 3. Pull historical market data
-    // 4. Analyze social sentiment
+    // Try 0G Compute for AI-generated research
+    if (isZgComputeConfigured()) {
+      try {
+        const raw = await zgChatCompletion(
+          [{
+            role: 'user',
+            content: `You are a ${role} research analyst for a prediction market. Research the question: "${question}"
 
-    // For now, return simulated research
-    const sources: DebateSource[] = [
-      {
-        url: 'https://example.com/source1',
-        title: 'Relevant News Article',
-        snippet: 'Key information related to the prediction...',
-        relevance: 0.85,
-      },
-      {
-        url: 'https://example.com/source2',
-        title: 'Expert Analysis',
-        snippet: 'Expert opinion on the matter...',
-        relevance: 0.78,
-      },
-    ];
+Generate research from the ${role === 'bull' ? 'YES/optimistic' : role === 'bear' ? 'NO/pessimistic' : 'balanced'} perspective.
 
-    const keyPoints = [
-      `Key point 1 for ${role} perspective`,
-      `Key point 2 for ${role} perspective`,
-      `Key point 3 for ${role} perspective`,
-    ];
+Respond with ONLY valid JSON:
+{"sources":[{"url":"<plausible url>","title":"<title>","snippet":"<1-2 sentences>","relevance":0.85}],"keyPoints":["<point 1>","<point 2>","<point 3>"]}`,
+          }],
+          { temperature: 0.6, maxTokens: 500 }
+        );
+        if (raw) {
+          const parsed = safeParseAIResponse<{ sources?: any[]; keyPoints?: string[] }>(raw);
+          if (parsed) {
+            return {
+              agentRole: role,
+              sources: (parsed.sources || []).map((s: any) => ({
+                url: s.url || '',
+                title: s.title || '',
+                snippet: s.snippet || '',
+                relevance: s.relevance || 0.7,
+              })),
+              keyPoints: parsed.keyPoints || [`${role} analysis point`],
+            };
+          }
+        }
+      } catch (err) {
+        console.warn(`[AIDebate] 0G research failed for ${role}, using fallback:`, err);
+      }
+    }
 
-    return { agentRole: role, sources, keyPoints };
+    // Fallback: basic research points
+    return {
+      agentRole: role,
+      sources: [
+        { url: '', title: 'Market Analysis', snippet: `Analysis from ${role} perspective on the question.`, relevance: 0.75 },
+      ],
+      keyPoints: [
+        `Key factor supporting ${role} perspective`,
+        `Historical precedent from ${role} angle`,
+        `Current conditions favoring ${role} position`,
+      ],
+    };
   }
 
   /**
-   * Generate initial argument from an agent
+   * Generate initial argument from an agent using 0G Compute
    */
   private async generateArgument(
     role: DebateAgentRole,
@@ -217,79 +240,155 @@ class AIDebateService {
     research: ResearchResult,
     previousRounds: DebateRound[]
   ): Promise<DebateAgentResponse> {
-    // In production, this would call OpenAI/Claude
-    // For now, generate a simulated response
+    const systemPrompt = AGENT_PROMPTS[role];
+    const researchContext = research.keyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n');
 
-    const roleConfig = {
-      bull: { position: 'YES', confidence: 75 },
-      bear: { position: 'NO', confidence: 70 },
-      neutral: { position: 'balanced', confidence: 65 },
-      supervisor: { position: 'synthesis', confidence: 80 },
-    };
+    if (isZgComputeConfigured()) {
+      try {
+        const raw = await zgChatCompletion(
+          [
+            { role: 'system', content: systemPrompt },
+            {
+              role: 'user',
+              content: `Question: "${question}"
 
-    const config = roleConfig[role];
+Research findings:
+${researchContext}
 
-    const argument = this.generateSimulatedArgument(role, question, research);
+Provide your initial argument. Respond with ONLY valid JSON:
+{"argument":"<your 3-5 sentence argument>","confidence":<50-95>}`,
+            },
+          ],
+          { temperature: 0.7, maxTokens: 600 }
+        );
+        if (raw) {
+          const parsed = safeParseAIResponse<{ argument?: string; confidence?: number }>(raw);
+          return {
+            argument: parsed?.argument || raw,
+            confidence: parsed?.confidence || 70,
+            sources: research.sources.map((s) => s.url),
+          };
+        }
+      } catch (err) {
+        console.warn(`[AIDebate] 0G argument generation failed for ${role}:`, err);
+      }
+    }
 
+    // Fallback: template-based
     return {
-      argument,
-      confidence: config.confidence,
+      argument: this.generateSimulatedArgument(role, question, research),
+      confidence: role === 'bull' ? 75 : role === 'bear' ? 70 : 65,
       sources: research.sources.map((s) => s.url),
     };
   }
 
   /**
-   * Generate rebuttal based on previous arguments
+   * Generate rebuttal based on previous arguments using 0G Compute
    */
   private async generateRebuttal(
     role: DebateAgentRole,
     question: string,
     previousRounds: DebateRound[]
   ): Promise<DebateAgentResponse> {
-    // Find opposing arguments to rebut
     const opposingRole = role === 'bull' ? 'bear' : 'bull';
-    const opposingArgs = previousRounds.filter((r) => r.agentRole === opposingRole);
+    const opposingArgs = previousRounds
+      .filter((r) => r.agentRole === opposingRole)
+      .map((r) => r.argument)
+      .join('\n\n');
 
-    const argument = `[Rebuttal] After considering the ${opposingRole} argument, I maintain that ${
-      role === 'bull' ? 'YES' : 'NO'
-    } is more likely because... [Generated rebuttal addressing specific counterpoints]`;
+    if (isZgComputeConfigured() && opposingArgs) {
+      try {
+        const raw = await zgChatCompletion(
+          [
+            { role: 'system', content: AGENT_PROMPTS[role] },
+            {
+              role: 'user',
+              content: `Question: "${question}"
+
+Your opponent (${opposingRole}) argued:
+${opposingArgs}
+
+Write a rebuttal (3-5 sentences) addressing their specific points. Respond with ONLY valid JSON:
+{"argument":"<your rebuttal>","confidence":<50-95>}`,
+            },
+          ],
+          { temperature: 0.7, maxTokens: 500 }
+        );
+        if (raw) {
+          const parsed = safeParseAIResponse<{ argument?: string; confidence?: number }>(raw);
+          return {
+            argument: parsed?.argument || raw,
+            confidence: parsed?.confidence || 70,
+            sources: [],
+          };
+        }
+      } catch (err) {
+        console.warn(`[AIDebate] 0G rebuttal failed for ${role}:`, err);
+      }
+    }
 
     return {
-      argument,
+      argument: `[Rebuttal] After considering the ${opposingRole} argument, I maintain that ${
+        role === 'bull' ? 'YES' : 'NO'
+      } is more likely. The opposing points, while valid, don't account for the core factors driving this outcome.`,
       confidence: 70,
       sources: [],
     };
   }
 
   /**
-   * Synthesize debate and provide final prediction
+   * Synthesize debate and provide final prediction using 0G Compute
    */
   private async synthesizeDebate(
     question: string,
     rounds: DebateRound[]
   ): Promise<DebateAgentResponse> {
-    // Analyze all arguments and produce synthesis
     const bullConfidence = this.getAverageConfidence(rounds, 'bull');
     const bearConfidence = this.getAverageConfidence(rounds, 'bear');
 
-    // Simple synthesis based on confidence levels
+    const roundsSummary = rounds
+      .map((r) => `[${r.agentRole}] (confidence: ${r.confidence}%): ${r.argument.slice(0, 200)}`)
+      .join('\n\n');
+
+    if (isZgComputeConfigured()) {
+      try {
+        const raw = await zgChatCompletion(
+          [
+            { role: 'system', content: AGENT_PROMPTS.supervisor },
+            {
+              role: 'user',
+              content: `Question: "${question}"
+
+Debate transcript:
+${roundsSummary}
+
+Synthesize the debate. Provide a final probability for YES and confidence level.
+
+Respond with ONLY valid JSON:
+{"argument":"<3-5 sentence synthesis with **Probability: XX% YES** and **Confidence: XX%** markers>","confidence":<50-95>}`,
+            },
+          ],
+          { temperature: 0.4, maxTokens: 600 }
+        );
+        if (raw) {
+          const parsed = safeParseAIResponse<{ argument?: string; confidence?: number }>(raw);
+          return {
+            argument: parsed?.argument || raw,
+            confidence: parsed?.confidence || 70,
+            sources: [],
+          };
+        }
+      } catch (err) {
+        console.warn('[AIDebate] 0G synthesis failed:', err);
+      }
+    }
+
+    // Fallback: math-based synthesis
     const yesProbability = bullConfidence / (bullConfidence + bearConfidence);
     const confidence = Math.abs(bullConfidence - bearConfidence) + 50;
 
-    const argument = `After analyzing all arguments, my final assessment is:
-
-**Probability: ${(yesProbability * 100).toFixed(1)}% YES**
-**Confidence: ${confidence.toFixed(0)}%**
-
-Key factors:
-1. The bull case presents strong evidence regarding recent developments
-2. The bear case raises valid concerns about historical patterns
-3. Current market sentiment appears ${yesProbability > 0.5 ? 'optimistic' : 'cautious'}
-
-Final recommendation: ${yesProbability > 0.5 ? 'Lean YES' : 'Lean NO'} with ${confidence > 70 ? 'high' : 'moderate'} confidence.`;
-
     return {
-      argument,
+      argument: `After analyzing all arguments, my final assessment is:\n\n**Probability: ${(yesProbability * 100).toFixed(1)}% YES**\n**Confidence: ${confidence.toFixed(0)}%**\n\nFinal recommendation: ${yesProbability > 0.5 ? 'Lean YES' : 'Lean NO'} with ${confidence > 70 ? 'high' : 'moderate'} confidence.`,
       confidence,
       sources: [],
     };
@@ -352,13 +451,17 @@ Final recommendation: ${yesProbability > 0.5 ? 'Lean YES' : 'Lean NO'} with ${co
    * Extract key factors from debate rounds
    */
   private extractKeyFactors(rounds: DebateRound[]): string[] {
-    // In production, use NLP to extract key factors
-    return [
-      'Recent market developments favor the prediction',
-      'Historical patterns provide mixed signals',
-      'Expert consensus is divided',
-      'Current sentiment trending positive',
-    ];
+    // Extract distinct key points from round arguments
+    const factors: string[] = [];
+    for (const r of rounds) {
+      // Pull first sentence from each argument as a key factor
+      const firstSentence = r.argument.split(/[.!?]/)[0]?.trim();
+      if (firstSentence && firstSentence.length > 20 && firstSentence.length < 200) {
+        factors.push(firstSentence);
+      }
+    }
+    // Deduplicate and limit
+    return [...new Set(factors)].slice(0, 5);
   }
 
   /**

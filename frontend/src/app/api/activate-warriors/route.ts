@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 import { chatCompletion as zgChatCompletion, isZgComputeConfigured } from '@/services/zgComputeService';
+import { safeParseAIResponse } from '@/lib/safeParseAIResponse';
 
 export async function POST(request: NextRequest) {
   try {
@@ -74,9 +75,28 @@ Respond with valid JSON only, no explanation.`;
       throw new Error('0G Compute returned empty response');
     }
 
+    // Parse and validate the AI response
+    const parsed = safeParseAIResponse<{
+      traits?: Record<string, number>;
+      moves?: Record<string, string>;
+      battle_cry?: string;
+      weakness?: string;
+    }>(aiResponse);
+
+    if (!parsed || !parsed.traits || !parsed.moves) {
+      // Return raw string as fallback — client can attempt its own parsing
+      return NextResponse.json({ success: true, response: aiResponse });
+    }
+
+    // Clamp trait values to 0-10000
+    const traits = parsed.traits;
+    for (const key of Object.keys(traits)) {
+      traits[key] = Math.max(0, Math.min(10000, Math.round(Number(traits[key]) || 5000)));
+    }
+
     return NextResponse.json({
       success: true,
-      response: aiResponse
+      response: JSON.stringify(parsed),
     });
 
   } catch (error) {

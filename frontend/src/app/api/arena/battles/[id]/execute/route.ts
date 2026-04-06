@@ -3,6 +3,48 @@ import { executeDebateRound, executeFullBattle } from '../../../../../../service
 import { WarriorTraits, MarketSource, PredictionRound } from '../../../../../../types/predictionArena';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { createPublicClient, http } from 'viem';
+import { avalancheFuji, avalanche } from 'viem/chains';
+import { getContracts, getChainId, warriorsNFTAbi, getAvalancheRpcUrl } from '../../../../../../constants';
+
+/**
+ * Fetch warrior traits from on-chain WarriorsNFT contract.
+ * Returns balanced defaults if the read fails (e.g. traits not assigned yet).
+ */
+async function fetchOnChainTraits(warriorId: number): Promise<WarriorTraits> {
+  const balanced: WarriorTraits = { strength: 5000, wit: 5000, charisma: 5000, defence: 5000, luck: 5000 };
+  try {
+    const chainId = getChainId();
+    const chain = chainId === 43114 ? avalanche : avalancheFuji;
+    const rpcUrl = getAvalancheRpcUrl();
+    const client = createPublicClient({
+      chain,
+      transport: http(rpcUrl),
+    });
+    const contracts = getContracts();
+    // viem returns the struct as an object with bigint values
+    const result = await client.readContract({
+      address: contracts.warriorsNFT as `0x${string}`,
+      abi: warriorsNFTAbi,
+      functionName: 'getTraits',
+      args: [BigInt(warriorId)],
+    });
+    // The ABI specifies a tuple return with named components —
+    // viem decodes this as an object with bigint fields.
+    // Use indexing to safely handle both array-like and object shapes.
+    const t = result as Record<string, bigint> & Record<number, bigint>;
+    return {
+      strength: Number(t.strength ?? t[0] ?? 5000n),
+      wit:      Number(t.wit ?? t[1] ?? 5000n),
+      charisma: Number(t.charisma ?? t[2] ?? 5000n),
+      defence:  Number(t.defence ?? t[3] ?? 5000n),
+      luck:     Number(t.luck ?? t[4] ?? 5000n),
+    };
+  } catch (err) {
+    console.warn(`Failed to fetch on-chain traits for warrior ${warriorId}, using defaults:`, err);
+    return balanced;
+  }
+}
 
 /**
  * Store completed battle to Storage
@@ -122,28 +164,26 @@ export async function POST(
       throw ErrorResponses.badRequest(`Battle is not active (status: ${battle.status})`);
     }
 
-    // Parse traits from request or use defaults
-    const w1Traits: WarriorTraits = warrior1Traits || {
-      strength: 5000,
-      wit: 5000,
-      charisma: 5000,
-      defence: 5000,
-      luck: 5000,
-    };
+    // Use client-supplied traits, or fetch real on-chain traits as fallback
+    let w1Traits: WarriorTraits;
+    let w2Traits: WarriorTraits;
 
-    const w2Traits: WarriorTraits = warrior2Traits || {
-      strength: 5000,
-      wit: 5000,
-      charisma: 5000,
-      defence: 5000,
-      luck: 5000,
-    };
+    if (warrior1Traits && warrior2Traits) {
+      w1Traits = warrior1Traits;
+      w2Traits = warrior2Traits;
+    } else {
+      // Fetch actual traits from WarriorsNFT contract
+      [w1Traits, w2Traits] = await Promise.all([
+        warrior1Traits ? Promise.resolve(warrior1Traits) : fetchOnChainTraits(battle.warrior1Id),
+        warrior2Traits ? Promise.resolve(warrior2Traits) : fetchOnChainTraits(battle.warrior2Id),
+      ]);
+    }
 
     const marketSource = battle.source as MarketSource;
 
     if (mode === 'full') {
       // Execute all remaining rounds
-      const fullResult = executeFullBattle(
+      const fullResult = await executeFullBattle(
         w1Traits,
         w2Traits,
         battle.question,
@@ -267,7 +307,7 @@ export async function POST(
       endedAt: r.endedAt?.toISOString(),
     }));
 
-    const roundResult = executeDebateRound(
+    const roundResult = await executeDebateRound(
       w1Traits,
       w2Traits,
       {

@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Transpile 0G Serving Broker (used by zgComputeService for AI inference)
-  transpilePackages: ['@0glabs/0g-serving-broker'],
+  transpilePackages: ['@0glabs/0g-serving-broker', '@0gfoundation/0g-ts-sdk'],
   // Ignore ESLint errors during build (pre-existing code quality issues)
   // This allows Vercel deployment to succeed
   eslint: {

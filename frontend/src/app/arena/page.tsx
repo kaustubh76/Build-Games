@@ -1441,7 +1441,7 @@ export default function ArenaPage() {
       const userBalance = await arenaService.getCrwnBalance(address);
       if (userBalance < betAmountWei) {
         const balanceInTokens = Number(userBalance) / 1e18;
-        alert(`Insufficient CRwN balance!\n\nYou have: ${balanceInTokens.toFixed(2)} CRwN\nRequired: ${betAmountNum} CRwN\n\nPlease get more CRwN tokens to place this bet.`);
+        alert(`Insufficient CRwN balance!\n\nYou have: ${balanceInTokens.toFixed(2)} CRwN\nRequired: ${betAmountNum} CRwN\n\nMint CRwN by wrapping AVAX at the Warriors Minter page.`);
         return;
       }
       console.log(`CRwN balance: ${Number(userBalance) / 1e18} (sufficient)`);

@@ -3,8 +3,9 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAccount, useWriteContract } from 'wagmi';
-import { parseEther } from 'viem';
+import { useAccount, useWriteContract, useReadContract } from 'wagmi';
+import { parseEther, erc20Abi } from 'viem';
+import { getContracts, getChainId } from '../../constants';
 
 // ============================================
 // TYPES
@@ -42,7 +43,12 @@ interface UseBattleBettingReturn {
 
   // State
   isPlacingBet: boolean;
+  isApproving: boolean;
   isClaiming: boolean;
+
+  // Balance info
+  crwnBalance: bigint | undefined;
+  crwnAllowance: bigint | undefined;
 }
 
 // Contract ABI for betting functions
@@ -116,6 +122,29 @@ export function useBattleBetting(
   const [error, setError] = useState<string | null>(null);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+
+  // Read CRwN balance
+  const crwnToken = getContracts().crownToken as `0x${string}`;
+  const chainId = getChainId();
+
+  const { data: crwnBalance } = useReadContract({
+    address: crwnToken,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    chainId,
+    query: { enabled: !!address },
+  });
+
+  const { data: crwnAllowance, refetch: refetchAllowance } = useReadContract({
+    address: crwnToken,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: address && contractAddress ? [address, contractAddress] : undefined,
+    chainId,
+    query: { enabled: !!address && !!contractAddress },
+  });
 
   /**
    * Fetch betting pool and user bet info
@@ -150,7 +179,9 @@ export function useBattleBetting(
   }, [battleId, address]);
 
   /**
-   * Place a bet on the battle
+   * Place a bet on the battle.
+   * Automatically checks CRwN balance and requests ERC-20 approval
+   * before sending the on-chain bet transaction.
    */
   const placeBet = useCallback(async (
     betOnWarrior1: boolean,
@@ -161,21 +192,51 @@ export function useBattleBetting(
       return false;
     }
 
+    const amountWei = parseEther(amount);
+
+    // ── Balance check ──────────────────────────────────────────────
+    if (crwnBalance !== undefined && crwnBalance < amountWei) {
+      setError(
+        `Insufficient CRwN balance. You have ${Number(crwnBalance) / 1e18} CRwN but need ${amount} CRwN. Mint more by wrapping AVAX.`
+      );
+      return false;
+    }
+
     setIsPlacingBet(true);
     setError(null);
 
     try {
-      // If contract address provided, do on-chain bet
+      // ── On-chain bet (with approval) ─────────────────────────────
       if (contractAddress) {
+        // Check allowance and approve if needed
+        const currentAllowance = crwnAllowance ?? 0n;
+        if (currentAllowance < amountWei) {
+          setIsApproving(true);
+          try {
+            await writeContractAsync({
+              address: crwnToken,
+              abi: erc20Abi,
+              functionName: 'approve',
+              args: [contractAddress, amountWei],
+              chainId,
+            });
+            // Refetch allowance after approval confirms
+            await refetchAllowance();
+          } finally {
+            setIsApproving(false);
+          }
+        }
+
+        // Place the on-chain bet
         await writeContractAsync({
           address: contractAddress,
           abi: PREDICTION_ARENA_BETTING_ABI,
           functionName: 'placeBet',
-          args: [BigInt(battleId), betOnWarrior1, parseEther(amount)],
+          args: [BigInt(battleId), betOnWarrior1, amountWei],
         });
       }
 
-      // Record bet in API
+      // ── Record bet in API ────────────────────────────────────────
       const res = await fetch('/api/arena/betting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,7 +244,7 @@ export function useBattleBetting(
           battleId,
           bettorAddress: address,
           betOnWarrior1,
-          amount: parseEther(amount).toString(),
+          amount: amountWei.toString(),
         }),
       });
 
@@ -201,7 +262,8 @@ export function useBattleBetting(
     } finally {
       setIsPlacingBet(false);
     }
-  }, [battleId, address, contractAddress, writeContractAsync, fetchBettingInfo]);
+  }, [battleId, address, contractAddress, writeContractAsync, fetchBettingInfo,
+      crwnBalance, crwnAllowance, crwnToken, chainId, refetchAllowance]);
 
   /**
    * Claim winnings from completed battle
@@ -272,7 +334,10 @@ export function useBattleBetting(
     claimWinnings,
     refetch: fetchBettingInfo,
     isPlacingBet,
+    isApproving,
     isClaiming,
+    crwnBalance,
+    crwnAllowance,
   };
 }
 
