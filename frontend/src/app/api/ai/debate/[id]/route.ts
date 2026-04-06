@@ -24,7 +24,7 @@ export async function GET(
     const debate = await aiDebateService.getDebate(id);
 
     if (!debate) {
-      throw ErrorResponses.notFound('Debate not found');
+      throw ErrorResponses.notFound(`Debate #${id}`);
     }
 
     return NextResponse.json({

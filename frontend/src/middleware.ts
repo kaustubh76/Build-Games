@@ -33,13 +33,15 @@ const PUBLIC_ROUTES = [
   '/api/arena/markets',
   '/api/external/markets',
   '/api/leaderboard',
+  '/api/game-master',       // Server-to-server (called by cron)
+  '/api/cron/game-loop',    // Vercel cron (authenticated via CRON_SECRET)
 ];
 
 // Authentication mode: 'log' | 'warn' | 'enforce'
 // - log: Log unauthenticated requests but allow them
 // - warn: Log and add warning header but allow them
 // - enforce: Block unauthenticated requests (requires client updates)
-const AUTH_MODE = process.env.AUTH_ENFORCEMENT_MODE || 'log';
+const AUTH_MODE = process.env.AUTH_ENFORCEMENT_MODE || 'warn';
 
 function isProtectedRoute(pathname: string, method: string): boolean {
   // Check if it's explicitly public

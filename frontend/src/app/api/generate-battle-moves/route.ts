@@ -3,11 +3,67 @@ import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 import { chatCompletion as zgChatCompletion, isZgComputeConfigured } from '@/services/zgComputeService';
 import { safeParseAIResponse } from '@/lib/safeParseAIResponse';
 
+const VALID_MOVES = ['strike', 'taunt', 'dodge', 'recover', 'special_move', 'special'];
+
+/**
+ * Trait-based fallback move selection when 0G Compute is unavailable.
+ * Uses warrior stats, damage, and round to pick contextual moves.
+ */
+function generateTraitBasedMoves(battlePrompt: any): { agent_1: { move: string }; agent_2: { move: string } } {
+  function selectMove(agent: any, opponentAgent: any): string {
+    const traits = agent?.traits || {};
+    const damage = agent?.total_damage_received || 0;
+    const round = battlePrompt?.current_round || 1;
+
+    // If heavily damaged, prioritize recovery
+    if (damage > 6000) return 'recover';
+
+    // Late rounds: favor aggressive plays
+    if (round >= 4) {
+      const avgOffensive = ((traits.Strength || 5000) + (traits.Charisma || 5000) + (traits.Wit || 5000)) / 3;
+      if (avgOffensive > 6500) return 'special_move';
+      return 'strike';
+    }
+
+    // Map strongest trait to optimal move
+    const traitMoves: [string, string][] = [
+      ['Strength', 'strike'],
+      ['Charisma', 'taunt'],
+      ['Luck', 'dodge'],
+      ['Defence', 'recover'],
+      ['Wit', 'special_move'],
+    ];
+
+    let bestTrait = 'Strength';
+    let bestValue = 0;
+    for (const [trait] of traitMoves) {
+      const val = traits[trait] || 5000;
+      if (val > bestValue) { bestValue = val; bestTrait = trait; }
+    }
+
+    const primaryMove = traitMoves.find(([t]) => t === bestTrait)?.[1] || 'strike';
+
+    // Add entropy using round + damage to avoid identical moves every time
+    const seed = (damage + round * 1000 + bestValue) % 10;
+    if (seed < 7) return primaryMove;
+
+    // 30% variety: pick from a subset based on seed
+    const variety = ['strike', 'taunt', 'dodge', 'recover', 'special_move'];
+    return variety[(damage + round) % variety.length];
+  }
+
+  return {
+    agent_1: { move: selectMove(battlePrompt?.agent_1, battlePrompt?.agent_2) },
+    agent_2: { move: selectMove(battlePrompt?.agent_2, battlePrompt?.agent_1) },
+  };
+}
+
 /**
  * POST /api/generate-battle-moves
  *
  * Called by the game-master route to decide AI moves for each warrior
- * during an arena battle round. Uses 0G Compute for decentralized inference.
+ * during an arena battle round. Uses 0G Compute for decentralized inference,
+ * with trait-based fallback when 0G is unavailable.
  *
  * Request body: { battlePrompt: { current_round, agent_1, agent_2, moveset } }
  * Response:     { success: true, response: '{"agent_1":{"move":"strike"},"agent_2":{"move":"dodge"}}' }
@@ -20,17 +76,22 @@ export async function POST(request: NextRequest) {
       windowMs: 60000,
     });
 
-    if (!isZgComputeConfigured()) {
-      throw ErrorResponses.serviceUnavailable(
-        '0G Compute not configured. Set ZG_PRIVATE_KEY and ZG_COMPUTE_PROVIDER.'
-      );
-    }
-
     const body = await request.json();
     const { battlePrompt } = body;
 
     if (!battlePrompt) {
       throw ErrorResponses.badRequest('Missing battlePrompt');
+    }
+
+    // Fallback to trait-based moves when 0G Compute is not configured
+    if (!isZgComputeConfigured()) {
+      console.warn('[GenerateBattleMoves] 0G Compute not configured, using trait-based fallback');
+      const fallbackMoves = generateTraitBasedMoves(battlePrompt);
+      return NextResponse.json({
+        success: true,
+        response: JSON.stringify(fallbackMoves),
+        source: 'trait-fallback',
+      });
     }
 
     const { current_round, agent_1, agent_2, moveset } = battlePrompt;
@@ -74,11 +135,16 @@ Respond with ONLY valid JSON in this exact format, no explanation:
     );
 
     if (!aiResponse) {
-      throw new Error('0G Compute returned empty response');
+      console.warn('[GenerateBattleMoves] 0G Compute returned empty, using trait-based fallback');
+      const fallbackMoves = generateTraitBasedMoves(battlePrompt);
+      return NextResponse.json({
+        success: true,
+        response: JSON.stringify(fallbackMoves),
+        source: 'trait-fallback',
+      });
     }
 
     // Parse and validate move selection
-    const VALID_MOVES = ['strike', 'taunt', 'dodge', 'recover', 'special_move', 'special'];
     const parsed = safeParseAIResponse<{
       agent_1?: { move?: string };
       agent_2?: { move?: string };
@@ -93,6 +159,7 @@ Respond with ONLY valid JSON in this exact format, no explanation:
       return NextResponse.json({
         success: true,
         response: JSON.stringify(parsed),
+        source: '0g-compute',
       });
     }
 
@@ -100,8 +167,22 @@ Respond with ONLY valid JSON in this exact format, no explanation:
     return NextResponse.json({
       success: true,
       response: aiResponse,
+      source: '0g-compute-raw',
     });
   } catch (error) {
+    // Last-resort: trait-based fallback on any error
+    try {
+      const body = await request.clone().json().catch(() => null);
+      if (body?.battlePrompt) {
+        console.warn('[GenerateBattleMoves] Error occurred, using trait-based fallback:', (error as Error).message);
+        const fallbackMoves = generateTraitBasedMoves(body.battlePrompt);
+        return NextResponse.json({
+          success: true,
+          response: JSON.stringify(fallbackMoves),
+          source: 'trait-fallback-error',
+        });
+      }
+    } catch { /* ignore fallback errors */ }
     return handleAPIError(error, 'API:GenerateBattleMoves:POST');
   }
 }

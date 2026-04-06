@@ -1,12 +1,13 @@
 /**
  * 0G Storage Service
  * Server-side only — wraps @0gfoundation/0g-ts-sdk for upload/download operations.
- * Uses temp files because the SDK only supports file-path-based operations.
+ * Upload uses in-memory MemData (no temp files); download uses temp files (SDK requirement).
  */
 
-import { ZgFile, Indexer } from '@0gfoundation/0g-ts-sdk';
+import { MemData, Indexer } from '@0gfoundation/0g-ts-sdk';
 import { ethers, EnsPlugin } from 'ethers';
-import { writeFile, readFile, unlink } from 'fs/promises';
+import { readFile, unlink } from 'fs/promises';
+import { randomUUID } from 'crypto';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -48,8 +49,7 @@ function getIndexer(): Indexer {
 }
 
 /**
- * Upload data to 0G Storage.
- * Writes buffer to a temp file, uploads via SDK, then cleans up.
+ * Upload data to 0G Storage using in-memory MemData (no temp files).
  */
 export async function upload(
   data: Buffer,
@@ -58,38 +58,30 @@ export async function upload(
   const signer = getSigner();
   const indexer = getIndexer();
 
-  const tempPath = join(tmpdir(), `0g-upload-${Date.now()}-${fileName || 'data'}`);
-  await writeFile(tempPath, data);
+  const memFile = new MemData(new Uint8Array(data));
+  const [tree, treeErr] = await memFile.merkleTree();
+  if (treeErr) throw new Error(`Merkle tree error: ${treeErr}`);
 
-  try {
-    const file = await ZgFile.fromFilePath(tempPath);
-    const [tree, treeErr] = await file.merkleTree();
-    if (treeErr) throw new Error(`Merkle tree error: ${treeErr}`);
+  const rootHash = tree!.rootHash() ?? '';
 
-    const rootHash = tree!.rootHash() ?? '';
+  // Upload with 60s timeout (upload can hang on slow/unreachable 0G network)
+  const uploadPromise = indexer.upload(memFile, ZG_EVM_RPC, signer);
+  const uploadTimeout = new Promise<[null, string]>((resolve) =>
+    setTimeout(() => resolve([null, '0G Storage upload timed out after 60s']), 60000)
+  );
+  const [uploadResult, uploadErr] = await Promise.race([uploadPromise, uploadTimeout]);
+  if (uploadErr) throw new Error(`0G upload error: ${uploadErr}`);
 
-    // Upload with 60s timeout (upload can hang on slow/unreachable 0G network)
-    const uploadPromise = indexer.upload(file, ZG_EVM_RPC, signer);
-    const uploadTimeout = new Promise<[null, string]>((resolve) =>
-      setTimeout(() => resolve([null, '0G Storage upload timed out after 60s']), 60000)
-    );
-    const [uploadResult, uploadErr] = await Promise.race([uploadPromise, uploadTimeout]);
-    if (uploadErr) throw new Error(`0G upload error: ${uploadErr}`);
-
-    await file.close();
-    return { rootHash, txHash: (uploadResult as { txHash?: string } | null)?.txHash || '' };
-  } finally {
-    await unlink(tempPath).catch(() => {});
-  }
+  return { rootHash, txHash: (uploadResult as { txHash?: string } | null)?.txHash || '' };
 }
 
 /**
  * Download data from 0G Storage by root hash.
- * Downloads to a temp file, reads into buffer, then cleans up.
+ * Downloads to a temp file (SDK requirement), reads into buffer, then cleans up.
  */
 export async function download(rootHash: string): Promise<Buffer> {
   const indexer = getIndexer();
-  const outPath = join(tmpdir(), `0g-download-${Date.now()}`);
+  const outPath = join(tmpdir(), `0g-download-${randomUUID()}`);
 
   // Download with 30s timeout
   const downloadPromise = indexer.download(rootHash, outPath, false);

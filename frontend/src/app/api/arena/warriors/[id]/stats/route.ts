@@ -29,7 +29,7 @@ export async function GET(
     });
 
     if (!stats) {
-      throw ErrorResponses.notFound('No arena stats found for this warrior');
+      throw ErrorResponses.notFound(`Arena stats for warrior #${warriorId}`);
     }
 
     // Calculate additional stats

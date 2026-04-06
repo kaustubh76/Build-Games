@@ -6,6 +6,7 @@
 
 import { createZGComputeNetworkBroker } from '@0glabs/0g-serving-broker';
 import { ethers, EnsPlugin } from 'ethers';
+import { withRetry, RetryPresets } from '@/lib/api/retry';
 
 const ZG_EVM_RPC = process.env.ZG_EVM_RPC || 'https://evmrpc-testnet.0g.ai';
 // Reuse the existing AVAX deployer private key (same wallet for 0G operations)
@@ -15,6 +16,7 @@ const ZG_COMPUTE_PROVIDER = process.env.ZG_COMPUTE_PROVIDER;
 // Singleton broker instance (reused across requests)
 let brokerInstance: Awaited<ReturnType<typeof createZGComputeNetworkBroker>> | null = null;
 let providerAcknowledged = false;
+let acknowledgeInProgress = false;
 
 async function getBroker() {
   if (!brokerInstance && ZG_PRIVATE_KEY) {
@@ -34,6 +36,7 @@ export const isZgComputeConfigured = (): boolean => !!(ZG_PRIVATE_KEY && ZG_COMP
 /**
  * Make a chat completion request via 0G Compute Network.
  * The broker handles billing/settlement; we make an OpenAI-compatible HTTP call.
+ * Uses exponential backoff retry for transient failures.
  */
 export async function chatCompletion(
   messages: Array<{ role: string; content: string }>,
@@ -45,7 +48,8 @@ export async function chatCompletion(
   }
 
   // One-time: acknowledge provider signer and ensure sufficient balance
-  if (!providerAcknowledged) {
+  if (!providerAcknowledged && !acknowledgeInProgress) {
+    acknowledgeInProgress = true;
     try {
       await broker.inference.acknowledgeProviderSigner(ZG_COMPUTE_PROVIDER);
       providerAcknowledged = true;
@@ -53,10 +57,12 @@ export async function chatCompletion(
       if (e.message?.includes('already')) {
         providerAcknowledged = true;
       } else {
-        // Don't set the flag — let it retry on the next request
         console.error('0G provider acknowledgment failed:', e.message);
+        acknowledgeInProgress = false;
         throw new Error(`0G provider acknowledgment failed: ${e.message}`);
       }
+    } finally {
+      if (providerAcknowledged) acknowledgeInProgress = false;
     }
 
     // Top up compute account to ensure sufficient balance
@@ -85,11 +91,10 @@ export async function chatCompletion(
     max_tokens: options?.maxTokens ?? 2000,
   });
 
-  // Retry once for transient failures (429, 503, timeout)
-  const MAX_ATTEMPTS = 2;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  // Retry with exponential backoff for transient failures
+  return withRetry(async () => {
     // Generate FRESH per-request headers each attempt (single-use billing tokens)
-    const headers = await broker.inference.getRequestHeaders(ZG_COMPUTE_PROVIDER, body);
+    const headers = await broker.inference.getRequestHeaders(ZG_COMPUTE_PROVIDER!, body);
 
     // Make OpenAI-compatible HTTP request with 30s timeout
     const controller = new AbortController();
@@ -109,10 +114,10 @@ export async function chatCompletion(
       if (!response.ok) {
         const errText = await response.text();
         if (response.status === 429) {
-          throw new Error('0G Compute rate limited. Try again in a few seconds.');
+          throw new Error('0G Compute rate limited (429). Try again in a few seconds.');
         }
         if (response.status === 503) {
-          throw new Error('0G Compute provider temporarily unavailable.');
+          throw new Error('0G Compute provider temporarily unavailable (503).');
         }
         throw new Error(`0G Compute error (${response.status}): ${errText}`);
       }
@@ -121,24 +126,16 @@ export async function chatCompletion(
       return data.choices?.[0]?.message?.content || '';
     } catch (e: any) {
       if (e.name === 'AbortError') {
-        e = new Error('0G Compute request timed out after 30s');
-      }
-
-      const isRetryable = e.message?.includes('rate limited') ||
-        e.message?.includes('timed out') ||
-        e.message?.includes('temporarily unavailable');
-
-      if (isRetryable && attempt < MAX_ATTEMPTS) {
-        console.warn(`0G Compute: retrying after 2s (attempt ${attempt}/${MAX_ATTEMPTS}): ${e.message}`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        continue;
+        throw new Error('0G Compute request timed out after 30s');
       }
       throw e;
     } finally {
       clearTimeout(timeoutId);
     }
-  }
-
-  // Should never reach here, but TypeScript needs it
-  throw new Error('0G Compute: unexpected retry loop exit');
+  }, {
+    ...RetryPresets.fast,
+    onRetry: (attempt, error, delay) => {
+      console.warn(`0G Compute: retry ${attempt} after ${delay}ms: ${error.message}`);
+    },
+  });
 }

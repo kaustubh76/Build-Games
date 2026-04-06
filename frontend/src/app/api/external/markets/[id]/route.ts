@@ -24,7 +24,7 @@ export async function GET(
     const market = await externalMarketsService.getMarket(id);
 
     if (!market) {
-      throw ErrorResponses.notFound('Market not found');
+      throw ErrorResponses.notFound(`Market #${id}`);
     }
 
     return NextResponse.json({

@@ -52,45 +52,58 @@ async function executeWithAvalancheFallback<T>(
 // Import the contract ABI and helpers
 import { ArenaAbi, getApiBaseUrl } from '../../../constants';
 import { warriorsNFTService, type WarriorsDetails } from '../../../services/warriorsNFTService';
+import { withRetry, RetryPresets } from '@/lib/api/retry';
 
-// Default warrior data for fallback
-const DEFAULT_WARRIOR_1 = {
-  personality: {
-    adjectives: ['brave', 'fierce', 'strategic'],
-    knowledge_areas: ['combat', 'strategy', 'warfare']
-  },
-  traits: {
-    Strength: 7500,
-    Wit: 7000,
-    Charisma: 6500,
-    Defence: 7200,
-    Luck: 6800
-  }
-};
-
-const DEFAULT_WARRIOR_2 = {
-  personality: {
-    adjectives: ['cunning', 'agile', 'tactical'],
-    knowledge_areas: ['combat', 'stealth', 'tactics']
-  },
-  traits: {
-    Strength: 7200,
-    Wit: 7300,
-    Charisma: 6800,
-    Defence: 7000,
-    Luck: 7100
-  }
-};
+// Personality adjective pools for fallback
+const ADJECTIVE_POOLS = [
+  ['brave', 'fierce', 'strategic'],
+  ['cunning', 'agile', 'tactical'],
+  ['wise', 'patient', 'resilient'],
+  ['bold', 'relentless', 'creative'],
+  ['stoic', 'adaptable', 'fearless'],
+];
 
 /**
- * Fetch warrior NFT data with fallback to defaults
+ * Generate deterministic-but-varied fallback traits from an NFT ID.
+ * Different IDs produce different stats; same ID always produces the same result.
+ */
+function generateSeededTraits(nftId: bigint) {
+  const seed = Number(nftId % BigInt(10000));
+
+  // Seeded pseudo-random: deterministic per (seed + offset)
+  const seededValue = (offset: number) => {
+    const x = Math.sin(seed + offset) * 10000;
+    return Math.floor((x - Math.floor(x)) * 4000) + 5000; // Range: 5000-9000
+  };
+
+  return {
+    personality: {
+      adjectives: ADJECTIVE_POOLS[seed % ADJECTIVE_POOLS.length],
+      knowledge_areas: ['combat', 'strategy', 'warfare'],
+    },
+    traits: {
+      Strength: seededValue(1),
+      Wit: seededValue(2),
+      Charisma: seededValue(3),
+      Defence: seededValue(4),
+      Luck: seededValue(5),
+    },
+  };
+}
+
+/**
+ * Fetch warrior NFT data with retry and seeded fallback
  */
 async function getWarriorBattleData(
-  nftId: bigint,
-  defaults: typeof DEFAULT_WARRIOR_1
+  nftId: bigint
 ): Promise<{ personality: { adjectives: string[]; knowledge_areas: string[] }; traits: Record<string, number> }> {
+  const defaults = generateSeededTraits(nftId);
+
   try {
-    const details = await warriorsNFTService.getWarriorsDetails(Number(nftId));
+    const details = await withRetry(
+      () => warriorsNFTService.getWarriorsDetails(Number(nftId)),
+      { ...RetryPresets.fast, maxRetries: 1 }
+    );
 
     // Parse adjectives and knowledge_areas from comma-separated strings
     const adjectives = details.adjectives
@@ -120,7 +133,7 @@ async function getWarriorBattleData(
       traits
     };
   } catch (error) {
-    console.warn(`Game Master: Failed to fetch NFT #${nftId} data, using defaults:`, error);
+    console.warn(`Game Master: Failed to fetch NFT #${nftId} data, using seeded fallback:`, error);
     return defaults;
   }
 }
@@ -339,8 +352,8 @@ async function generateAIMoves(arenaAddress: string): Promise<{ moves: { agent_1
     // Fetch actual NFT metadata for both warriors in parallel
     console.log(`Game Master: Fetching NFT data for warriors #${warriorsOneNFTId} and #${warriorsTwoNFTId}`);
     const [warrior1Data, warrior2Data] = await Promise.all([
-      getWarriorBattleData(warriorsOneNFTId as bigint, DEFAULT_WARRIOR_1),
-      getWarriorBattleData(warriorsTwoNFTId as bigint, DEFAULT_WARRIOR_2)
+      getWarriorBattleData(warriorsOneNFTId as bigint),
+      getWarriorBattleData(warriorsTwoNFTId as bigint)
     ]);
 
     const battlePrompt = {
@@ -453,18 +466,31 @@ async function executeNextRound(arenaAddress: string): Promise<{ success: boolea
 
     console.log(`Game Master: AI selected moves - Agent 1: ${moves.agent_1.move}, Agent 2: ${moves.agent_2.move}`);
 
-    // Map move names to contract enum values
+    // Map move names to contract enum values (handles AI response variations)
     const moveMapping: { [key: string]: number } = {
       'strike': 0,
-      'taunt': 1, 
+      'taunt': 1,
       'dodge': 2,
       'special_move': 3,
-      'special': 3, // Handle both special_move and special
-      'recover': 4
+      'special': 3,
+      'specialmove': 3,
+      'special move': 3,
+      'recover': 4,
+      'recovery': 4,
     };
 
-    const warriorsOneMove = moveMapping[moves.agent_1.move.toLowerCase()] ?? 0;
-    const warriorsTwoMove = moveMapping[moves.agent_2.move.toLowerCase()] ?? 0;
+    const normalizeMove = (raw: string, label: string): number => {
+      const key = raw.toLowerCase().trim();
+      const value = moveMapping[key];
+      if (value === undefined) {
+        console.warn(`[GameMaster] Unknown move from AI: "${raw}" (${label}), defaulting to strike(0)`);
+        return 0;
+      }
+      return value;
+    };
+
+    const warriorsOneMove = normalizeMove(moves.agent_1.move, 'agent_1');
+    const warriorsTwoMove = normalizeMove(moves.agent_2.move, 'agent_2');
 
     // Create signature for the battle moves.
     // Contract flow (Arena.sol):
@@ -526,10 +552,26 @@ export async function POST(request: NextRequest) {
 
     const results: { [key: string]: any } = {};
 
+    // Batch arena state reads in parallel (5 at a time) for efficiency
+    const BATCH_SIZE = 5;
+    const arenaStates = new Map<string, ArenaState | null>();
+
+    for (let i = 0; i < arenaAddresses.length; i += BATCH_SIZE) {
+      const batch = arenaAddresses.slice(i, i + BATCH_SIZE);
+      const stateResults = await Promise.allSettled(
+        batch.map((addr: string) => getArenaState(addr))
+      );
+      for (let j = 0; j < batch.length; j++) {
+        const result = stateResults[j];
+        arenaStates.set(batch[j], result.status === 'fulfilled' ? result.value : null);
+      }
+    }
+
+    // Process arenas sequentially (avoid nonce conflicts on game master wallet)
     for (const arenaAddress of arenaAddresses) {
       console.log(`Game Master: Processing ${action} for arena ${arenaAddress}`);
-      
-      const arenaState = await getArenaState(arenaAddress);
+
+      const arenaState = arenaStates.get(arenaAddress) ?? null;
       if (!arenaState) {
         results[arenaAddress] = { success: false, error: 'Failed to get arena state' };
         continue;

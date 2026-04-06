@@ -30,7 +30,7 @@ export async function GET(
     });
 
     if (!battle) {
-      throw ErrorResponses.notFound('Battle not found');
+      throw ErrorResponses.notFound(`Battle #${id}`);
     }
 
     return NextResponse.json({ battle });

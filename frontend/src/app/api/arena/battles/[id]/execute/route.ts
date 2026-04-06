@@ -157,7 +157,7 @@ export async function POST(
     });
 
     if (!battle) {
-      throw ErrorResponses.notFound('Battle not found');
+      throw ErrorResponses.notFound(`Battle #${id}`);
     }
 
     if (battle.status !== 'active') {
