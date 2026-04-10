@@ -154,6 +154,47 @@ export const arenaService = {
   },
 
   /**
+   * Read the on-chain initialization status of an arena (lightweight check).
+   * Used as a pre-flight check before calling initializeGame to avoid
+   * burning gas on a revert.
+   */
+  async getInitializationStatus(arenaAddress: string): Promise<boolean> {
+    const result = await readContract(rainbowKitConfig, {
+      address: arenaAddress as `0x${string}`,
+      abi: ArenaAbi,
+      functionName: 'getInitializationStatus',
+      chainId: getChainId(),
+    });
+    return Boolean(result);
+  },
+
+  /**
+   * Read the Warriors One NFT ID currently set in an arena contract.
+   */
+  async getWarriorsOneNFTId(arenaAddress: string): Promise<number> {
+    const result = await readContract(rainbowKitConfig, {
+      address: arenaAddress as `0x${string}`,
+      abi: ArenaAbi,
+      functionName: 'getWarriorsOneNFTId',
+      chainId: getChainId(),
+    });
+    return Number(result);
+  },
+
+  /**
+   * Read the Warriors Two NFT ID currently set in an arena contract.
+   */
+  async getWarriorsTwoNFTId(arenaAddress: string): Promise<number> {
+    const result = await readContract(rainbowKitConfig, {
+      address: arenaAddress as `0x${string}`,
+      abi: ArenaAbi,
+      functionName: 'getWarriorsTwoNFTId',
+      chainId: getChainId(),
+    });
+    return Number(result);
+  },
+
+  /**
    * Get arena details with Warriors metadata
    */
   async getArenaDetails(arenaAddress: string): Promise<ArenaDetails> {

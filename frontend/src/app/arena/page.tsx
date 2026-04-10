@@ -1669,6 +1669,23 @@ export default function ArenaPage() {
       setIsInitializing(true);
       setInitializationError(null);
 
+      // Pre-check: re-read the arena state directly from the contract
+      // to make sure it's actually EMPTY before we try to initialize.
+      // This avoids burning gas on an Arena__GameAlreadyInitialized revert
+      // when the cached arena list is stale.
+      const freshIsInitialized = await arenaService.getInitializationStatus(selectedArena.address);
+      if (freshIsInitialized) {
+        const existingW1 = await arenaService.getWarriorsOneNFTId(selectedArena.address);
+        const existingW2 = await arenaService.getWarriorsTwoNFTId(selectedArena.address);
+        setInitializationError(
+          `This arena is already initialized with Warriors #${existingW1} and #${existingW2}. ` +
+          `Refreshing the arena list — please pick a different arena.`
+        );
+        setIsInitializing(false);
+        await refetch();
+        return;
+      }
+
       // Trigger warrior message for arena initialization
       showMessage({
         id: 'arena_initializing',
@@ -1695,8 +1712,30 @@ export default function ArenaPage() {
 
       console.log('Transaction confirmed:', receipt);
 
+      // Guard against reverted transactions — waitForTransactionReceipt resolves
+      // even when the tx reverted, and receipt.status will be 'reverted'.
+      if (receipt.status !== 'success') {
+        throw new Error(
+          'Transaction reverted. The arena may already be initialized, ' +
+          'or the Warrior NFT IDs are invalid / not owned by you.'
+        );
+      }
+
       // Fetch updated arena details with Warriors metadata
       const updatedArenaDetails = await arenaService.getArenaDetails(selectedArena.address);
+
+      // Sanity check: the on-chain state must reflect what the user asked for.
+      // If it doesn't, the tx was applied to stale state or to the wrong arena.
+      if (
+        updatedArenaDetails.warriorsOneNFTId !== parseInt(warriorsOneNFTId) ||
+        updatedArenaDetails.warriorsTwoNFTId !== parseInt(warriorsTwoNFTId)
+      ) {
+        throw new Error(
+          `Initialization mismatch: arena now holds Warriors #${updatedArenaDetails.warriorsOneNFTId} ` +
+          `and #${updatedArenaDetails.warriorsTwoNFTId}, but you entered ` +
+          `#${warriorsOneNFTId} and #${warriorsTwoNFTId}.`
+        );
+      }
 
       // Update the arena object with new data
       const updatedArena: Arena = {
