@@ -316,6 +316,15 @@ const EnhancedArenaCard = ({
             >
               { isBattleOngoing ? 'BATTLE ONGOING' : (isInitialized ? 'BATTLE READY' : 'AWAITING WARRIORS') }
             </div>
+            { isInitialized && details?.warriorsOneNFTId !== undefined && details?.warriorsTwoNFTId !== undefined && (
+              <div
+                className="bg-orange-700 text-white px-3 py-1 text-xs rounded-lg"
+                style={ { fontFamily: 'Press Start 2P, monospace' } }
+                title="This arena is already in use — you cannot create a new battle here"
+              >
+                #{ details.warriorsOneNFTId } vs #{ details.warriorsTwoNFTId }
+              </div>
+            ) }
           </div>
           <div className="text-right">
             <div
@@ -511,6 +520,7 @@ export default function ArenaPage() {
   const { arenasWithDetails, isLoading, error, refetch } = useArenas();
   const [selectedArena, setSelectedArena] = useState<Arena | null>(null);
   const [activeRank, setActiveRank] = useState<RankCategory>('UNRANKED');
+  const [hasAutoJumped, setHasAutoJumped] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [betAmount, setBetAmount] = useState('');
   const [selectedWarriors, setSelectedWarriors] = useState<'ONE' | 'TWO' | null>(null);
@@ -1024,6 +1034,32 @@ export default function ArenaPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Auto-jump to the first rank that has at least one EMPTY arena.
+  // Default is UNRANKED, but that arena may be stuck-initialized with
+  // stale warriors from a previous run. Users who want to start a NEW
+  // battle need to see an EMPTY arena, not a stuck one.
+  useEffect(() => {
+    if (hasAutoJumped || isLoading) return;
+    const rankOrder: RankCategory[] = ['UNRANKED', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM'];
+
+    const rankHasEmpty = (rank: RankCategory) =>
+      (arenasWithDetails[rank] || []).some(a => a.details && !a.details.isInitialized);
+
+    // If the current rank already has an EMPTY arena, stay put
+    if (rankHasEmpty(activeRank)) {
+      setHasAutoJumped(true);
+      return;
+    }
+
+    // Otherwise, find the first rank that does
+    const firstRankWithEmpty = rankOrder.find(rankHasEmpty);
+    if (firstRankWithEmpty && firstRankWithEmpty !== activeRank) {
+      console.log(`[Arena] Auto-jumping from ${activeRank} (no empty arenas) to ${firstRankWithEmpty}`);
+      setActiveRank(firstRankWithEmpty);
+    }
+    setHasAutoJumped(true);
+  }, [arenasWithDetails, isLoading, activeRank, hasAutoJumped]);
 
   // Cache move names when arena modal opens and has both Warriorss
   useEffect(() => {
