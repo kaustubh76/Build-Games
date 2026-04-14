@@ -10,7 +10,8 @@
 
 ### Backend (Serverless API Routes)
 - **66 Next.js API routes** (App Router + Pages Router) — fully serverless on Vercel
-- **Prisma 5.22** ORM with **PostgreSQL** (30+ data models)
+- **0G Storage** for decentralized data persistence (battle results, warrior metadata, verified predictions)
+- **In-memory collections** with Prisma-compatible API and periodic 0G flush
 - **Zod** for runtime schema validation on external API responses
 
 ### AI & Inference
@@ -37,7 +38,7 @@
 ## Architecture Decisions
 
 ### Why Serverless on Vercel (not a dedicated backend)?
-All game logic runs in Next.js API routes. This eliminates infrastructure management, scales automatically, and keeps the entire stack in one repo. Battle state is persisted in PostgreSQL via the `ArenaGameState` model instead of in-memory state.
+All game logic runs in Next.js API routes. This eliminates infrastructure management, scales automatically, and keeps the entire stack in one repo. Battle state is stored on-chain (Arena contracts) with supplementary data persisted to 0G Storage for verifiability.
 
 ### Why Direct OpenAI Calls (no proxy/middleware)?
 Simplicity. The OpenAI SDK is called directly from API routes for warrior trait generation, battle debate rounds, and market analysis. No added latency from proxy layers. 0G Compute provides a separate verifiable inference path when cryptographic proof is needed.
@@ -96,7 +97,7 @@ Polymarket and Kalshi markets are synced, mirrored into on-chain AMM pools, and 
 │  │ Gemini         │  │  └───────────────────────────────────┘
 │  └────────────────┘  │
 │  ┌────────────────┐  │  ┌───────────────────────────────────┐
-│  │ Prisma ORM     │──┼─→│  PostgreSQL (30+ models)          │
+│  │ 0G Data Layer  │──┼─→│  0G Storage (decentralized)       │
 │  └────────────────┘  │  │  Battles, Markets, Agents, Whales │
 │  ┌────────────────┐  │  └───────────────────────────────────┘
 │  │ 0G Storage     │  │

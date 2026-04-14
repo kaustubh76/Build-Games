@@ -272,13 +272,10 @@ PRIVATE_KEY=your_deployer_private_key                               # Used for c
 GAME_MASTER_PRIVATE_KEY=your_game_master_key                        # Signs battle moves
 AI_SIGNER_PRIVATE_KEY=your_ai_signer_key                            # Signs warrior traits
 
-# 0G Compute (decentralized AI inference)
+# 0G Compute & Storage (decentralized AI + data persistence)
 ZG_COMPUTE_PROVIDER=0xa48f01287233509FD694a22Bf840225062E67836
 ZG_EVM_RPC=https://evmrpc-testnet.0g.ai
 ZG_INDEXER_RPC=https://indexer-storage-testnet-turbo.0g.ai
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/warriors
 
 # Cron (Vercel sets CRON_SECRET automatically in production)
 CRON_SECRET=local-dev-cron-secret
@@ -418,10 +415,10 @@ Warriors AI-rena uses **0G Network** for two critical functions, ensuring AI dec
 - Graceful degradation: if 0G is unavailable, deterministic trait-based fallback kicks in
 
 ### 0G Storage — Decentralized Data Persistence
-- Battle results, warrior metadata, and game state are stored on 0G Storage Network
+- Battle results, warrior metadata, and verified predictions stored on 0G Storage Network
 - Content-addressed via Merkle tree root hashes for integrity verification
 - In-memory index with periodic flush to 0G for performance
-- All data persisted without centralized databases (PostgreSQL/Prisma fully replaced)
+- Used alongside on-chain state for a fully decentralized data layer
 
 ### Architecture
 ```
