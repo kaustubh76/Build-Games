@@ -450,7 +450,9 @@ Battle Cycle:
 
 ### Mainnet Deployment Guide
 
-**Prerequisites:**
+> See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the complete deployment guide including pre-flight checklist, troubleshooting, and rollback procedures.
+
+**Quick prerequisites:**
 - Fresh deployer wallet with **~2 AVAX** on C-Chain mainnet
 - Snowtrace API key from [snowtrace.io](https://snowtrace.io/apis)
 - All private keys stored in Vercel env vars (never in `.env` files committed to git)
