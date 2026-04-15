@@ -79,6 +79,21 @@ export const arenaFactoryService = {
   },
 
   /**
+   * Get the rank an arena was registered with (0=UNRANKED ... 4=PLATINUM).
+   * Used for pre-flight checks: warriors must match the arena rank to battle.
+   */
+  async getArenaRanking(arenaAddress: string): Promise<number> {
+    const result = await readContract(rainbowKitConfig, {
+      address: getContracts().ArenaFactory as `0x${string}`,
+      abi: ArenaFactoryAbi,
+      functionName: 'getArenaRanking',
+      args: [arenaAddress as `0x${string}`],
+      chainId: getChainId(),
+    });
+    return Number(result);
+  },
+
+  /**
    * Get all arenas (from any ranking)
    */
   async getAllArenas(): Promise<string[]> {

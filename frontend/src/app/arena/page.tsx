@@ -12,6 +12,8 @@ import { Button } from '../../components/ui/button';
 // import { Badge } from '../../components/ui/badge';
 import { useArenas, type RankCategory, type ArenaWithDetails } from '../../hooks/useArenas';
 import { arenaService, isValidBettingAmount, getClosestValidBettingAmount } from '../../services/arenaService';
+import { warriorsNFTService } from '../../services/warriorsNFTService';
+import { arenaFactoryService } from '../../services/arenaFactoryService';
 import { ArenaAbi, warriorsNFTAbi, getChainId, getContracts } from '../../constants';
 import { waitForTransactionReceipt, readContract } from '@wagmi/core';
 import rainbowKitConfig from '../../rainbowKitConfig';
@@ -1043,28 +1045,21 @@ export default function ArenaPage() {
     if (hasAutoJumped || isLoading) return;
     const rankOrder: RankCategory[] = ['UNRANKED', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM'];
 
-    // Known stuck arenas (initialized with orphaned warriors, can't be reset).
-    // Must match STUCK_ARENA_ADDRESSES below.
-    const stuck = new Set<string>([
-      '0x9a2a9c444ba1c81bf905e92098b86f63802b738e',
-    ]);
+    const rankHasArenas = (rank: RankCategory) =>
+      (arenasWithDetails[rank] || []).length > 0;
 
-    const rankHasEmpty = (rank: RankCategory) =>
-      (arenasWithDetails[rank] || [])
-        .filter(a => !stuck.has(a.address.toLowerCase()))
-        .some(a => a.details && !a.details.isInitialized);
-
-    // If the current rank already has an EMPTY arena, stay put
-    if (rankHasEmpty(activeRank)) {
+    // Stay on the current rank if it has any arenas at all (initialized or empty).
+    // Initialized arenas are still useful — users can bet, watch the battle, etc.
+    if (rankHasArenas(activeRank)) {
       setHasAutoJumped(true);
       return;
     }
 
-    // Otherwise, find the first rank that does
-    const firstRankWithEmpty = rankOrder.find(rankHasEmpty);
-    if (firstRankWithEmpty && firstRankWithEmpty !== activeRank) {
-      console.log(`[Arena] Auto-jumping from ${activeRank} (no empty arenas) to ${firstRankWithEmpty}`);
-      setActiveRank(firstRankWithEmpty);
+    // Otherwise, find the first rank that has arenas
+    const firstRankWithArenas = rankOrder.find(rankHasArenas);
+    if (firstRankWithArenas && firstRankWithArenas !== activeRank) {
+      console.log(`[Arena] Auto-jumping from ${activeRank} (no arenas) to ${firstRankWithArenas}`);
+      setActiveRank(firstRankWithArenas);
     }
     setHasAutoJumped(true);
   }, [arenasWithDetails, isLoading, activeRank, hasAutoJumped]);
@@ -1174,18 +1169,14 @@ export default function ArenaPage() {
     }
   }, [arenasWithDetails, selectedArena?.address, activeRank, convertArenaWithDetailsToArena]);
 
-  // Stuck arenas: initialized with orphaned warriors 1/2 by a prior deployment run,
-  // no way to reset (Arena__GameFinishConditionNotMet). Hide them from the list
-  // so users aren't confused about "default warriors 1/2".
-  // To hide an arena, add its lowercase address here.
-  const STUCK_ARENA_ADDRESSES = new Set<string>([
-    '0x9a2a9c444ba1c81bf905e92098b86f63802b738e', // UNRANKED — stuck with warriors #1 vs #2
-  ]);
-
-  // Get arenas for the active rank, filtering out known-stuck ones
-  const currentRankArenasWithDetails = (arenasWithDetails[activeRank] || []).filter(
-    a => !STUCK_ARENA_ADDRESSES.has(a.address.toLowerCase())
-  );
+  // Get arenas for the active rank.
+  // NOTE: We previously filtered out the stuck UNRANKED arena (0x9a2a9c44...
+  // initialized with warriors 1/2), but ALL minted warriors on Fuji are
+  // currently rank UNRANKED, so they can ONLY battle in that arena. Hiding it
+  // would leave users with nothing to interact with. Instead we surface it
+  // and rely on pre-flight checks in handleInitializeArena to give clear
+  // errors when init fails (e.g., already-initialized, wrong rank, no traits).
+  const currentRankArenasWithDetails = arenasWithDetails[activeRank] || [];
 
   // Manual automation functions - updated for command-based system
   const manualStartGame = async () => {
@@ -1723,10 +1714,18 @@ export default function ArenaPage() {
       setIsInitializing(true);
       setInitializationError(null);
 
-      // Pre-check: re-read the arena state directly from the contract
-      // to make sure it's actually EMPTY before we try to initialize.
-      // This avoids burning gas on an Arena__GameAlreadyInitialized revert
-      // when the cached arena list is stale.
+      const w1Id = parseInt(warriorsOneNFTId);
+      const w2Id = parseInt(warriorsTwoNFTId);
+      const RANK_NAMES = ['UNRANKED', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM'];
+
+      // Pre-check 0: warriors must be different (Arena__WarriorsIdsCannotBeSame)
+      if (w1Id === w2Id) {
+        setInitializationError('Warriors One and Warriors Two must be different NFT IDs.');
+        setIsInitializing(false);
+        return;
+      }
+
+      // Pre-check 1: arena must not already be initialized
       const freshIsInitialized = await arenaService.getInitializationStatus(selectedArena.address);
       if (freshIsInitialized) {
         const existingW1 = await arenaService.getWarriorsOneNFTId(selectedArena.address);
@@ -1737,6 +1736,48 @@ export default function ArenaPage() {
         );
         setIsInitializing(false);
         await refetch();
+        return;
+      }
+
+      // Pre-check 2: warrior ranks must match the arena's rank tier.
+      // The Arena contract requires both warriors to be at the arena's rank
+      // (e.g. BRONZE arena needs BRONZE warriors). Mismatch => silent revert.
+      const [arenaRank, w1Rank, w2Rank] = await Promise.all([
+        arenaFactoryService.getArenaRanking(selectedArena.address),
+        warriorsNFTService.getRanking(w1Id),
+        warriorsNFTService.getRanking(w2Id),
+      ]);
+      if (w1Rank !== arenaRank || w2Rank !== arenaRank) {
+        const arenaRankName = RANK_NAMES[arenaRank] ?? `rank ${arenaRank}`;
+        const w1RankName = RANK_NAMES[w1Rank] ?? `rank ${w1Rank}`;
+        const w2RankName = RANK_NAMES[w2Rank] ?? `rank ${w2Rank}`;
+        setInitializationError(
+          `Rank mismatch: this is a ${arenaRankName} arena, but ` +
+          `Warrior #${w1Id} is ${w1RankName} and Warrior #${w2Id} is ${w2RankName}. ` +
+          `Pick warriors of the matching rank, or pick a ${w1RankName} arena.`
+        );
+        setIsInitializing(false);
+        return;
+      }
+
+      // Pre-check 3: warriors must have traits activated (non-zero stats).
+      // A freshly minted warrior has all traits = 0 and can't battle.
+      const [w1Traits, w2Traits] = await Promise.all([
+        warriorsNFTService.getTraits(w1Id),
+        warriorsNFTService.getTraits(w2Id),
+      ]);
+      const traitsSum = (t: { strength: number; wit: number; charisma: number; defence: number; luck: number }) =>
+        t.strength + t.wit + t.charisma + t.defence + t.luck;
+      const inactive: number[] = [];
+      if (traitsSum(w1Traits) === 0) inactive.push(w1Id);
+      if (traitsSum(w2Traits) === 0) inactive.push(w2Id);
+      if (inactive.length > 0) {
+        setInitializationError(
+          `Warrior${inactive.length > 1 ? 's' : ''} ${inactive.map(i => `#${i}`).join(' and ')} ` +
+          `${inactive.length > 1 ? 'have' : 'has'} no traits assigned. ` +
+          `Activate ${inactive.length > 1 ? 'them' : 'it'} on the warriorsMinter page first.`
+        );
+        setIsInitializing(false);
         return;
       }
 

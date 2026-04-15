@@ -233,6 +233,60 @@ const rankingToString = (rankValue: number): 'unranked' | 'bronze' | 'silver' | 
 
 export const warriorsNFTService = {
   /**
+   * Lightweight read: just the ranking enum (0=UNRANKED ... 4=PLATINUM).
+   * Used for pre-flight checks before initializing an arena.
+   */
+  async getRanking(tokenId: number): Promise<number> {
+    const result = await readContract(rainbowKitConfig, {
+      address: getContracts().warriorsNFT as `0x${string}`,
+      abi: warriorsNFTAbi,
+      functionName: 'getRanking',
+      args: [BigInt(tokenId)],
+      chainId: getChainId(),
+    });
+    return Number(result);
+  },
+
+  /**
+   * Lightweight read: returns the traits struct. If all stats are 0, the
+   * warrior has not been activated yet (no traits assigned).
+   */
+  async getTraits(tokenId: number): Promise<{ strength: number; wit: number; charisma: number; defence: number; luck: number }> {
+    const result = await readContract(rainbowKitConfig, {
+      address: getContracts().warriorsNFT as `0x${string}`,
+      abi: warriorsNFTAbi,
+      functionName: 'getTraits',
+      args: [BigInt(tokenId)],
+      chainId: getChainId(),
+    }) as { strength: bigint; wit: bigint; charisma: bigint; defence: bigint; luck: bigint };
+    return {
+      strength: Number(result.strength ?? 0n),
+      wit: Number(result.wit ?? 0n),
+      charisma: Number(result.charisma ?? 0n),
+      defence: Number(result.defence ?? 0n),
+      luck: Number(result.luck ?? 0n),
+    };
+  },
+
+  /**
+   * Returns the owner address of a token (lowercase) or null if it doesn't exist.
+   */
+  async getOwner(tokenId: number): Promise<string | null> {
+    try {
+      const result = await readContract(rainbowKitConfig, {
+        address: getContracts().warriorsNFT as `0x${string}`,
+        abi: warriorsNFTAbi,
+        functionName: 'ownerOf',
+        args: [BigInt(tokenId)],
+        chainId: getChainId(),
+      });
+      return String(result).toLowerCase();
+    } catch {
+      return null;
+    }
+  },
+
+  /**
    * Fetch complete Warriors details including metadata from Storage or IPFS
    */
   async getWarriorsDetails(tokenId: number): Promise<WarriorsDetails> {
