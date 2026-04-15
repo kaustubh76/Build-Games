@@ -1043,8 +1043,16 @@ export default function ArenaPage() {
     if (hasAutoJumped || isLoading) return;
     const rankOrder: RankCategory[] = ['UNRANKED', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM'];
 
+    // Known stuck arenas (initialized with orphaned warriors, can't be reset).
+    // Must match STUCK_ARENA_ADDRESSES below.
+    const stuck = new Set<string>([
+      '0x9a2a9c444ba1c81bf905e92098b86f63802b738e',
+    ]);
+
     const rankHasEmpty = (rank: RankCategory) =>
-      (arenasWithDetails[rank] || []).some(a => a.details && !a.details.isInitialized);
+      (arenasWithDetails[rank] || [])
+        .filter(a => !stuck.has(a.address.toLowerCase()))
+        .some(a => a.details && !a.details.isInitialized);
 
     // If the current rank already has an EMPTY arena, stay put
     if (rankHasEmpty(activeRank)) {
@@ -1166,8 +1174,18 @@ export default function ArenaPage() {
     }
   }, [arenasWithDetails, selectedArena?.address, activeRank, convertArenaWithDetailsToArena]);
 
-  // Get arenas for the active rank
-  const currentRankArenasWithDetails = arenasWithDetails[activeRank] || [];
+  // Stuck arenas: initialized with orphaned warriors 1/2 by a prior deployment run,
+  // no way to reset (Arena__GameFinishConditionNotMet). Hide them from the list
+  // so users aren't confused about "default warriors 1/2".
+  // To hide an arena, add its lowercase address here.
+  const STUCK_ARENA_ADDRESSES = new Set<string>([
+    '0x9a2a9c444ba1c81bf905e92098b86f63802b738e', // UNRANKED — stuck with warriors #1 vs #2
+  ]);
+
+  // Get arenas for the active rank, filtering out known-stuck ones
+  const currentRankArenasWithDetails = (arenasWithDetails[activeRank] || []).filter(
+    a => !STUCK_ARENA_ADDRESSES.has(a.address.toLowerCase())
+  );
 
   // Manual automation functions - updated for command-based system
   const manualStartGame = async () => {
