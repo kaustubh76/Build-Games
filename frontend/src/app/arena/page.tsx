@@ -1930,217 +1930,43 @@ export default function ArenaPage() {
   };
 
   const handleNextRound = useCallback(async () => {
-    console.log('🎯 handleNextRound() function called!');
-    
-    if (!selectedArena || !address) {
-      console.log('❌ handleNextRound: Missing selectedArena or address');
+    console.log('🎯 handleNextRound() — delegating to game-master API');
+
+    if (!selectedArena) {
+      console.log('❌ handleNextRound: Missing selectedArena');
       return;
     }
 
     try {
-      console.log('⚔️ Starting next round process...');
-      
-      // Add timeout wrapper to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Next round process timed out')), 180000); // Increased to 180 seconds
-      });
-
-      const nextRoundProcess = async () => {
-        console.log('🤖 Generating next round moves with AI...');
-
-        // Fetch current battle data from contract
-        const currentRound = await arenaService.getCurrentRound(selectedArena.address);
-        const damageOnWarriorsOne = await arenaService.getDamageOnWarriorsOne(selectedArena.address);
-        const damageOnWarriorsTwo = await arenaService.getDamageOnWarriorsTwo(selectedArena.address);
-
-        console.log('📊 Battle data:', { currentRound, damageOnWarriorsOne, damageOnWarriorsTwo });
-
-        // Get Warriors details with personality and traits
-        const warriorsOneDetails = selectedArena.warriorsOne;
-        const warriorsTwoDetails = selectedArena.warriorsTwo;
-
-        if (!warriorsOneDetails || !warriorsTwoDetails) {
-          console.error('Missing Warriors details for AI generation');
-          return;
-        }
-
-      // Safely handle adjectives and knowledge_areas - they might be arrays or strings
-      const getAdjectives = (warriors: { adjectives?: string | string[] }) => {
-        if (!warriors?.adjectives) return ['brave', 'fierce'];
-        if (Array.isArray(warriors.adjectives)) return warriors.adjectives;
-        if (typeof warriors.adjectives === 'string') return warriors.adjectives.split(',').map((s: string) => s.trim());
-        return ['brave', 'fierce'];
-      };
-
-      const getKnowledgeAreas = (warriors: { knowledge_areas?: string | string[] }) => {
-        if (!warriors?.knowledge_areas) return ['combat', 'strategy'];
-        if (Array.isArray(warriors.knowledge_areas)) return warriors.knowledge_areas;
-        if (typeof warriors.knowledge_areas === 'string') return warriors.knowledge_areas.split(',').map((s: string) => s.trim());
-        return ['combat', 'strategy'];
-      };
-
-      // Create the JSON structure similar to KurukshetraAiPrompt.json
-      const battlePrompt = {
-        current_round: currentRound,
-        agent_1: {
-          personality: {
-            adjectives: getAdjectives(warriorsOneDetails),
-            knowledge_areas: getKnowledgeAreas(warriorsOneDetails)
-          },
-          traits: {
-            Strength: Math.round(warriorsOneDetails.strength * 100), // Convert back to contract format
-            Wit: Math.round(warriorsOneDetails.wit * 100),
-            Charisma: Math.round(warriorsOneDetails.charisma * 100),
-            Defence: Math.round(warriorsOneDetails.defense * 100),
-            Luck: Math.round(warriorsOneDetails.luck * 100) // Using personality as luck
-          },
-          total_damage_received: damageOnWarriorsOne
-        },
-        agent_2: {
-          personality: {
-            adjectives: getAdjectives(warriorsTwoDetails),
-            knowledge_areas: getKnowledgeAreas(warriorsTwoDetails)
-          },
-          traits: {
-            Strength: Math.round(warriorsTwoDetails.strength * 100), // Convert back to contract format
-            Wit: Math.round(warriorsTwoDetails.wit * 100),
-            Charisma: Math.round(warriorsTwoDetails.charisma * 100),
-            Defence: Math.round(warriorsTwoDetails.defense * 100),
-            Luck: Math.round(warriorsTwoDetails.luck * 100) // Using personality as luck
-          },
-          total_damage_received: damageOnWarriorsTwo
-        },
-        moveset: [
-          "strike",
-          "taunt",
-          "dodge",
-          "recover",
-          "special_move"
-        ]
-      };
-
-      console.log('Battle prompt data:', battlePrompt);
-
-      // Call our backend API route for AI move selection
-      console.log('🕐 Starting AI API call at:', new Date().toLocaleTimeString());
-      console.log('Sending request to /api/generate-battle-moves with:', {
-        battlePrompt: battlePrompt
-      });
-
-      const response = await fetch('/api/generate-battle-moves', {
+      const response = await fetch('/api/game-master', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          battlePrompt: battlePrompt
-        })
+          action: 'checkAndExecuteRounds',
+          arenaAddresses: [selectedArena.address],
+        }),
       });
-
-      console.log('🕐 AI API response received at:', new Date().toLocaleTimeString());
-      console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', errorText);
-        throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorText}`);
+        const errData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errData.error || `Game master failed (${response.status})`);
       }
 
-      const data = await response.json();
-      console.log('Raw API response:', data);
+      const result = await response.json();
+      const arenaResult = result.results?.[selectedArena.address];
 
-      if (!data.success) {
-        throw new Error(data.error || 'Unknown error from AI move selector');
+      if (arenaResult?.success) {
+        console.log(`✅ Round ${arenaResult.round} executed on-chain`);
+      } else {
+        console.warn('⚠️ Round execution issue:', arenaResult?.error || arenaResult?.reason || 'unknown');
       }
 
-      console.log("AI Move Selector Response:", data.response);      // Parse the AI response to extract moves and execute battle
-      try {
-        const aiResponse = JSON.parse(data.response);
-        console.log('Parsed AI response:', aiResponse);
-        
-        // Handle multiple possible AI response formats
-        let agent1Move: string | undefined;
-        let agent2Move: string | undefined;
-        
-        // Format 1: {"agent_1": {"move": "strike"}, "agent_2": {"move": "dodge"}}
-        if (aiResponse.agent_1?.move && aiResponse.agent_2?.move) {
-          agent1Move = aiResponse.agent_1.move;
-          agent2Move = aiResponse.agent_2.move;
-        }
-        // Format 2: {"agent_1_move": "strike", "agent_2_move": "dodge"}
-        else if (aiResponse.agent_1_move && aiResponse.agent_2_move) {
-          agent1Move = aiResponse.agent_1_move;
-          agent2Move = aiResponse.agent_2_move;
-        }
-        // Format 3: {"moves": {"agent_1": "strike", "agent_2": "taunt"}}
-        else if (aiResponse.moves?.agent_1 && aiResponse.moves?.agent_2) {
-          agent1Move = aiResponse.moves.agent_1;
-          agent2Move = aiResponse.moves.agent_2;
-        }
-        // Format 4: {"agent_1": "taunt", "agent_2": "strike"} (flat format)
-        else if (typeof aiResponse.agent_1 === 'string' && typeof aiResponse.agent_2 === 'string') {
-          agent1Move = aiResponse.agent_1;
-          agent2Move = aiResponse.agent_2;
-        }
-        // Format 5: {"agent_1.Move": "dodge", "agent_2.Move": "taunt"} (dotted property format)
-        else if (aiResponse['agent_1.Move'] && aiResponse['agent_2.Move']) {
-          agent1Move = aiResponse['agent_1.Move'];
-          agent2Move = aiResponse['agent_2.Move'];
-        }
-        // Format 6: {"agent_moves": {"agent_1": "taunt", "agent_2": "recover"}} (nested agent_moves format)
-        else if (aiResponse.agent_moves && aiResponse.agent_moves.agent_1 && aiResponse.agent_moves.agent_2) {
-          agent1Move = aiResponse.agent_moves.agent_1;
-          agent2Move = aiResponse.agent_moves.agent_2;
-        }
-        
-        if (agent1Move && agent2Move) {
-          console.log(`Agent 1 move: ${agent1Move}, Agent 2 move: ${agent2Move}`);
-          
-          // Use the signature from the API directly instead of generating a new one
-          if (data.signature && data.contractMoves) {
-            console.log('🔐 Using API-generated signature for contract battle');
-            
-            // Execute battle directly with the API-provided signature
-            await executeBattleWithSignature({
-              signature: data.signature,
-              warriorsOneMove: data.contractMoves.warriorsOneMove,
-              warriorsTwoMove: data.contractMoves.warriorsTwoMove,
-              agent1Move,
-              agent2Move
-            });
-          } else {
-            // Fallback to old method if signature not available
-            console.log('⚠️ No signature in API response, using fallback method');
-            await executeBattleMoves({
-              agent_1: { move: agent1Move },
-              agent_2: { move: agent2Move }
-            });
-          }
-        } else {
-          console.error('Invalid AI response format - missing moves');
-          console.error('Expected format 1: {"agent_1": {"move": "strike"}, "agent_2": {"move": "dodge"}}');
-          console.error('Expected format 2: {"agent_1_move": "strike", "agent_2_move": "dodge"}');
-          console.error('Expected format 3: {"moves": {"agent_1": "strike", "agent_2": "taunt"}}');
-          console.error('Expected format 4: {"agent_1": "taunt", "agent_2": "strike"}');
-          console.error('Expected format 5: {"agent_1.Move": "dodge", "agent_2.Move": "taunt"}');
-          console.error('Expected format 6: {"agent_moves": {"agent_1": "taunt", "agent_2": "recover"}}');
-          console.error('Received:', aiResponse);
-        }
-      } catch (parseError) {
-        console.error('Failed to parse AI response:', parseError);
-        console.log('Raw response that failed to parse:', data.response);
-      }
-      };
-
-      // Execute with timeout protection
-      await Promise.race([nextRoundProcess(), timeoutPromise]);
-      console.log('✅ Next round process completed successfully');
-
+      // Refresh arena data
+      await refetch();
     } catch (error) {
-      console.error('Failed to generate next round moves:', error);
-      // Continue anyway - don't block the automation
+      console.error('Failed to execute next round:', error);
     }
-  }, [selectedArena, address]);
+  }, [selectedArena, refetch]);
 
   // Command polling for backend automation - checks for startGame and nextRound commands
   useEffect(() => {
