@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'No arenas found', actions: [] });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
     const results: Record<string, unknown>[] = [];
 
     // Phase 1: Check and start games whose betting period ended

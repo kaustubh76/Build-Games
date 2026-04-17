@@ -80,7 +80,10 @@ export const getStorageDownloadBaseUrl = (): string => {
  * Get the base API URL for internal API calls
  */
 export const getApiBaseUrl = (): string => {
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3000';
 };
 
 // Default chain ID constant - Avalanche Fuji Testnet
