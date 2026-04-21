@@ -23,18 +23,20 @@
 
 ## Slide 2 — The Problem
 
-**Web3 gaming has a spectator problem.**
+**Web3 gaming has a spectator problem — and the numbers prove it.**
 
-- 90%+ of NFTs are static JPEGs with no ongoing utility
-- Crypto games require you to *play* — there's no passive audience
-- Prediction markets are powerful but feel like spreadsheets
-- Play-to-earn economies collapse on ponzinomics
+| Observation | Data |
+|-------------|------|
+| NFT collections with zero secondary-sale utility | **~90%** (per OpenSea 2024 dormancy data) |
+| Axie Infinity daily-active users since SLP collapse | **−95% from peak** |
+| Time Gen Z spends watching esports vs live sports | **+35% esports** (Deloitte 2023) |
+| U.S. sports betting handle (DraftKings + FanDuel) | **$10B+ in 2023** |
+| Polymarket monthly volume (late 2024) | **>$1B/month** |
+| AI Arena weekly active spectators (Arbitrum) | **~0** (platform is player-only) |
 
-**Meanwhile, DraftKings + FanDuel = $10B+ wagered in 2023** on events people *watch*, not play.
+**The gap is clear:** spectator demand exists. NFT ownership desire exists. AI fighting games exist. **But no product puts all three in the same room**, with real on-chain stakes and a mechanic that lets the audience alter the outcome.
 
-**The gap:** No product combines verifiable on-chain fairness with a sports-style spectator experience.
-
-**Visual:** Split-screen. Left: empty NFT collection, dusty. Right: packed sports bar, phones out, betting.
+**Visual:** Split-screen. Left: dusty NFT portfolio with grey floor prices. Right: sports bar with glowing phones, all eyes on a screen.
 
 ---
 
@@ -50,6 +52,22 @@ Our bet: the next billion crypto users will *watch before they play*. They want:
 - Something to influence, not just observe
 
 **Visual:** Three concentric circles — Players (innermost, small), Creators (middle), **Spectators (outer, massive)**. Arrow points to the outer ring.
+
+---
+
+## Slide 3.5 — Why Now
+
+**Five converging waves make this the right moment:**
+
+1. **Avalanche's gaming focus.** Subnet v2 + sub-second finality + L1 launcher make real-time spectator mechanics feasible. No other EVM chain ships the UX latency this category needs.
+2. **0G Network nearing mainnet.** Verifiable on-chain AI inference has moved from theoretical to usable. Competing AI-on-chain stacks (Bittensor, Ritual) are either upstream of our use case or not yet consumer-ready.
+3. **Polymarket crossed $1B monthly volume in late 2024.** On-chain prediction markets are no longer niche. The audience exists.
+4. **Gen Z watches more esports than live sports** (Deloitte 2023). Spectator betting on AI-driven competitive content is not a future bet — it's a mapping to existing behavior.
+5. **AI-generated content is now cheaper than curated content.** A single warrior's traits + moves + lore costs pennies to generate. This was not economically feasible in 2022.
+
+**Any single one of these lets someone else ship this.** All five at once is our window.
+
+**Visual:** Five bars growing from 2022 → 2026, converging into an arrow pointing at "Warriors AI-rena."
 
 ---
 
@@ -145,18 +163,33 @@ CRwN is money that knows what it's for. You buy to use it, not to hold it.
 
 **Live today. Not a mock. Not a landing page. A working product.**
 
-- **16 smart contracts** deployed on Avalanche Fuji (43113)
-- **9 warriors** minted with signed on-chain traits
-- **Full battle lifecycle verified** end-to-end (init → bet → 5 rounds → finish → payout)
-- **66 API routes** serverless on Vercel
-- **Zero database** — 0G Storage replaces PostgreSQL, fully decentralized
+**Contracts deployed & verified on Avalanche Fuji (chain 43113):**
+- CrownToken — `0xF0011ca65e3F6314B180a8848ae373042bAEc9b4`
+- WarriorsNFT — `0x218d3efaB076bd03E278CDCf3B488AA107215b8a`
+- ArenaFactory — `0xe9faCA292CEF42489AF4d20266964Fb6425AE122`
+- +13 more (see WHITEPAPER.md §2.2)
 
-**Executed live during development:**
-- 3 complete battles with real CRwN bets, all signed and settled on-chain
-- Auto-execution via Vercel cron + client polling both verified working
-- Automated arena creation via `makeNewArena()` reproducible in ~10s
+**Verifiable battle execution (Snowtrace-visible):**
+- New UNRANKED arena created: `0x6fA5fbdAF71b67c05382Fca9EF702416df3Ee1aC`
+- Warriors #7 and #9 activated with AI-signed traits (tx `0x7e5cd2...` and `0x198df7...`)
+- Full 5-round battle executed via game-master automation (April 2026)
+- Automatic reward distribution + arena reset confirmed on-chain
 
-**Visual:** Snowtrace screenshots of the `GameFinished` events, green checkmarks.
+**Engineering velocity:**
+- 16 smart contracts deployed + Snowtrace-verified
+- 66 API routes on Vercel (fully serverless)
+- 40+ document collections in 0G Storage layer (PostgreSQL fully removed)
+- Three-layer automation: Vercel cron + 2-second client polling + manual override
+- Complete deployment pipeline: `./scripts/deploy-mainnet.sh` one-command mainnet deploy
+
+**Demoable loop:**
+1. Visit https://warriors-ai-rena.vercel.app/arena
+2. Pick UNRANKED arena
+3. Enter warrior IDs, place bets
+4. Watch 5 rounds auto-execute with on-chain signature on each move
+5. Rewards distributed, arena resets
+
+**Visual:** Side-by-side — left panel: Snowtrace showing `GameFinished` event with damage values; right panel: product screenshot of final round with winner highlighted.
 
 ---
 
@@ -250,37 +283,56 @@ Friend clicks → loop
 
 ## Slide 13 — Team & Asks
 
-**Built by a founder-engineer team with full-stack + smart contract experience.**
+**Built by a founder-engineer team with full-stack + smart contract + AI experience.**
 
-- 16 contracts audited internally, ready for external audit
-- 66 API routes live, 0 centralized database
-- Product shipped end-to-end on Avalanche Fuji
-- Repository: https://github.com/kaustubh76/Build-Games
+**What's shipped in the last 30 days (proof of velocity):**
+- Fully removed PostgreSQL/Prisma; built a Prisma-compatible 0G Storage data layer (40+ collections)
+- Migrated frontend from Flow chain (545) to Avalanche Fuji (43113)
+- Built a verifiable game-master API that signs battle moves with the contract's `i_AiPublicKey`
+- Deployed new UNRANKED arena via `ArenaFactory.makeNewArena()` and executed a full battle end-to-end
+- Fixed three layers of automation (Vercel cron, client polling, manual override) with comprehensive tests
+- Authored and published the whitepaper, pitch deck, business plan, future plan, deployment guide
+
+**Repository:** https://github.com/kaustubh76/Build-Games
+**Live product:** https://warriors-ai-rena.vercel.app
 
 **What we're asking:**
 
 - **Seed: $500K** for 12 months of runway
   - $150K — smart contract audit + bug bounty
   - $150K — user acquisition (2 community managers, influencer seeding, referral pool)
-  - $100K — infrastructure (0G Compute credits, Vercel pro, RPC)
-  - $100K — engineering (1 FTE for marketplace + tournaments)
+  - $100K — infrastructure (0G Compute credits, Vercel Pro, RPC, monitoring)
+  - $100K — engineering (1 senior Solidity FTE for marketplace + tournaments)
 
 - **Strategic partners:**
-  - Avalanche ecosystem (co-marketing, L1 subnet support)
-  - 0G Labs (compute credits, co-announcement)
-  - Sports-betting tech (regulatory counsel)
+  - **Avalanche Foundation** — co-marketing, L1 subnet coordination
+  - **0G Labs** — compute credits, co-announced product launches
+  - **Sports-betting counsel** — regulatory opinion letter pre-mainnet
+  - **Avalanche-aligned gaming funds** — Ava Ventures, Blizzard Fund
 
-**Visual:** Three columns: team, ask, partners.
+- **Hires post-seed (in order):**
+  1. Senior Solidity engineer (tournament + marketplace contracts)
+  2. Community manager (Discord moderation, Twitter presence)
+  3. Content editor (auto-generated highlight clips, weekly recaps)
+  4. Growth / BD lead (sponsored battles, influencer partnerships)
+
+**Visual:** Three columns — team + shipped-in-30-days proof, ask breakdown, partner logos.
 
 ---
 
 ## Slide 14 — The Ask, One Line
 
-> **We've built the product. We've verified it works on-chain, end-to-end, with real AVAX. We need capital and partners to put 10,000 warriors in front of spectators by end of year.**
+> **Every sport has a front row. On-chain entertainment hasn't had one.**
+> **We built it.**
+>
+> Sixteen contracts deployed. Full battle lifecycle verified on-chain.
+> One environment variable from mainnet. $500K to put 10,000 weekly spectators in that front row by end of year.
 >
 > **warriors-ai-rena.vercel.app**
 
-**Visual:** The logo, the URL, and a single CTA: *"Watch a battle live right now."*
+**Visual:** Minimalist — just the logo, one sentence, and a pulsing CTA button: *"Watch a live battle."*
+
+**Speaker note (last 30 seconds):** "Every talk about on-chain entertainment ends with someone saying 'when will the user show up?' We think the user is already there — they just don't know this exists yet. They're watching Twitch, betting on DraftKings, collecting NFTs that don't do anything. We're the single product that combines all three, with an unfair mechanic that no one else has: letting the audience change the outcome. That's worth putting in front of 10,000 people this year. That's the ask. Thank you."
 
 ---
 

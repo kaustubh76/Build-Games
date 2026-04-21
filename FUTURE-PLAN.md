@@ -14,6 +14,63 @@ Three rules that shape every future decision:
 
 ---
 
+## Assumptions Log
+
+This plan is built on explicit beliefs. If any of these turn out false, the downstream phases are invalidated and we will republish. We revisit this list quarterly.
+
+| # | Assumption | Rationale | Invalidation signal | Tripwire action |
+|---|-----------|-----------|---------------------|-----------------|
+| A1 | Avalanche C-Chain gas remains <$0.05 per battle tx at Year 1 volumes | Current cost is ~$0.001; 50× safety margin | Single battle tx costs >$0.10 at mainnet | Migrate to L1 subnet or evaluate Arbitrum / Base |
+| A2 | 0G Compute uptime >99% with <5s median latency | Current empirical observation; 0G team SLA | Three rolling-7-day periods with <95% uptime | Increase fallback to include OpenAI direct + Anthropic |
+| A3 | CRwN classification as utility token holds in US / EU / UAE / SG | 1:1 AVAX backing, no yield, no speculation | Any regulator classifies as gambling chip or security | Geo-fence affected region; obtain opinion letter |
+| A4 | Viral battle clips drive <$5 CAC at 1K WAS scale | Similar mechanics in traditional esports (clips, Twitch highlights) | 3 months of paid testing yields CAC >$15 | Shift to direct partnerships; pause organic investment |
+| A5 | Spectator betting legal in our launch jurisdictions (US ex-NV-NY, UK, EU) | On-chain settlement + token utility framing | Legal opinion recommends full exit from target market | Pivot to play-money / testnet-only mode in affected regions |
+| A6 | 0G Storage availability >99% | Redundant nodes in 0G network | Multiple week-long outages requiring frontend fallbacks | Re-prioritize IPFS/Pinata redundancy; reduce 0G dependence |
+| A7 | Avalanche L1 subnet tooling matures by Phase 3 | Roadmap from Ava Labs public | No subnet path by month 18 | Stay on C-Chain; optimize via batching |
+| A8 | External audit completes in <12 weeks | Typical for firms like Spearbit / Code4rena | Audit unable to schedule within 16 weeks | Launch on Fuji-only; parallel two firms |
+| A9 | At least 30% of bettors use the Influence mechanic | Mechanic is the key moat; usage drives stickiness | <10% usage after 4 weeks of mainnet | Redesign UI; consider auto-influence assist mode |
+| A10 | Seed funding of $500K is sufficient for 12 months of runway | Based on single FTE + 2 contractors + $30K infra | Burn exceeds $50K/mo sustained | Cut 1 contractor; renegotiate infra; slow hiring |
+
+---
+
+## Phase Gates
+
+**No phase begins until the previous phase's gate is cleared.** These are hard numeric thresholds, not aspirations.
+
+### Gate 1 → 2 (required to open The Colosseum)
+
+| Condition | Threshold |
+|-----------|-----------|
+| Weekly Active Spectators | ≥1,000 sustained for 4 consecutive weeks |
+| External audit completed with 0 critical / 0 high unresolved findings | Yes |
+| Contribution margin (revenue − variable cost) | >$0 for 3 consecutive months |
+| Mainnet battles executed | ≥5,000 cumulative |
+| Critical on-chain bugs in production | 0 in the last 30 days |
+
+### Gate 2 → 3 (required to open The Kingdom)
+
+| Condition | Threshold |
+|-----------|-----------|
+| Weekly Active Spectators | ≥10,000 sustained |
+| Monthly CRwN transaction volume | ≥$1M |
+| Tournament participants weekly | ≥500 |
+| Warrior marketplace secondary volume | ≥$50K / month |
+| Series A closed | ≥$3M raised |
+| Team size | ≥6 full-time equivalents |
+
+### Gate 3 → 4 (required to open The Empire)
+
+| Condition | Threshold |
+|-----------|-----------|
+| Monthly Active Users | ≥50,000 |
+| Monthly volume | ≥$5M |
+| Creator arenas deployed | ≥100 |
+| L1 subnet mainnet launched | Yes |
+| DAO treasury | ≥$10M equivalent |
+| Legal entity structure complete | C-corp + foundation |
+
+---
+
 ## Phase 1 — The Arena (Now → 6 Months)
 
 **Theme:** Lock in the spectator-betting loop on Avalanche mainnet.
@@ -69,6 +126,26 @@ Three rules that shape every future decision:
 ### Kill Criteria
 
 If fewer than **50 WAB after 6 weeks of mainnet open beta**, we pause and rethink the core loop. This is an explicit commitment.
+
+### Phase 1 Resource Plan
+
+| Milestone | FTE-weeks | $ Cost | Q |
+|-----------|-----------|--------|---|
+| External audit (Spearbit/Code4rena) | 8 audit-weeks (external) | $60K | Q2 |
+| Mainnet deployment + verification | 3 FTE-weeks | $5K gas | Q2 |
+| Mobile PWA redesign | 6 FTE-weeks | $0 (in-house) | Q2–Q3 |
+| Highlight clip pipeline (server-side FFmpeg) | 4 FTE-weeks | $2K infra | Q3 |
+| Discord bot + widget | 3 FTE-weeks | $0 | Q3 |
+| Referral smart contract | 4 FTE-weeks | $5K audit-incremental | Q3 |
+| Leaderboard page + filters | 2 FTE-weeks | $0 | Q3 |
+| Push notifications | 2 FTE-weeks | $500 service | Q4 |
+| PWA + offline cache | 4 FTE-weeks | $0 | Q4 |
+| 23-achievement / 11-quest system | 5 FTE-weeks | $0 | Q4 |
+| User acquisition (paid experiments) | — | $30K | Q3–Q4 |
+| Community managers (2 contractors) | 48 contractor-weeks | $60K | Ongoing |
+| **Phase 1 total** | ~41 FTE-weeks + 48 contractor-weeks | **~$162K** | |
+
+Budget leaves ~$338K of the $500K seed for Phase 2 bridging, contingency, legal, and second-half infrastructure.
 
 ---
 

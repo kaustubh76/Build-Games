@@ -178,6 +178,22 @@ We do not need to own even 1% of SAM to be profitable. Our Year 1 revenue target
 4. **Verifiable fairness** — cryptographic proofs on moves and traits. Centralized competitors cannot match.
 5. **Avalanche native** — sub-second finality makes real-time influence feasible. Other L1s introduce unacceptable latency.
 
+### 5.4 Why They Can't Copy Us
+
+For each direct competitor, the structural barrier to replicating our product:
+
+| Competitor | Why they can't simply add spectator-influence betting |
+|------------|--------------------------------------------------------|
+| **AI Arena** | Their core loop is *training* neural networks. Adding spectator betting means ripping out the training-game flywheel and rebuilding the economic layer. Their audience is players, not fans. |
+| **Axie Infinity** | Their economy depends on token emission + breeding. Influence mechanic would dilute SLP/AXS further. They also need a ~6-month contract audit cycle for any new primitive. |
+| **Rollbit** | Casino house-edge model is incompatible with peer-bets. They would cannibalize their own revenue by shifting to PvP pools. They also need gambling licenses in every jurisdiction, which on-chain utility tokens don't require. |
+| **DraftKings / FanDuel** | Fully regulated, fiat-based, non-blockchain. On-chain settlement + NFT ownership + AI-generated content would require net-new infrastructure + regulatory re-filing. |
+| **Polymarket** | Event-based prediction market with binary YES/NO outcomes. Our 5-round AI narratives are a different product category; retrofitting would dilute their core trader persona. |
+| **Twitch Predictions** | Free overlay with channel-points (no real money). Adding real stakes + on-chain settlement would require a financial-services license they currently do not hold. |
+| **Future AI-battle clones** | By the time a copycat launches, our data moat (battle history, warrior ELO, creator arenas) compounds. Users won't switch to an empty arena. |
+
+The common thread: every competitor's existing business model is in tension with the spectator-influence product. We built on a greenfield with no legacy constraints.
+
 ---
 
 ## 6. Business Model
@@ -227,6 +243,81 @@ At **1,000 daily battles** (Phase 2 target):
 
 At **10,000 daily battles** (Phase 3 target):
 - 10× volume: **$5M–$25M / year**
+
+### 6.5 Worked Battle Example
+
+A concrete walkthrough of one battle to ground the abstract numbers above.
+
+**Setup (Day 14, Avalanche Mainnet):**
+- **Arena**: BRONZE tier (`0x8ff8...0971` in our testnet mapping, re-deployed on mainnet)
+- **Warriors**: Alice owns Warrior #42 (Bronze). Bob owns Warrior #13 (Bronze).
+- **Bet amount**: 2 CRwN per unit (Bronze tier has 2× base).
+- **Betting window**: 60 seconds after `initializeGame(42, 13)`.
+
+**Step-by-step CRwN flow:**
+
+```
+Minute 0:00 — Alice calls initializeGame(42, 13)
+              Arena state: isInitialized=true, round=0, pool=0 CRwN
+
+Minute 0:10 — 6 spectators bet on Warrior #42:
+                - Carlos: 2 CRwN (multiplier 1)
+                - Dana: 4 CRwN (multiplier 2)
+                - Ed: 2 CRwN (multiplier 1)
+                - Farah: 2 CRwN (multiplier 1)
+                - Grace: 6 CRwN (multiplier 3)
+                - Henry: 2 CRwN (multiplier 1)
+              Subtotal W1 pool: 18 CRwN
+
+Minute 0:30 — 4 spectators bet on Warrior #13:
+                - Ian: 4 CRwN (multiplier 2)
+                - Joy: 2 CRwN (multiplier 1)
+                - Kim: 4 CRwN (multiplier 2)
+                - Leo: 2 CRwN (multiplier 1)
+              Subtotal W2 pool: 12 CRwN
+
+              Total pool: 30 CRwN (≈$30 at AVAX $25 assumption)
+
+Minute 1:00 — Betting period ends. Game Master calls startGame()
+              Arena state: currentRound=1
+
+Minute 1:00–3:00 — Rounds 1–5 execute at 30s intervals
+                    Between rounds 1 and 2: Carlos spends 2 CRwN to influence W1
+                                           (pool now 32 CRwN)
+                    Between rounds 2 and 3: Ian spends 2 CRwN to defluence W1
+                                           (pool now 34 CRwN; Ian cannot defluence again)
+                    Between rounds 3 and 4: Grace spends 4 CRwN to influence W1
+                                           (pool now 38 CRwN)
+                    Between rounds 4 and 5: (no influence actions)
+
+Minute 3:30 — Round 5 concludes. Warrior #42 wins (less damage received).
+              finishGame() auto-invoked.
+
+Payout computation:
+  Final pool: 38 CRwN
+  Warrior owner cut (5%): 1.9 CRwN → Alice
+  Remaining distributed: 36.1 CRwN pro-rata to W1 bettors by stake
+    - Carlos bet 2 CRwN = 11.1% of W1 pool → 4.01 CRwN
+    - Dana bet 4 CRwN = 22.2% of W1 pool → 8.02 CRwN
+    - Ed bet 2 CRwN = 11.1% → 4.01 CRwN
+    - Farah bet 2 CRwN = 11.1% → 4.01 CRwN
+    - Grace bet 6 CRwN = 33.3% → 12.03 CRwN
+    - Henry bet 2 CRwN = 11.1% → 4.01 CRwN
+  W2 bettors receive 0.
+  Arena resets: isInitialized=false, pool=0, ready for next battle.
+```
+
+**Key takeaways from this example:**
+- Total protocol-adjacent revenue from this single battle: **1.9 CRwN** (the warrior-owner cut, which accrues to NFT owners — they may resell which takes a platform fee in Phase 2).
+- Influence spending added **8 CRwN** to the pool (27% over initial stake), validating A9 assumption (>30% of bettors use influence).
+- W1 bettors' ROI: winners doubled their principal on average (2 CRwN in → ~4 CRwN out, minus gas). This aligns with expected payouts given ~60/40 pool split.
+- W2 bettors' ROI: −100% on their stake. Standard betting risk.
+- Carlos's influence spend (2 CRwN) was rational: he bet 2 CRwN, so total exposure was 4 CRwN; winning returned 4 CRwN, net 0. In practice, users influence based on belief strength, not strict EV.
+
+**At 200 battles/day (break-even threshold from Whitepaper §3.6.3):**
+- Daily warrior-owner payout: 380 CRwN (across all warrior owners)
+- Daily influence/defluence pool contribution: ~1,600 CRwN (held in arena contracts)
+- When the 2% protocol fee activates in Phase 2: ~152 CRwN/day protocol revenue = **~$55K/year from betting fee alone**
 
 ---
 
@@ -336,39 +427,123 @@ Seeking advisors with:
 | Engineering (1 senior Solidity FTE) | $100K | 20% |
 | **Total** | **$500K** | 100% |
 
-### 9.2 Projected P&L — Year 1
+### 9.2 Three-Scenario P&L
 
-| | Conservative | Optimistic |
-|--|-------------|------------|
-| **Revenue** | $200K | $580K |
-| Battle fee | $100K | $300K |
-| Influence costs | $50K | $150K |
-| NFT mint | $20K | $50K |
-| CRwN spread | $30K | $80K |
-| **Costs** | $380K | $420K |
-| Infrastructure | $32K | $40K |
-| Audit + security | $80K | $80K |
-| Team + contractors | $180K | $200K |
-| Marketing + community | $60K | $80K |
-| Legal + compliance | $20K | $20K |
-| Reserve | $8K | $0 |
-| **Net (Y1)** | **($180K)** | **$160K** |
-| **Runway after seed** | 18 months | 36+ months |
+Rather than ranges, here are three discrete scenarios with the assumption set that makes each real. We plan against Base; we report against all three quarterly.
 
-### 9.3 Projected P&L — Year 2
+#### 9.2.1 Year 1 — Mainnet Launch
 
-At 10,000 MAU and Phase 2 features live:
+| Line | **Bear** | **Base** | **Bull** |
+|------|---------|----------|----------|
+| Underlying: WAS by Y1 end | 500 | 1,500 | 3,500 |
+| Underlying: battles/day avg | 15 | 50 | 150 |
+| Underlying: avg pool size | 10 CRwN | 20 CRwN | 35 CRwN |
+| Underlying: avg CRwN price | $25 | $25 | $25 |
+| | | | |
+| **Revenue** | **$110K** | **$280K** | **$600K** |
+| Battle fee (5% of pool to warrior owner; passthrough) | $50K | $150K | $350K |
+| Influence + defluence contribution to treasury (2% Phase 1.5) | $20K | $60K | $130K |
+| NFT mint / activation gas fees | $15K | $35K | $65K |
+| CRwN mint/burn spread (activated M7; 0.2% avg) | $25K | $35K | $55K |
+| | | | |
+| **Costs** | **$410K** | **$395K** | **$420K** |
+| Infrastructure | $32K | $32K | $40K |
+| External audit + bug bounty | $90K | $80K | $80K |
+| Team (1 FTE + 2 contractors) | $200K | $190K | $200K |
+| Marketing + community | $60K | $70K | $80K |
+| Legal + compliance | $20K | $20K | $20K |
+| Contingency | $8K | $3K | $0 |
+| | | | |
+| **Net (Y1)** | **($300K)** | **($115K)** | **$180K** |
+| **Cumulative from $500K seed** | $200K left | $385K left | $680K total |
 
-| | Base Case | Bull Case |
-|--|----------|-----------|
-| Revenue | $1.5M | $3.5M |
-| Costs | $1M | $1.5M |
-| **Net (Y2)** | **$500K** | **$2M** |
-| Cumulative | $320K | $2.16M |
+#### 9.2.2 Year 2 — The Colosseum
+
+Phase 2 unlocks tournament entry fees, marketplace royalties, creator revenue share. Team grows to 5 FTE.
+
+| Line | **Bear** | **Base** | **Bull** |
+|------|---------|----------|----------|
+| Underlying: MAU by Y2 end | 3,000 | 10,000 | 25,000 |
+| Underlying: monthly CRwN volume | $300K | $1M | $3M |
+| | | | |
+| **Revenue** | **$450K** | **$1.5M** | **$4.2M** |
+| Battle fee + influence | $250K | $800K | $2.2M |
+| Tournament entry (new) | $50K | $180K | $550K |
+| Marketplace royalties (new) | $30K | $120K | $400K |
+| Creator revenue share (new) | $20K | $80K | $250K |
+| Premium cosmetics + sponsored | $40K | $120K | $400K |
+| CRwN spread | $60K | $200K | $400K |
+| | | | |
+| **Costs** | **$800K** | **$1.1M** | **$1.6M** |
+| Team (5 FTE) | $550K | $700K | $900K |
+| Infrastructure (scaled) | $60K | $100K | $200K |
+| Marketing + community | $150K | $250K | $400K |
+| Legal / audit retainer | $40K | $50K | $100K |
+| | | | |
+| **Net (Y2)** | **($350K)** | **$400K** | **$2.6M** |
+| **Need Series A?** | Yes (bridge ~$800K) | Optional | No |
+
+#### 9.2.3 Year 3 — The Kingdom (directional only)
+
+Phase 3 features + L1 subnet. Numbers are directional; re-forecast at end of Y2.
+
+| Line | **Bear** | **Base** | **Bull** |
+|------|---------|----------|----------|
+| MAU by Y3 end | 15,000 | 50,000 | 200,000 |
+| Monthly volume | $1.5M | $5M | $25M |
+| Revenue | $1.8M | $6M | $25M |
+| Costs | $1.5M | $3M | $8M |
+| **Net (Y3)** | **$300K** | **$3M** | **$17M** |
+
+### 9.3 Cap Table
+
+#### Pre-Seed (today)
+
+| Stakeholder | % | Shares (10M authorized) |
+|-------------|---|-------------------------|
+| Founder | 100% | 10,000,000 |
+
+#### Post-Seed ($500K on $5M post-money SAFE)
+
+| Stakeholder | % | Notes |
+|-------------|---|-------|
+| Founder | 80% | |
+| Seed investors | 10% | $500K / $5M |
+| Option pool (unallocated) | 10% | For first 3 hires post-seed |
+
+#### Post-Series A (assume $3M on $15M post-money in ~month 18)
+
+| Stakeholder | % | Notes |
+|-------------|---|-------|
+| Founder | ~64% | Diluted from 80% |
+| Seed investors | ~8% | Pro-rata participation |
+| Series A investors | ~20% | $3M / $15M |
+| Option pool | ~8% | Replenished to 10% pre-A, diluted to 8% post-A |
+
+**Founder commitment**: 4-year vest, 1-year cliff, single-trigger on acquisition, double-trigger on termination. Team options follow the same schedule.
 
 ### 9.4 Path to Break-Even
 
-We expect break-even in **Q3 2027** (month 15) under the base case, driven primarily by Phase 2 tournament entry fees and marketplace royalties unlocking new revenue streams without proportional cost growth.
+Under the **Base** case, quarterly contribution margin turns positive in **Q2 2027** (month 12). Full break-even (cumulative net ≥ 0) in **Q3 2027** (month 15). Bear case requires a Series A bridge of ~$800K to extend runway through a slower ramp; Bull case self-funds.
+
+### 9.5 Comparable Exit Benchmarks
+
+To calibrate Y3 valuation expectations, here are reference multiples from comparable transactions:
+
+| Company | Outcome | Valuation | Revenue / Users at time | Multiple |
+|---------|---------|-----------|-------------------------|----------|
+| Axie Infinity (Sky Mavis) | Series B (2021) | $3B | ~$1.3B ARR Q4 2021 | ~2.3× ARR |
+| Sorare | Series B (2021) | $4.3B | ~$100M ARR | ~43× ARR (NFT premium) |
+| DraftKings | IPO (2020) | $12.7B | $540M TTM rev | ~23× rev |
+| Polymarket | Last private round (2024) | $1B+ | $1B+ monthly volume | N/A (volume-based) |
+| AI Arena | Token public float (2024) | ~$100M FDV | Pre-revenue | N/A |
+
+**Benchmarked Y3 Base valuation (our projection):**
+- $6M ARR × 10× (conservative for gaming) = **$60M**
+- With 50K MAU × $250 value-per-user (esports-adjacent) = **$12.5M**
+- Geometric mean as sanity check: **~$30M**
+
+**Strategic acquirer premium** (if any of Sky Mavis, Immutable, Polymarket, Kalshi acquires): +50%–100% over standalone, yielding **$45M–$120M** range.
 
 ---
 
