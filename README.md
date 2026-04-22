@@ -4,6 +4,17 @@
 
 > Built for [Avalanche AVAX Build Games Hackathon](https://www.avax.network/) | Fuji Testnet (Chain ID 43113) | Mainnet-ready (Chain ID 43114)
 
+## 📚 Documentation Index
+
+| Document | Audience | What's Inside |
+|----------|----------|---------------|
+| **[WHITEPAPER.md](WHITEPAPER.md)** | Technical readers, builders | System architecture, tokenomics math, game theory of the influence mechanic, STRIDE threat model, governance design, references |
+| **[PITCH-DECK.md](PITCH-DECK.md)** | Investors, partners | 15-slide deck with problem/solution/Why Now, product, traction, business model, roadmap, team, ask |
+| **[BUSINESS-PLAN.md](BUSINESS-PLAN.md)** | Investors, due-diligence | Market sizing, personas, competitive "why they can't copy us", worked battle example, Bear/Base/Bull P&L, cap table, comparable exit multiples |
+| **[FUTURE-PLAN.md](FUTURE-PLAN.md)** | Team, investors | 4-phase roadmap, assumptions log with invalidation tripwires, quantitative phase gates, resource-to-milestone mapping |
+| **[DEPLOYMENT.md](DEPLOYMENT.md)** | Developers, operators | Testnet & mainnet deployment instructions, pre-flight checklist, rollback procedures, troubleshooting |
+| **[HACKATHON-SUBMISSION.md](HACKATHON-SUBMISSION.md)** | Hackathon judges | Concise feature + architecture summary |
+
 ## Core Features
 
 ### 1. Warrior NFT Minting
