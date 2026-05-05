@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useWhaleAlerts } from './useWhaleAlerts';
+import { useWhaleAlertStream } from './useWhaleAlertStream';
 
 const STORAGE_KEY = 'whale_alerts_last_read';
 
@@ -23,11 +24,21 @@ interface UseWhaleAlertBadgeReturn {
 
 export function useWhaleAlertBadge(): UseWhaleAlertBadgeReturn {
   const {
-    alerts,
-    isConnected,
+    alerts: pollAlerts,
     threshold,
     setThreshold,
   } = useWhaleAlerts();
+  const { alerts: liveAlerts, isConnected: streamConnected } = useWhaleAlertStream(50);
+
+  // Merge live SSE alerts on top of the 30s poll feed; SSE wins on dedupe.
+  const alerts = useMemo(() => {
+    const byId = new Map<string, typeof pollAlerts[number]>();
+    for (const a of pollAlerts) byId.set(a.id, a);
+    for (const a of liveAlerts) byId.set(a.id, a);
+    return Array.from(byId.values()).sort((a, b) => b.timestamp - a.timestamp);
+  }, [pollAlerts, liveAlerts]);
+
+  const isConnected = streamConnected;
 
   const [lastReadTimestamp, setLastReadTimestamp] = useState<number>(0);
   const [readAlertIds, setReadAlertIds] = useState<Set<string>>(new Set());

@@ -85,7 +85,7 @@ export function useMirrorMarketCreation() {
       setError(null);
 
       try {
-        const response = await fetch('/api/flow/execute', {
+        const response = await fetch('/api/mirror/execute', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -166,7 +166,7 @@ export function useMirrorMarketTrade() {
       setError(null);
 
       try {
-        const response = await fetch('/api/flow/execute', {
+        const response = await fetch('/api/mirror/execute', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -229,7 +229,7 @@ export function useVRFTrade() {
       setError(null);
 
       try {
-        const response = await fetch('/api/flow/vrf-trade', {
+        const response = await fetch('/api/mirror/positions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -290,7 +290,7 @@ export function useMirrorMarketQuery() {
     setError(null);
 
     try {
-      const response = await fetch('/api/flow/execute', {
+      const response = await fetch('/api/mirror/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -370,7 +370,7 @@ export function useMirrorMarketPositions() {
 
     try {
       // Query the GET endpoint for trade status which includes position info
-      const response = await fetch(`/api/flow/vrf-trade?walletAddress=${address}`);
+      const response = await fetch(`/api/mirror/positions?walletAddress=${address}`);
 
       const data = await response.json();
 
@@ -430,7 +430,7 @@ export function useMirrorMarketSync() {
       setError(null);
 
       try {
-        const response = await fetch('/api/flow/execute', {
+        const response = await fetch('/api/mirror/execute', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -465,7 +465,7 @@ export function useMirrorMarketSync() {
       setError(null);
 
       try {
-        const response = await fetch('/api/flow/execute', {
+        const response = await fetch('/api/mirror/execute', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

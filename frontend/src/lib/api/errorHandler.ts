@@ -53,8 +53,17 @@ export function handleAPIError(error: unknown, context: string): NextResponse {
     );
   }
 
-  // Handle Prisma errors
-  if (error && typeof error === 'object' && 'code' in error) {
+  // Handle Prisma errors. Prisma error codes always match /^P\d{4}$/
+  // (e.g. P2002, P2025). Many other error sources — ethers (CALL_EXCEPTION),
+  // viem (-32000), node fs (ENOENT) — also have a `code` field. Don't tag
+  // those as DATABASE_ERROR; that confused users for the entire previous session.
+  if (
+    error &&
+    typeof error === 'object' &&
+    'code' in error &&
+    typeof (error as { code: unknown }).code === 'string' &&
+    /^P\d{4}$/.test((error as { code: string }).code)
+  ) {
     const prismaError = error as { code: string; message: string; meta?: unknown };
     const mapping = PRISMA_ERROR_CODES[prismaError.code];
 
@@ -78,6 +87,41 @@ export function handleAPIError(error: unknown, context: string): NextResponse {
       },
       { status: 500 }
     );
+  }
+
+  // Handle ethers / viem revert + RPC errors. Surface the underlying message
+  // (truncated) so operators can see WHY a write reverted without a 500-with-stack.
+  if (
+    error &&
+    typeof error === 'object' &&
+    'code' in error &&
+    typeof (error as { code: unknown }).code === 'string'
+  ) {
+    const chainCode = (error as { code: string }).code;
+    const isChainErr =
+      chainCode === 'CALL_EXCEPTION' ||
+      chainCode === 'INSUFFICIENT_FUNDS' ||
+      chainCode === 'NONCE_EXPIRED' ||
+      chainCode === 'REPLACEMENT_UNDERPRICED' ||
+      chainCode === 'TRANSACTION_REPLACED' ||
+      chainCode === 'NETWORK_ERROR' ||
+      chainCode === 'TIMEOUT' ||
+      chainCode === 'SERVER_ERROR' ||
+      chainCode === 'UNSUPPORTED_OPERATION' ||
+      chainCode === 'UNCONFIGURED_NAME';
+    if (isChainErr) {
+      const isDev = process.env.NODE_ENV === 'development';
+      const errMsg = (error as { message?: string }).message ?? 'Chain call failed';
+      const shortMsg = (error as { shortMessage?: string }).shortMessage;
+      return NextResponse.json(
+        {
+          error: shortMsg ?? errMsg.slice(0, 240),
+          code: 'CHAIN_CALL_FAILED',
+          details: { chainCode, fullMessage: isDev ? errMsg : undefined },
+        },
+        { status: 502 } // upstream (chain RPC) failed
+      );
+    }
   }
 
   // Handle standard Error objects
@@ -136,4 +180,66 @@ export const ErrorResponses = {
 
   serviceUnavailable: (message: string = 'Service temporarily unavailable') =>
     new APIError(message, 503, 'SERVICE_UNAVAILABLE'),
+
+  // ============================================================================
+  // Domain-specific error codes — used by mirror-trade endpoints to give
+  // clients a stable, machine-readable handle on common rejections. The hook
+  // layer (useMirrorWhaleTrade) keys retry behavior off these codes.
+  // ============================================================================
+  notEnoughCRwN: (haveCRwN: string, needCRwN: string, walletAddress: string) =>
+    new APIError(
+      `Server wallet has insufficient CRwN: have ${haveCRwN}, need ${needCRwN}. Top up ${walletAddress}.`,
+      503,
+      'NOT_ENOUGH_CRWN',
+      { haveCRwN, needCRwN, walletAddress }
+    ),
+
+  marketActivationPending: (mirrorKey: string, retryAfterSeconds: number) =>
+    new APIError(
+      `Mirror market created on-chain but not yet active. Retry in ~${retryAfterSeconds}s.`,
+      202,
+      'MARKET_ACTIVATION_PENDING',
+      { mirrorKey, retryAfterSeconds }
+    ),
+
+  slippageExceeded: (expectedShares: string, minShares: string) =>
+    new APIError(
+      `Slippage exceeds tolerance. Expected ${expectedShares}, would receive less than minimum ${minShares}.`,
+      400,
+      'SLIPPAGE_EXCEEDED',
+      { expectedShares, minShares }
+    ),
+
+  dailyCapReached: (capCRwN: string, spentCRwN: string) =>
+    new APIError(
+      `Daily mirror-trade cap reached: ${spentCRwN} / ${capCRwN} CRwN. Resets 24h after first spend.`,
+      400,
+      'DAILY_CAP_REACHED',
+      { capCRwN, spentCRwN }
+    ),
+
+  tradingPaused: () =>
+    new APIError(
+      'Trading paused for this user. Resume from the Risk Dashboard to continue.',
+      400,
+      'TRADING_PAUSED'
+    ),
+
+  perTradeCapExceeded: (capCRwN: string, requestedCRwN: string) =>
+    new APIError(
+      `Per-trade cap exceeded: requested ${requestedCRwN} > max ${capCRwN} CRwN.`,
+      400,
+      'PER_TRADE_CAP_EXCEEDED',
+      { capCRwN, requestedCRwN }
+    ),
+
+  noActiveMirror: (source: string, externalId: string, autoCreateEnabled: boolean) =>
+    new APIError(
+      autoCreateEnabled
+        ? `No active mirror market for ${source} ${externalId}. Auto-create attempted but failed.`
+        : `No active mirror market for ${source} ${externalId}. Ask a creator to mirror it first, or set ENABLE_AUTO_CREATE_MIRROR=1 on the server.`,
+      400,
+      'NO_ACTIVE_MIRROR',
+      { source, externalId, autoCreateEnabled }
+    ),
 };

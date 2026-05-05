@@ -17,6 +17,19 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
     source: MarketSource.POLYMARKET,
     alias: '',
   });
+  const [filterSource, setFilterSource] = useState<MarketSource | 'ALL'>('ALL');
+  const [filterMinWinRate, setFilterMinWinRate] = useState<number>(0);
+  const [filterMinVolumeUsd, setFilterMinVolumeUsd] = useState<number>(0);
+
+  const visibleTraders = traders.filter((t) => {
+    if (filterSource !== 'ALL' && t.source !== filterSource) return false;
+    if (filterMinWinRate > 0 && (!t.winRate || t.winRate < filterMinWinRate)) return false;
+    if (filterMinVolumeUsd > 0) {
+      const v = parseFloat(t.totalVolume || '0');
+      if (!Number.isFinite(v) || v < filterMinVolumeUsd) return false;
+    }
+    return true;
+  });
 
   const handleAddTrader = async () => {
     if (!newTrader.address) return;
@@ -94,6 +107,77 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
         </button>
       </div>
 
+      {/* Filter chips */}
+      {traders.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-gray-500 text-xs">Filter:</span>
+          {(['ALL', MarketSource.POLYMARKET, MarketSource.KALSHI] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setFilterSource(s)}
+              className={`px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
+                filterSource === s
+                  ? 'bg-red-500/30 border-red-400 text-white'
+                  : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:text-white'
+              }`}
+            >
+              {s === 'ALL' ? 'All Sources' : s}
+            </button>
+          ))}
+          {[
+            { label: 'Win > 60%', wr: 0.6 },
+            { label: 'Win > 70%', wr: 0.7 },
+          ].map(({ label, wr }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setFilterMinWinRate(filterMinWinRate === wr ? 0 : wr)}
+              className={`px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
+                filterMinWinRate === wr
+                  ? 'bg-green-500/30 border-green-400 text-white'
+                  : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:text-white'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          {[
+            { label: 'Vol > $100k', v: 100_000 },
+            { label: 'Vol > $1M', v: 1_000_000 },
+          ].map(({ label, v }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setFilterMinVolumeUsd(filterMinVolumeUsd === v ? 0 : v)}
+              className={`px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
+                filterMinVolumeUsd === v
+                  ? 'bg-blue-500/30 border-blue-400 text-white'
+                  : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:text-white'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          {(filterSource !== 'ALL' || filterMinWinRate > 0 || filterMinVolumeUsd > 0) && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilterSource('ALL');
+                setFilterMinWinRate(0);
+                setFilterMinVolumeUsd(0);
+              }}
+              className="px-2 py-0.5 rounded-full text-xs text-gray-400 hover:text-white underline"
+            >
+              clear
+            </button>
+          )}
+          <span className="ml-auto text-gray-500 text-xs">
+            {visibleTraders.length} of {traders.length}
+          </span>
+        </div>
+      )}
+
       {/* Trader List */}
       {traders.length === 0 ? (
         <div className="text-center py-8 text-gray-400 bg-gray-800/30 rounded-lg">
@@ -103,9 +187,13 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
             Add whale addresses to follow their trades
           </p>
         </div>
+      ) : visibleTraders.length === 0 ? (
+        <div className="text-center py-6 text-gray-400 bg-gray-800/30 rounded-lg">
+          <p className="text-sm">No traders match your filters.</p>
+        </div>
       ) : (
         <div className="space-y-2">
-          {traders.map((trader) => (
+          {visibleTraders.map((trader) => (
             <div
               key={trader.id}
               className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-red-500/50 transition-all cursor-pointer"

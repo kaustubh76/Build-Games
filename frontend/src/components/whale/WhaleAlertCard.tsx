@@ -1,15 +1,37 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { WhaleTrade, MarketSource } from '@/types/externalMarket';
+import { useMirrorWhaleTrade } from '@/hooks/useMirrorWhaleTrade';
+import { ConfirmMirrorModal } from './ConfirmMirrorModal';
 
 interface WhaleAlertCardProps {
   trade: WhaleTrade;
   compact?: boolean;
+  /** Default mirror size in CRwN. Trades above the threshold get a confirm modal. */
+  defaultSizeCRwN?: number;
+  /** Threshold above which we ask for confirmation. */
+  confirmAbove?: number;
 }
 
-export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) {
+export function WhaleAlertCard({
+  trade,
+  compact = false,
+  defaultSizeCRwN = 100,
+  confirmAbove = 100,
+}: WhaleAlertCardProps) {
+  const { mirrorTrade, isPending, isConnected, lastResult, lastPending } = useMirrorWhaleTrade();
+  const justMirrored = lastResult?.whaleTradeId === trade.id;
+  const awaitingActivation = lastPending?.whaleTradeId === trade.id && !justMirrored;
+  const [confirming, setConfirming] = useState(false);
+  const handleMirror = () => {
+    if (defaultSizeCRwN > confirmAbove) {
+      setConfirming(true);
+    } else {
+      void mirrorTrade(trade, String(defaultSizeCRwN));
+    }
+  };
   const formatTime = (timestamp: number) => {
     const now = Date.now();
     const diff = now - timestamp;
@@ -59,6 +81,15 @@ export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) 
             {trade.marketQuestion}
           </div>
         </div>
+        <button
+          type="button"
+          onClick={handleMirror}
+          disabled={!isConnected || isPending || justMirrored}
+          title={!isConnected ? 'Connect wallet to mirror' : `Mirror this whale trade in CRwN`}
+          className="px-2 py-1 rounded bg-fuchsia-600/80 hover:bg-fuchsia-500 text-white text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {justMirrored ? '✓' : isPending ? '…' : '🪞'}
+        </button>
         <span className="text-gray-500 text-xs">{formatTime(trade.timestamp)}</span>
       </div>
     );
@@ -138,10 +169,10 @@ export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) 
 
       {/* Trader Info */}
       {trade.traderAddress && (
-        <div className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">Trader:</span>
-            <code className="text-red-400 text-sm">
+        <div className="flex items-center justify-between gap-2 p-3 bg-gray-800/30 rounded-lg flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-gray-400 text-sm shrink-0">Trader:</span>
+            <code className="text-red-400 text-sm break-all">
               {shortenAddress(trade.traderAddress)}
             </code>
           </div>
@@ -150,7 +181,7 @@ export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) 
               href={`https://etherscan.io/tx/${trade.txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-white text-xs"
+              className="text-gray-400 hover:text-white text-xs shrink-0"
             >
               View TX →
             </a>
@@ -159,19 +190,76 @@ export function WhaleAlertCard({ trade, compact = false }: WhaleAlertCardProps) 
       )}
 
       {/* Actions */}
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={handleMirror}
+          disabled={!isConnected || isPending || justMirrored}
+          title={!isConnected ? 'Connect wallet to mirror' : 'Mirror this whale trade'}
+          className="flex-1 min-w-[140px] py-2 rounded-lg text-white text-sm font-bold bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {justMirrored ? (
+            <>
+              <span>✓</span>
+              <span>Mirrored</span>
+              {lastResult?.txHash && (
+                <a
+                  href={`https://testnet.snowtrace.io/tx/${lastResult.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-1 underline opacity-80"
+                  onClick={(e) => e.stopPropagation()}
+                  title={
+                    lastResult.sharesOut
+                      ? `${lastResult.copyAmount} CRwN → ${lastResult.sharesOut} shares · click to view tx`
+                      : 'View tx'
+                  }
+                >
+                  view
+                </a>
+              )}
+            </>
+          ) : awaitingActivation ? (
+            <>
+              <span>⏳</span>
+              <span>Market spinning up…</span>
+            </>
+          ) : isPending ? (
+            <>
+              <span className="inline-block animate-spin">◌</span>
+              <span>Mirroring…</span>
+            </>
+          ) : (
+            <>
+              <span>🪞</span>
+              <span>{isConnected ? 'Mirror' : 'Connect to Mirror'}</span>
+            </>
+          )}
+        </button>
         <Link
           href={`/markets/${trade.marketId}`}
-          className="flex-1 py-2 text-center bg-red-600 hover:bg-red-500 rounded-lg text-white text-sm font-medium"
+          className="px-4 py-2 text-center bg-red-600 hover:bg-red-500 rounded-lg text-white text-sm font-medium"
         >
-          View Market
+          View
         </Link>
         {trade.traderAddress && (
           <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white text-sm">
-            Track Trader
+            Track
           </button>
         )}
       </div>
+
+      {confirming && (
+        <ConfirmMirrorModal
+          trade={trade}
+          sizeCRwN={defaultSizeCRwN}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => {
+            setConfirming(false);
+            void mirrorTrade(trade, String(defaultSizeCRwN));
+          }}
+        />
+      )}
     </div>
   );
 }

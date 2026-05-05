@@ -71,6 +71,12 @@ export default function WhaleTrackerPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Link
+                href="/portfolio/risk"
+                className="px-3 py-1.5 rounded-lg bg-fuchsia-600/20 hover:bg-fuchsia-600/40 border border-fuchsia-500/40 text-fuchsia-300 text-sm font-medium"
+              >
+                🛡️ Risk Dashboard
+              </Link>
               <span className="text-slate-400 text-sm">
                 {stats?.trackedTraderCount ?? traders.length} traders tracked
               </span>

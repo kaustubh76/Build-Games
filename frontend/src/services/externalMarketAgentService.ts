@@ -364,7 +364,7 @@ class ExternalMarketAgentService {
     try {
       const mirrorKey = this.getMirrorKey(source, externalId);
 
-      const response = await fetch(`/api/flow/execute`, {
+      const response = await fetch(`/api/mirror/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

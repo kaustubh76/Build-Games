@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useMirrorWhaleTrade } from '@/hooks/useMirrorWhaleTrade';
 
 interface WhaleTrade {
   id: string;
@@ -10,10 +11,12 @@ interface WhaleTrade {
   marketQuestion: string;
   traderAddress?: string;
   side: 'buy' | 'sell';
-  outcome: string;
+  outcome: 'yes' | 'no';
   amountUsd: string;
+  shares?: string;
   price: number;
   timestamp: number;
+  txHash?: string;
 }
 
 interface WhaleAlertDropdownProps {
@@ -75,7 +78,7 @@ export function WhaleAlertDropdown({ alerts, onClose, onMarkRead }: WhaleAlertDr
   return (
     <div
       ref={dropdownRef}
-      className="absolute right-0 top-full mt-2 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden"
+      className="absolute right-0 top-full mt-2 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 bg-gray-800/50">
@@ -105,37 +108,7 @@ export function WhaleAlertDropdown({ alerts, onClose, onMarkRead }: WhaleAlertDr
         ) : (
           <div className="divide-y divide-gray-800">
             {alerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="px-4 py-3 hover:bg-gray-800/50 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-xs ${getSourceBadgeColor(alert.source)}`}
-                    >
-                      {alert.source}
-                    </span>
-                    <span
-                      className={`font-medium ${
-                        alert.side === 'buy' ? 'text-green-400' : 'text-red-400'
-                      }`}
-                    >
-                      {formatAmount(alert.amountUsd)}
-                    </span>
-                  </div>
-                  <span className="text-gray-500 text-xs">
-                    {formatTimeAgo(alert.timestamp)}
-                  </span>
-                </div>
-                <p className="text-gray-300 text-sm line-clamp-2">
-                  {alert.side === 'buy' ? 'Bought' : 'Sold'}{' '}
-                  <span className={alert.outcome === 'yes' ? 'text-green-400' : 'text-red-400'}>
-                    {alert.outcome.toUpperCase()}
-                  </span>{' '}
-                  on {alert.marketQuestion}
-                </p>
-              </div>
+              <DropdownRow key={alert.id} alert={alert} />
             ))}
           </div>
         )}
@@ -158,6 +131,56 @@ export function WhaleAlertDropdown({ alerts, onClose, onMarkRead }: WhaleAlertDr
         >
           View All Alerts →
         </Link>
+      </div>
+    </div>
+  );
+}
+
+function DropdownRow({ alert }: { alert: WhaleTrade }) {
+  const { mirrorTrade, isPending, isConnected, lastResult } = useMirrorWhaleTrade();
+  const justMirrored = lastResult?.whaleTradeId === alert.id;
+  return (
+    <div className="px-4 py-3 hover:bg-gray-800/50 transition-colors">
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div className="flex items-center gap-2">
+          <span
+            className={`px-1.5 py-0.5 rounded text-xs ${getSourceBadgeColor(alert.source)}`}
+          >
+            {alert.source}
+          </span>
+          <span
+            className={`font-medium ${
+              alert.side === 'buy' ? 'text-green-400' : 'text-red-400'
+            }`}
+          >
+            {formatAmount(alert.amountUsd)}
+          </span>
+        </div>
+        <span className="text-gray-500 text-xs">
+          {formatTimeAgo(alert.timestamp)}
+        </span>
+      </div>
+      <div className="flex items-end justify-between gap-2">
+        <p className="text-gray-300 text-sm line-clamp-2 flex-1">
+          {alert.side === 'buy' ? 'Bought' : 'Sold'}{' '}
+          <span className={alert.outcome === 'yes' ? 'text-green-400' : 'text-red-400'}>
+            {alert.outcome.toUpperCase()}
+          </span>{' '}
+          on {alert.marketQuestion}
+        </p>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            // Cast: dropdown's local WhaleTrade is structurally compatible with the shared type's snapshot fields.
+            mirrorTrade(alert as unknown as Parameters<typeof mirrorTrade>[0]);
+          }}
+          disabled={!isConnected || isPending || justMirrored}
+          title={!isConnected ? 'Connect wallet to mirror' : 'Mirror this trade'}
+          className="shrink-0 px-2 py-1 rounded text-xs font-semibold bg-fuchsia-600/80 hover:bg-fuchsia-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {justMirrored ? '✓ Mirrored' : isPending ? '…' : '🪞 Mirror'}
+        </button>
       </div>
     </div>
   );

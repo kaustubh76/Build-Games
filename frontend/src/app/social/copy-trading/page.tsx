@@ -106,7 +106,8 @@ export default function CopyTradingPage() {
               RECENT AGENT TRADES
             </h2>
             <div className="arcade-card rounded-xl border border-slate-700/30 overflow-hidden" style={{ borderRadius: '16px', backdropFilter: 'blur(20px)' }}>
-              <table className="w-full">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px]">
                 <thead className="bg-slate-800/50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Agent</th>
@@ -155,6 +156,7 @@ export default function CopyTradingPage() {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}

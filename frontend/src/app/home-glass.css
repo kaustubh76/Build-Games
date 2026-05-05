@@ -582,3 +582,66 @@ div.home-page .home-leaderboard-card.arcade-card,
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* ============================================================
+ * Mobile (≤640px): GPU-friendly blur + 1-col grid + bigger taps
+ * Heavy backdrop-filter:blur(20px) tanks scrolling on phones,
+ * so we soften it. Floating decorations are hidden — they cost
+ * battery on mobile and aren't load-bearing for the UX.
+ * ============================================================ */
+@media (max-width: 640px) {
+  .home-page .arcade-card,
+  .home-page .arcade-border,
+  .home-page .home-token-card,
+  .home-page .home-leaderboard-card {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  .home-page .arcade-card-slate,
+  .home-page .arcade-card-red {
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+  }
+
+  .home-page .arcade-header-grey,
+  .home-page .arcade-footer-grey {
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.1),
+      0 0 4px rgba(45, 90, 39, 0.1) !important;
+  }
+
+  /* Hide background floating decorations — battery hog */
+  .home-page .floating-element {
+    display: none !important;
+  }
+
+  /* Collapse multi-col grids inside the home page */
+  .home-page .grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Bigger tap targets */
+  .home-page .arcade-button,
+  .home-page .arcade-button-slate,
+  .home-page .arcade-button-red {
+    min-height: 48px !important;
+    padding: 12px 20px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* Reduced motion: no transforms, no decorative animations */
+@media (prefers-reduced-motion: reduce) {
+  .home-page .arcade-card:hover,
+  .home-page .arcade-button:hover,
+  .home-page .arcade-button-slate:hover {
+    transform: none !important;
+  }
+  .home-page .floating-element {
+    animation: none !important;
+  }
+}

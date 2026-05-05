@@ -13,13 +13,19 @@ import { ToastContainer } from "@/components/gamification/ToastContainer";
 import { GamificationOverlay } from "@/components/gamification/GamificationOverlay";
 import { validateEnvironmentOrThrow } from "@/lib/validateEnv";
 
-// Validate environment variables on server startup (runtime only, not during build)
-// Skip validation during Next.js build phase to allow CI builds without full env
+// Validate environment variables on server startup (runtime only, not during build).
+// Skip validation during Next.js build phase to allow CI builds without full env.
+// In production we run with strict: true + checkSensitive: true so a missing
+// PRIVATE_KEY / GAME_MASTER_PRIVATE_KEY / DATABASE_URL crashes the server
+// immediately instead of failing at the first signed call. In dev we keep
+// the looser warn-only behavior.
 if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-production-build') {
-  validateEnvironmentOrThrow({ checkSensitive: false });
+  const isProd = process.env.NODE_ENV === 'production';
+  validateEnvironmentOrThrow({ strict: isProd, checkSensitive: isProd });
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://warriors-ai-rena.vercel.app'),
   title: "WarriorsAI-rena | AI Battle Arena on Avalanche",
   description: "AI-powered blockchain battle arena with prediction markets on Avalanche. Mint warrior NFTs, compete in AI battles, trade prediction markets, and earn CRwN tokens.",
   keywords: "AI battle arena, prediction markets, Avalanche blockchain, NFT warriors, DeFi, CRwN token, 0G Compute",

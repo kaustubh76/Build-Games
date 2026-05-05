@@ -526,7 +526,7 @@ class WhaleTrackerService {
     marketId: string
   ): Promise<string | null> {
     try {
-      const response = await fetch('/api/flow/execute', {
+      const response = await fetch('/api/mirror/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -575,7 +575,7 @@ class WhaleTrackerService {
     isYes: boolean,
     amount: bigint
   ): Promise<string> {
-    const response = await fetch('/api/flow/execute', {
+    const response = await fetch('/api/mirror/execute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

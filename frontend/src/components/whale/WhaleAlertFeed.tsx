@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useWhaleAlerts } from '@/hooks/useWhaleAlerts';
+import { useWhaleAlertStream } from '@/hooks/useWhaleAlertStream';
 import { WhaleAlertCard } from './WhaleAlertCard';
-import { MarketSource } from '@/types/externalMarket';
+import { MarketSource, type WhaleTrade } from '@/types/externalMarket';
 
 interface WhaleAlertFeedProps {
   source?: MarketSource;
@@ -16,13 +17,23 @@ export function WhaleAlertFeed({
   maxAlerts = 10,
   compact = false,
 }: WhaleAlertFeedProps) {
-  const { alerts, isConnected, threshold, setThreshold, clearAlerts } =
+  const { alerts: pollAlerts, threshold, setThreshold, clearAlerts } =
     useWhaleAlerts(10000);
+  const { alerts: liveAlerts, isConnected: streamConnected } =
+    useWhaleAlertStream(50);
+
+  // Merge live (SSE) + polled alerts; live ones win on dedupe.
+  const merged = useMemo<WhaleTrade[]>(() => {
+    const byId = new Map<string, WhaleTrade>();
+    for (const a of pollAlerts) byId.set(a.id, a);
+    for (const a of liveAlerts) byId.set(a.id, a);
+    return Array.from(byId.values()).sort((a, b) => b.timestamp - a.timestamp);
+  }, [pollAlerts, liveAlerts]);
+
+  const isConnected = streamConnected;
 
   // Filter by source if specified
-  const filteredAlerts = source
-    ? alerts.filter((a) => a.source === source)
-    : alerts;
+  const filteredAlerts = source ? merged.filter((a) => a.source === source) : merged;
 
   const displayAlerts = filteredAlerts.slice(0, maxAlerts);
 
@@ -56,7 +67,7 @@ export function WhaleAlertFeed({
             <option value="50000">$50K+</option>
             <option value="100000">$100K+</option>
           </select>
-          {alerts.length > 0 && (
+          {merged.length > 0 && (
             <button
               onClick={clearAlerts}
               className="px-2 py-1 text-gray-400 hover:text-white text-sm"
@@ -72,9 +83,18 @@ export function WhaleAlertFeed({
         <div className="text-center py-8 text-gray-400">
           <span className="text-4xl mb-2 block">🐋</span>
           <p>No whale trades detected yet</p>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-1 mb-3">
             Watching for trades over ${threshold.toLocaleString()}
           </p>
+          {threshold > 1000 && (
+            <button
+              type="button"
+              onClick={() => setThreshold(1000)}
+              className="px-3 py-1 rounded-lg bg-fuchsia-600/20 hover:bg-fuchsia-600/40 border border-fuchsia-500/40 text-fuchsia-300 text-xs"
+            >
+              Lower threshold to $1K ↘
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

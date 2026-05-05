@@ -266,8 +266,8 @@ export function UnifiedPortfolio() {
 
       {/* Positions Table */}
       {positions.length > 0 ? (
-        <div className="bg-gray-800 rounded-xl overflow-hidden">
-          <table className="w-full">
+        <div className="bg-gray-800 rounded-xl overflow-x-auto">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-gray-900">
               <tr>
                 <th className="p-4 text-left text-sm font-medium text-gray-400">Market</th>

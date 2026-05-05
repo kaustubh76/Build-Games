@@ -21,6 +21,10 @@
     {
       "path": "/api/cron/game-loop",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/sync-agent-events",
+      "schedule": "*/5 * * * *"
     }
   ],
   "env": {

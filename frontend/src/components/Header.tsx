@@ -20,11 +20,13 @@ const AVALANCHE_MAINNET_ID = 43114;
 // Navigation links configuration
 const NAV_LINKS = [
   { href: "/arena", label: "Arena", hoverColor: "hover:text-red-400" },
+  { href: "/arena/replay", label: "Replays", hoverColor: "hover:text-fuchsia-400" },
   { href: "/markets", label: "Markets", hoverColor: "hover:text-red-400" },
   { href: "/ai-agents", label: "AI Agents", hoverColor: "hover:text-red-400" },
   { href: "/leaderboard", label: "Leaderboard", hoverColor: "hover:text-red-400" },
   { href: "/social/copy-trading", label: "Copy Trade", hoverColor: "hover:text-red-400" },
   { href: "/portfolio", label: "Portfolio", hoverColor: "hover:text-blue-400" },
+  { href: "/portfolio/risk", label: "Risk", hoverColor: "hover:text-fuchsia-400" },
   { href: "/creator-dashboard", label: "Creator", hoverColor: "hover:text-green-400" },
   { href: "/warriorsMinter", label: "Mint", hoverColor: "hover:text-red-400" },
 ];

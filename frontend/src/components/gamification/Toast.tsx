@@ -172,6 +172,20 @@ export function Toast({ notification, onClose }: ToastProps) {
               <span className="text-blue-300 capitalize">{notification.whaleTrade.source}</span>
             </div>
           )}
+
+          {/* Inline action button (e.g., Retry on errorWithRetry) */}
+          {notification.action && (
+            <button
+              type="button"
+              onClick={() => {
+                notification.action!.onClick();
+                handleClose();
+              }}
+              className="mt-2 px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20"
+            >
+              {notification.action.label}
+            </button>
+          )}
         </div>
       </div>
 

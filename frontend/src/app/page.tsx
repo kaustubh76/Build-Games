@@ -8,6 +8,7 @@ import { parseEther } from 'viem';
 import { chainsToContracts, crownTokenAbi } from '../constants';
 import { useCRwNTokenMessages } from '../hooks/useCRwNTokenMessages';
 import './home-glass.css';
+import { TodayPanel } from '@/components/gamification/TodayPanel';
 
 // Quick-links data for the feature grid
 const QUICK_LINKS = [
@@ -530,6 +531,13 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* Today panel — gamification surface (only when connected) */}
+        {isMounted && isConnected && (
+          <div className="mt-12 max-w-4xl mx-auto">
+            <TodayPanel />
+          </div>
+        )}
 
         {/* Quick Links Grid */}
         <div className="mt-16 max-w-6xl mx-auto">

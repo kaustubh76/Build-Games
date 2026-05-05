@@ -35,6 +35,11 @@ export interface Notification {
   level?: number;
   xp?: number;
   whaleTrade?: WhaleTrade;
+  /**
+   * Optional inline action button. Rendered by Toast/ToastContainer when set.
+   * Use for "Retry" buttons on transient errors so the user has a 1-click recovery path.
+   */
+  action?: { label: string; onClick: () => void };
 }
 
 interface NotificationState {
@@ -83,6 +88,7 @@ interface NotificationContextValue {
   // Convenience methods
   success: (title: string, message?: string) => string;
   error: (title: string, message?: string) => string;
+  errorWithRetry: (title: string, message: string, retry: () => void, retryLabel?: string) => string;
   warning: (title: string, message?: string) => string;
   info: (title: string, message?: string) => string;
   achievement: (achievement: Achievement, xp?: number) => string;
@@ -136,6 +142,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const error = useCallback((title: string, message?: string) => {
     return addNotification({ type: 'error', title, message, icon: '✗', duration: 6000 });
   }, [addNotification]);
+
+  const errorWithRetry = useCallback(
+    (title: string, message: string, retry: () => void, retryLabel: string = 'Retry') => {
+      return addNotification({
+        type: 'error',
+        title,
+        message,
+        icon: '✗',
+        duration: 10_000, // longer than a regular error so the user has time to click
+        action: { label: retryLabel, onClick: retry },
+      });
+    },
+    [addNotification]
+  );
 
   const warning = useCallback((title: string, message?: string) => {
     return addNotification({ type: 'warning', title, message, icon: '⚠' });
@@ -237,6 +257,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     clearAll,
     success,
     error,
+    errorWithRetry,
     warning,
     info,
     achievement,
