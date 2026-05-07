@@ -10,6 +10,8 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { persistReceipt, buildEnvelope } from '@/lib/storage/persistReceipt';
+import { isTier2EventSourced } from '@/lib/storage/featureFlags';
 import { polymarketService } from './polymarketService';
 import { kalshiService } from './kalshiService';
 import {
@@ -255,24 +257,32 @@ class WhaleTrackerService {
    */
   private async saveTrade(trade: WhaleTrade): Promise<void> {
     try {
-      await prisma.whaleTrade.upsert({
-        where: { id: trade.id },
-        create: {
-          id: trade.id,
-          source: trade.source,
-          marketId: trade.marketId,
-          marketQuestion: trade.marketQuestion,
-          traderAddress: trade.traderAddress,
-          side: trade.side,
-          outcome: trade.outcome,
-          amountUsd: trade.amountUsd,
-          shares: trade.shares,
-          price: trade.price,
-          timestamp: new Date(trade.timestamp),
-          txHash: trade.txHash,
-        },
-        update: {},
-      });
+      // 0G receipt is canonical; Prisma upsert only in dual-write mode.
+      // Filename includes traderAddress + marketId for prefix scans.
+      await persistReceipt(
+        buildEnvelope({ type: 'whale-trade', payload: trade }),
+        `whale-trade-${trade.traderAddress}-${trade.marketId}-${trade.id}.json`
+      );
+      if (!isTier2EventSourced()) {
+        await prisma.whaleTrade.upsert({
+          where: { id: trade.id },
+          create: {
+            id: trade.id,
+            source: trade.source,
+            marketId: trade.marketId,
+            marketQuestion: trade.marketQuestion,
+            traderAddress: trade.traderAddress,
+            side: trade.side,
+            outcome: trade.outcome,
+            amountUsd: trade.amountUsd,
+            shares: trade.shares,
+            price: trade.price,
+            timestamp: new Date(trade.timestamp),
+            txHash: trade.txHash,
+          },
+          update: {},
+        });
+      }
     } catch (error) {
       console.error('[WhaleTracker] Error saving trade:', error);
     }
@@ -491,20 +501,25 @@ class WhaleTrackerService {
             copyAmount
           );
 
-          // Log copy trade
-          await prisma.mirrorCopyTrade.create({
-            data: {
-              id: `mct_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-              userId: follow.userId,
-              whaleAddress: whaleTrade.traderAddress || '',
-              originalTradeId: whaleTrade.id,
-              mirrorKey,
-              outcome: whaleTrade.outcome,
-              copyAmount: copyAmount.toString(),
-              status: 'pending',
-              vrfRequestId: requestId,
-            },
-          });
+          // Log copy trade — 0G receipt is canonical; Prisma row in dual-write mode.
+          const copyTradeData = {
+            id: `mct_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            userId: follow.userId,
+            whaleAddress: whaleTrade.traderAddress || '',
+            originalTradeId: whaleTrade.id,
+            mirrorKey,
+            outcome: whaleTrade.outcome,
+            copyAmount: copyAmount.toString(),
+            status: 'pending' as const,
+            vrfRequestId: requestId,
+          };
+          await persistReceipt(
+            buildEnvelope({ type: 'mirror-copy-trade', payload: copyTradeData }),
+            `copy-trade-${follow.userAddress}-${copyTradeData.id}.json`
+          );
+          if (!isTier2EventSourced()) {
+            await prisma.mirrorCopyTrade.create({ data: copyTradeData });
+          }
 
           console.log(`[WhaleTracker] Copy trade initiated for ${follow.userAddress}`);
         } catch (error) {

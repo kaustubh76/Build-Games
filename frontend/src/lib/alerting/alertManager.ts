@@ -10,6 +10,8 @@
  */
 
 import { prisma } from '../prisma';
+import { persistReceipt, buildEnvelope } from '@/lib/storage/persistReceipt';
+import { isTier1AuditOnly } from '@/lib/storage/featureFlags';
 
 // ============================================================================
 // Types
@@ -325,20 +327,26 @@ export class AlertManager {
    */
   private async logAlert(alert: Alert): Promise<void> {
     try {
-      await prisma.systemAudit.create({
-        data: {
-          eventType: 'ALERT',
-          oldValue: alert.severity,
-          newValue: JSON.stringify({
-            title: alert.title,
-            message: alert.message,
-            source: alert.source,
-            metadata: alert.metadata,
-          }),
-          txHash: alert.fingerprint,
-          blockNumber: 0,
-        },
-      });
+      const auditData = {
+        eventType: 'ALERT',
+        oldValue: alert.severity,
+        newValue: JSON.stringify({
+          title: alert.title,
+          message: alert.message,
+          source: alert.source,
+          metadata: alert.metadata,
+        }),
+        txHash: alert.fingerprint,
+        blockNumber: 0,
+      };
+      // 0G receipt + dual-write Prisma row.
+      await persistReceipt(
+        buildEnvelope({ type: 'system-audit', payload: auditData }),
+        `audit-alert-${Date.now()}.json`
+      );
+      if (!isTier1AuditOnly()) {
+        await prisma.systemAudit.create({ data: auditData });
+      }
     } catch (error) {
       console.error('[AlertManager] Failed to log alert to database:', error);
     }

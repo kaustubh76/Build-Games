@@ -13,9 +13,10 @@ import { EXTERNAL_MARKET_MIRROR_ABI } from '@/constants/abis/externalMarketMirro
 import { upload as zgUpload, isZgConfigured } from '@/services/zgStorageService';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 import { chainMetrics } from '@/lib/metrics';
+import { requireSessionForAddress } from '@/lib/auth/requireSession';
 import {
-  enforceTradeLimits,
-  recordSpend,
+  reserveAndSpend,
+  releaseReservation,
   computeMinSharesOut,
   getUserSpendInfo,
   MAX_SLIPPAGE_BPS,
@@ -41,7 +42,7 @@ import {
  */
 
 const BodySchema = z.object({
-  userAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  userAddress: z.string().regex(/^0[xX][0-9a-fA-F]{40}$/),
   whaleTradeId: z.string().min(1).max(64),
   sizeCRwN: z
     .string()
@@ -65,19 +66,37 @@ const AUTO_CREATE_DEFAULT_END_YEARS = 1;
 
 const idempotencyCache = new Map<string, { timestamp: number; result: unknown }>();
 const IDEM_WINDOW_MS = 5 * 60_000;
+const IDEM_MAX_SIZE = 5_000;
+const IDEM_TRIM_TARGET = 2_500;
 
 function cleanupIdem() {
   const now = Date.now();
   for (const [k, v] of idempotencyCache.entries()) {
     if (now - v.timestamp > IDEM_WINDOW_MS * 2) idempotencyCache.delete(k);
   }
-  if (idempotencyCache.size > 5_000) {
-    const entries = Array.from(idempotencyCache.entries())
-      .sort((a, b) => a[1].timestamp - b[1].timestamp)
-      .slice(0, 2_500);
-    idempotencyCache.clear();
-    entries.forEach(([k, v]) => idempotencyCache.set(k, v));
+  if (idempotencyCache.size > IDEM_MAX_SIZE) {
+    trimIdem();
   }
+}
+
+/**
+ * Bug #4 fix: trim BEFORE inserting so the cache never transiently exceeds
+ * the cap. JS is single-threaded, so calling `idemSet()` instead of
+ * `idempotencyCache.set()` guarantees no concurrent request observes
+ * size > IDEM_MAX_SIZE.
+ */
+function trimIdem() {
+  if (idempotencyCache.size < IDEM_MAX_SIZE) return;
+  const entries = Array.from(idempotencyCache.entries())
+    .sort((a, b) => a[1].timestamp - b[1].timestamp)
+    .slice(idempotencyCache.size - IDEM_TRIM_TARGET);
+  idempotencyCache.clear();
+  for (const [k, v] of entries) idempotencyCache.set(k, v);
+}
+
+function idemSet(key: string, value: { timestamp: number; result: unknown }) {
+  if (idempotencyCache.size >= IDEM_MAX_SIZE) trimIdem();
+  idempotencyCache.set(key, value);
 }
 
 function sourceToUint8(source: string): number {
@@ -144,6 +163,16 @@ function minWei(...values: bigint[]): bigint {
 }
 
 export async function POST(request: NextRequest) {
+  // Hoisted across try/catch so the catch can refund a reservation made inside
+  // the try. Set when reserveAndSpend succeeds; cleared once the on-chain trade
+  // settles (turning the reservation into a real spend) or once we've refunded.
+  let reservation: { addr: string; amountWei: bigint } | null = null;
+  const releaseIfPending = () => {
+    if (reservation) {
+      releaseReservation(reservation.addr, reservation.amountWei);
+      reservation = null;
+    }
+  };
   try {
     const raw = await request.json().catch(() => null);
     const parsed = BodySchema.safeParse(raw);
@@ -164,6 +193,10 @@ export async function POST(request: NextRequest) {
       );
     }
     const { userAddress, whaleTradeId, sizeCRwN, whaleTrade: whaleTradeRaw } = parsed.data;
+
+    // SIWE guard: caller must own the wallet they're trading on behalf of.
+    // In warn mode this just logs; in enforce mode it throws 401/403.
+    requireSessionForAddress(request, userAddress);
 
     const idemKey = keccak256(toBytes(`${userAddress.toLowerCase()}|${whaleTradeId}`));
     cleanupIdem();
@@ -194,17 +227,21 @@ export async function POST(request: NextRequest) {
     const candidateWei = minWei(desiredWei, userMaxWei, sysCapWei);
     if (candidateWei <= 0n) throw ErrorResponses.badRequest('Resolved copy amount is zero');
 
+    // Bug #1 fix: atomically reserve daily-spend budget BEFORE the long async
+    // chain (auto-create + balance check + on-chain tx). Two concurrent requests
+    // from the same wallet cannot both pass the cap because reserveAndSpend
+    // debits in the same synchronous block as the read. If the trade ultimately
+    // fails (or we early-return down the auto-create path without trading), we
+    // must releaseReservation to refund the daily budget.
     let amountWei: bigint;
     let limitCapped = false;
     let limitReason: string | undefined;
     try {
-      const limited = enforceTradeLimits(userAddress, candidateWei);
+      const limited = reserveAndSpend(userAddress, candidateWei);
       amountWei = limited.allowedWei;
       limitCapped = limited.capped;
       limitReason = limited.reason;
     } catch (limitErr) {
-      // Map the bare Error from safetyLimits into a structured APIError code so
-      // clients can key UI behavior off `code` instead of regex on `error`.
       const msg = limitErr instanceof Error ? limitErr.message : 'Safety limit hit';
       if (/Trading paused/i.test(msg)) throw ErrorResponses.tradingPaused();
       if (/Per-trade cap/i.test(msg)) {
@@ -222,6 +259,10 @@ export async function POST(request: NextRequest) {
       }
       throw ErrorResponses.badRequest(msg);
     }
+    // From here on, any path that doesn't actually settle the on-chain trade
+    // MUST call releaseIfPending() before returning. The catch block also
+    // refunds via the hoisted `reservation` ref.
+    reservation = { addr: userAddress, amountWei };
 
     const provider = new ethers.JsonRpcProvider(AVALANCHE_RPC);
     const pk = getServerPrivateKey();
@@ -380,10 +421,13 @@ export async function POST(request: NextRequest) {
         whaleTradeId: whaleTrade.id,
         retryAfterSeconds: 45,
       };
-      idempotencyCache.set(idemKey, { timestamp: Date.now(), result: pendingResult });
+      idemSet(idemKey, { timestamp: Date.now(), result: pendingResult });
       chainMetrics.incrementCounter('whale_mirror_attempts_total', 1, {
         outcome: 'pending_activation',
       });
+      // No on-chain trade happened — refund the reserved daily-spend budget so
+      // the user isn't debited for a market that's still bootstrapping.
+      releaseIfPending();
       return NextResponse.json(pendingResult, { status: 202 });
     }
 
@@ -432,7 +476,10 @@ export async function POST(request: NextRequest) {
       minSharesOut
     );
     const receipt: ethers.TransactionReceipt = await tx.wait();
-    recordSpend(userAddress, amountWei);
+    // Trade settled on-chain — the reservation is now a real spend, not a
+    // refundable hold. Clear the ref so the outer catch (e.g. 0G upload
+    // failure) doesn't refund a successful trade.
+    reservation = null;
 
     let sharesOut: string | null = null;
     for (const log of receipt.logs) {
@@ -524,13 +571,16 @@ export async function POST(request: NextRequest) {
         cappedReason: limitReason,
       },
     };
-    idempotencyCache.set(idemKey, { timestamp: Date.now(), result });
+    idemSet(idemKey, { timestamp: Date.now(), result });
     chainMetrics.incrementCounter('whale_mirror_attempts_total', 1, {
       outcome: 'success',
     });
     chainMetrics.setGauge('whale_mirror_last_amount_crwn', parseFloat(ethers.formatEther(amountWei)));
     return NextResponse.json(result);
   } catch (error) {
+    // Refund the daily-spend reservation if the trade never settled. This is a
+    // no-op once `reservationReleased = true` is set after tx.wait() succeeds.
+    releaseIfPending();
     const errorCode =
       error && typeof error === 'object' && 'code' in error
         ? String((error as { code: unknown }).code)

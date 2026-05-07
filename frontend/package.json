@@ -14,8 +14,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ci": "vitest run --reporter=verbose --coverage",
+    "test:soak": "vitest run --config vitest.soak.config.ts",
     "test:e2e": "playwright test",
-    "test:e2e:install": "playwright install --with-deps chromium"
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "env:check": "node scripts/env-check.mjs"
   },
   "dependencies": {
     "@0gfoundation/0g-ts-sdk": "^1.2.1",

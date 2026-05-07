@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, http, parseAbiItem } from 'viem';
-import { avalancheFuji, avalanche } from 'viem/chains';
+import { parseAbiItem } from 'viem';
 import { AVALANCHE_CONTRACTS } from '@/lib/apiConfig';
-import { getAvalancheRpcUrl, getChainId } from '@/constants';
+import { getResilientPublicClient } from '@/lib/viemClient';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 
 /**
@@ -52,7 +51,7 @@ export async function GET(request: NextRequest) {
     });
 
     const address = request.nextUrl.searchParams.get('address');
-    if (!address || !/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    if (!address || !/^0[xX][0-9a-fA-F]{40}$/.test(address)) {
       throw ErrorResponses.badRequest('Missing or invalid address');
     }
     const key = address.toLowerCase();
@@ -61,9 +60,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ entries: cached.entries, cached: true });
     }
 
-    const chainId = getChainId();
-    const chain = chainId === 43114 ? avalanche : avalancheFuji;
-    const client = createPublicClient({ chain, transport: http(getAvalancheRpcUrl()) });
+    const client = getResilientPublicClient();
     const head = await client.getBlockNumber();
     const fromBlock = head > BigInt(LOOKBACK_BLOCKS) ? head - BigInt(LOOKBACK_BLOCKS) : 0n;
     const mirrorAddress = AVALANCHE_CONTRACTS.externalMarketMirror as `0x${string}`;

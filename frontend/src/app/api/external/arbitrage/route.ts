@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleAPIError, applyRateLimit } from '@/lib/api';
+import { persistReceipt, buildEnvelope } from '@/lib/storage/persistReceipt';
 
 // Minimum spread percentage to consider an opportunity
 const DEFAULT_MIN_SPREAD = 5;
@@ -200,6 +201,15 @@ export async function GET(request: NextRequest) {
         minSpread
       );
 
+      // 0G receipt for the batch (ephemeral analysis — single receipt for
+      // the whole scan is more useful than per-row).
+      await persistReceipt(
+        buildEnvelope({
+          type: 'arbitrage-scan',
+          payload: { opportunities: opportunities.slice(0, 20), scanTime: Date.now() },
+        }),
+        `arbitrage-scan-${Date.now()}.json`
+      );
       // Save to database
       for (const opp of opportunities.slice(0, 20)) {
         try {

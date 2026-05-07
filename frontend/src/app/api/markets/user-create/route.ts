@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { requireSessionForAddress } from '@/lib/auth/requireSession';
 import { isAddress } from 'viem';
 
 /**
@@ -71,6 +72,9 @@ export async function POST(request: NextRequest) {
     if (!isAddress(creatorAddress)) {
       throw ErrorResponses.badRequest('Invalid creator address format');
     }
+
+    // SIWE guard: only the wallet owner may create a market under their own address.
+    requireSessionForAddress(request, creatorAddress);
 
     // Sanitize user-provided text inputs to prevent XSS
     const sanitizedQuestion = sanitizeInput(question);

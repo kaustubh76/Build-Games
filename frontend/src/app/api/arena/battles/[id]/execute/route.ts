@@ -3,6 +3,7 @@ import { executeDebateRound, executeFullBattle } from '../../../../../../service
 import { WarriorTraits, MarketSource, PredictionRound } from '../../../../../../types/predictionArena';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { isTier3BundledReceipts } from '@/lib/storage/featureFlags';
 import { createPublicClient, http } from 'viem';
 import { avalancheFuji, avalanche } from 'viem/chains';
 import { getContracts, getChainId, warriorsNFTAbi, getAvalancheRpcUrl } from '../../../../../../constants';
@@ -190,47 +191,53 @@ export async function POST(
         marketSource
       );
 
-      // Save all rounds to database
-      for (let i = 0; i < fullResult.rounds.length; i++) {
-        const roundResult = fullResult.rounds[i];
-        const roundNumber = i + 1;
+      // Save all rounds to database — Tier 3 transcript bundling. When
+      // ENABLE_0G_TIER3=1 the per-round Prisma writes are skipped; the rounds
+      // are bundled into the battle's 0G receipt below. Until then we
+      // dual-write so existing read paths (prisma.predictionRound.findMany)
+      // keep working unchanged.
+      if (!isTier3BundledReceipts()) {
+        for (let i = 0; i < fullResult.rounds.length; i++) {
+          const roundResult = fullResult.rounds[i];
+          const roundNumber = i + 1;
 
-        await prisma.predictionRound.upsert({
-          where: {
-            battleId_roundNumber: {
+          await prisma.predictionRound.upsert({
+            where: {
+              battleId_roundNumber: {
+                battleId,
+                roundNumber,
+              },
+            },
+            update: {
+              w1Argument: roundResult.warrior1.argument,
+              w1Evidence: JSON.stringify(roundResult.warrior1.evidence),
+              w1Move: roundResult.warrior1.move,
+              w1Score: roundResult.warrior1Score,
+              w2Argument: roundResult.warrior2.argument,
+              w2Evidence: JSON.stringify(roundResult.warrior2.evidence),
+              w2Move: roundResult.warrior2.move,
+              w2Score: roundResult.warrior2Score,
+              roundWinner: roundResult.roundWinner,
+              judgeReasoning: roundResult.judgeReasoning,
+              endedAt: new Date(),
+            },
+            create: {
               battleId,
               roundNumber,
+              w1Argument: roundResult.warrior1.argument,
+              w1Evidence: JSON.stringify(roundResult.warrior1.evidence),
+              w1Move: roundResult.warrior1.move,
+              w1Score: roundResult.warrior1Score,
+              w2Argument: roundResult.warrior2.argument,
+              w2Evidence: JSON.stringify(roundResult.warrior2.evidence),
+              w2Move: roundResult.warrior2.move,
+              w2Score: roundResult.warrior2Score,
+              roundWinner: roundResult.roundWinner,
+              judgeReasoning: roundResult.judgeReasoning,
+              endedAt: new Date(),
             },
-          },
-          update: {
-            w1Argument: roundResult.warrior1.argument,
-            w1Evidence: JSON.stringify(roundResult.warrior1.evidence),
-            w1Move: roundResult.warrior1.move,
-            w1Score: roundResult.warrior1Score,
-            w2Argument: roundResult.warrior2.argument,
-            w2Evidence: JSON.stringify(roundResult.warrior2.evidence),
-            w2Move: roundResult.warrior2.move,
-            w2Score: roundResult.warrior2Score,
-            roundWinner: roundResult.roundWinner,
-            judgeReasoning: roundResult.judgeReasoning,
-            endedAt: new Date(),
-          },
-          create: {
-            battleId,
-            roundNumber,
-            w1Argument: roundResult.warrior1.argument,
-            w1Evidence: JSON.stringify(roundResult.warrior1.evidence),
-            w1Move: roundResult.warrior1.move,
-            w1Score: roundResult.warrior1Score,
-            w2Argument: roundResult.warrior2.argument,
-            w2Evidence: JSON.stringify(roundResult.warrior2.evidence),
-            w2Move: roundResult.warrior2.move,
-            w2Score: roundResult.warrior2Score,
-            roundWinner: roundResult.roundWinner,
-            judgeReasoning: roundResult.judgeReasoning,
-            endedAt: new Date(),
-          },
-        });
+          });
+        }
       }
 
       // Update battle
@@ -254,12 +261,29 @@ export async function POST(
         fullResult.warrior2TotalScore
       );
 
-      // Store battle record to Storage
+      // Store battle record to Storage. In Tier 3 mode the per-round Prisma
+      // rows don't exist, so fall back to the raw fullResult.rounds shape
+      // (already in memory) to keep the receipt complete.
+      const roundsForStorage = updatedBattle.rounds.length > 0
+        ? updatedBattle.rounds
+        : fullResult.rounds.map((r, i) => ({
+            roundNumber: i + 1,
+            w1Argument: r.warrior1.argument,
+            w1Evidence: JSON.stringify(r.warrior1.evidence),
+            w1Move: r.warrior1.move,
+            w1Score: r.warrior1Score,
+            w2Argument: r.warrior2.argument,
+            w2Evidence: JSON.stringify(r.warrior2.evidence),
+            w2Move: r.warrior2.move,
+            w2Score: r.warrior2Score,
+            roundWinner: r.roundWinner,
+            judgeReasoning: r.judgeReasoning,
+          }));
       let storageResult = null;
       try {
         storageResult = await storeBattleData(
           updatedBattle,
-          updatedBattle.rounds,
+          roundsForStorage,
           w1Traits,
           w2Traits
         );
@@ -318,24 +342,28 @@ export async function POST(
       }
     );
 
-    // Save round
-    const round = await prisma.predictionRound.create({
-      data: {
-        battleId,
-        roundNumber,
-        w1Argument: roundResult.warrior1.argument,
-        w1Evidence: JSON.stringify(roundResult.warrior1.evidence),
-        w1Move: roundResult.warrior1.move,
-        w1Score: roundResult.warrior1Score,
-        w2Argument: roundResult.warrior2.argument,
-        w2Evidence: JSON.stringify(roundResult.warrior2.evidence),
-        w2Move: roundResult.warrior2.move,
-        w2Score: roundResult.warrior2Score,
-        roundWinner: roundResult.roundWinner,
-        judgeReasoning: roundResult.judgeReasoning,
-        endedAt: new Date(),
-      },
-    });
+    // Save round — Tier 3 transcript bundling. When ENABLE_0G_TIER3=1 the
+    // per-round Prisma write is skipped; the bundled receipt for the whole
+    // battle is emitted on completion. Until then, dual-write keeps existing
+    // read paths working.
+    const roundData = {
+      battleId,
+      roundNumber,
+      w1Argument: roundResult.warrior1.argument,
+      w1Evidence: JSON.stringify(roundResult.warrior1.evidence),
+      w1Move: roundResult.warrior1.move,
+      w1Score: roundResult.warrior1Score,
+      w2Argument: roundResult.warrior2.argument,
+      w2Evidence: JSON.stringify(roundResult.warrior2.evidence),
+      w2Move: roundResult.warrior2.move,
+      w2Score: roundResult.warrior2Score,
+      roundWinner: roundResult.roundWinner,
+      judgeReasoning: roundResult.judgeReasoning,
+      endedAt: new Date(),
+    };
+    const round = isTier3BundledReceipts()
+      ? { ...roundData, id: `mem-round-${battleId}-${roundNumber}` }
+      : await prisma.predictionRound.create({ data: roundData });
 
     // Update battle
     const isComplete = roundNumber >= 5;

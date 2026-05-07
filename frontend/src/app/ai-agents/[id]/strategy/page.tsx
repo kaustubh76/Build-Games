@@ -32,6 +32,17 @@ function shortHash(h: string): string {
 
 const TIER_NAMES = ['Novice', 'Apprentice', 'Expert', 'Master', 'Grandmaster'];
 
+interface VerifyHashResult {
+  match: boolean;
+  onChainHash: string;
+  computedHash?: string;
+  ref?: string | null;
+  sizeBytes?: number;
+  message: string;
+  reason?: string;
+  code?: string;
+}
+
 export default function AgentStrategyPage({
   params,
 }: {
@@ -41,6 +52,27 @@ export default function AgentStrategyPage({
   const [agent, setAgent] = useState<AgentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<VerifyHashResult | null>(null);
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const res = await fetch(`/api/agents/${id}/verify-hash`);
+      const json = (await res.json()) as VerifyHashResult;
+      setVerifyResult(json);
+    } catch (e) {
+      setVerifyResult({
+        match: false,
+        onChainHash: '',
+        message: e instanceof Error ? e.message : 'Verification failed',
+        reason: 'network',
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -144,6 +176,55 @@ export default function AgentStrategyPage({
                 <code className="block mt-1 px-3 py-2 rounded bg-black/40 text-xs text-gray-300 break-all">
                   {agent.owner}
                 </code>
+              </div>
+
+              {/* Verify integrity */}
+              <div className="pt-2 border-t border-fuchsia-500/20">
+                <button
+                  type="button"
+                  onClick={handleVerify}
+                  disabled={verifying}
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-bold text-white"
+                >
+                  {verifying ? '🔐 Verifying…' : '🔐 Verify integrity'}
+                </button>
+                {verifyResult && (
+                  <div
+                    className={`mt-3 p-3 rounded text-xs ${
+                      verifyResult.match
+                        ? 'bg-green-500/10 border border-green-500/40 text-green-200'
+                        : verifyResult.code === 'STORAGE_UNAVAILABLE'
+                        ? 'bg-yellow-500/10 border border-yellow-500/40 text-yellow-200'
+                        : 'bg-red-500/10 border border-red-500/40 text-red-200'
+                    }`}
+                  >
+                    <div className="font-bold mb-1">
+                      {verifyResult.match
+                        ? '✓ Hash matches'
+                        : verifyResult.code === 'STORAGE_UNAVAILABLE'
+                        ? '⚠️ Storage unavailable'
+                        : '✗ Hash mismatch'}
+                    </div>
+                    <div className="text-xs opacity-90 mb-2">{verifyResult.message}</div>
+                    {verifyResult.computedHash && (
+                      <div className="space-y-1">
+                        <div>
+                          <span className="opacity-60">on-chain:</span>{' '}
+                          <code className="break-all">{verifyResult.onChainHash}</code>
+                        </div>
+                        <div>
+                          <span className="opacity-60">computed:</span>{' '}
+                          <code className="break-all">{verifyResult.computedHash}</code>
+                        </div>
+                        {verifyResult.sizeBytes !== undefined && (
+                          <div className="opacity-60">
+                            artifact size: {verifyResult.sizeBytes} bytes
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </section>

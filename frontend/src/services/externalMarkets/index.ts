@@ -22,6 +22,31 @@ import {
   WhaleTrade,
 } from '@/types/externalMarket';
 import { monitoredCall, externalMarketMonitor } from './monitoring';
+import { persistReceipt, buildEnvelope } from '@/lib/storage/persistReceipt';
+import { isTier1AuditOnly, isTier2EventSourced } from '@/lib/storage/featureFlags';
+
+/**
+ * Tier 1 audit-log persistence — writes a 0G receipt and (in dual-write mode)
+ * also keeps the legacy Prisma `syncLog` row. Set `ENABLE_0G_AUDIT_LOGS=1`
+ * to skip the Prisma write once the 0G path is verified in production.
+ */
+async function persistSyncLog(data: {
+  source: string;
+  action: string;
+  status: 'success' | 'failed';
+  count: number;
+  duration: number;
+  error?: string;
+}): Promise<void> {
+  // Always persist the receipt — operators can grep logs for the rootHash.
+  await persistReceipt(
+    buildEnvelope({ type: 'sync-log', payload: data }),
+    `synclog-${data.source}-${Date.now()}.json`
+  );
+  // Skip the Prisma write if Tier 1 is in audit-only mode.
+  if (isTier1AuditOnly()) return;
+  await prisma.syncLog.create({ data });
+}
 
 // Re-export monitoring for external access
 export { externalMarketMonitor } from './monitoring';
@@ -299,30 +324,26 @@ class ExternalMarketsService {
 
       const duration = Date.now() - startTime;
 
-      // Log sync
-      await prisma.syncLog.create({
-        data: {
-          source: 'polymarket',
-          action: 'full_sync',
-          status: 'success',
-          count: added + updated,
-          duration,
-        },
+      // Log sync (0G receipt + dual-write Prisma row during rollout)
+      await persistSyncLog({
+        source: 'polymarket',
+        action: 'full_sync',
+        status: 'success',
+        count: added + updated,
+        duration,
       });
 
       return { added, updated, duration };
     } catch (error) {
       const duration = Date.now() - startTime;
 
-      await prisma.syncLog.create({
-        data: {
-          source: 'polymarket',
-          action: 'full_sync',
-          status: 'failed',
-          count: added + updated,
-          duration,
-          error: (error as Error).message,
-        },
+      await persistSyncLog({
+        source: 'polymarket',
+        action: 'full_sync',
+        status: 'failed',
+        count: added + updated,
+        duration,
+        error: (error as Error).message,
       });
 
       throw error;
@@ -354,29 +375,25 @@ class ExternalMarketsService {
 
       const duration = Date.now() - startTime;
 
-      await prisma.syncLog.create({
-        data: {
-          source: 'kalshi',
-          action: 'full_sync',
-          status: 'success',
-          count: added + updated,
-          duration,
-        },
+      await persistSyncLog({
+        source: 'kalshi',
+        action: 'full_sync',
+        status: 'success',
+        count: added + updated,
+        duration,
       });
 
       return { added, updated, duration };
     } catch (error) {
       const duration = Date.now() - startTime;
 
-      await prisma.syncLog.create({
-        data: {
-          source: 'kalshi',
-          action: 'full_sync',
-          status: 'failed',
-          count: added + updated,
-          duration,
-          error: (error as Error).message,
-        },
+      await persistSyncLog({
+        source: 'kalshi',
+        action: 'full_sync',
+        status: 'failed',
+        count: added + updated,
+        duration,
+        error: (error as Error).message,
       });
 
       throw error;
@@ -409,29 +426,25 @@ class ExternalMarketsService {
 
       const duration = Date.now() - startTime;
 
-      await prisma.syncLog.create({
-        data: {
-          source: 'opinion',
-          action: 'full_sync',
-          status: 'success',
-          count: added + updated,
-          duration,
-        },
+      await persistSyncLog({
+        source: 'opinion',
+        action: 'full_sync',
+        status: 'success',
+        count: added + updated,
+        duration,
       });
 
       return { added, updated, duration };
     } catch (error) {
       const duration = Date.now() - startTime;
 
-      await prisma.syncLog.create({
-        data: {
-          source: 'opinion',
-          action: 'full_sync',
-          status: 'failed',
-          count: added + updated,
-          duration,
-          error: (error as Error).message,
-        },
+      await persistSyncLog({
+        source: 'opinion',
+        action: 'full_sync',
+        status: 'failed',
+        count: added + updated,
+        duration,
+        error: (error as Error).message,
       });
 
       throw error;
@@ -637,6 +650,12 @@ class ExternalMarketsService {
    */
   async saveWhaleTrades(trades: WhaleTrade[]): Promise<void> {
     for (const trade of trades) {
+      // 0G receipt is canonical; Prisma upsert only in dual-write mode.
+      await persistReceipt(
+        buildEnvelope({ type: 'whale-trade', payload: trade }),
+        `whale-trade-${trade.traderAddress}-${trade.marketId}-${trade.id}.json`
+      );
+      if (isTier2EventSourced()) continue;
       await prisma.whaleTrade.upsert({
         where: { id: trade.id },
         create: {

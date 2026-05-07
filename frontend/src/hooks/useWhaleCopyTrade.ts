@@ -158,6 +158,7 @@ export function useWhaleCopyTrade(): UseWhaleCopyTradeReturn {
 
         const res = await fetch('/api/whale-alerts/follow', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userAddress: address,
@@ -197,6 +198,7 @@ export function useWhaleCopyTrade(): UseWhaleCopyTradeReturn {
 
         const res = await fetch('/api/whale-alerts/unfollow', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userAddress: address,
@@ -238,6 +240,7 @@ export function useWhaleCopyTrade(): UseWhaleCopyTradeReturn {
 
         const res = await fetch('/api/whale-alerts/update-config', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userAddress: address,

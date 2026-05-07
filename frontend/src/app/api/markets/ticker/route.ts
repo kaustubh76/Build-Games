@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, http, parseAbiItem } from 'viem';
-import { avalancheFuji, avalanche } from 'viem/chains';
+import { parseAbiItem } from 'viem';
 import { AVALANCHE_CONTRACTS } from '@/lib/apiConfig';
-import { getAvalancheRpcUrl, getChainId } from '@/constants';
+import { getResilientPublicClient } from '@/lib/viemClient';
 import { EXTERNAL_MARKET_MIRROR_ABI } from '@/constants/abis/externalMarketMirrorAbi';
 import { handleAPIError, applyRateLimit } from '@/lib/api';
 import { getMirrorCacheVersion } from '@/lib/mirrorCacheVersion';
@@ -32,6 +31,7 @@ const MIRROR_CREATED = parseAbiItem(
 
 interface TickerRow {
   mirrorKey: string;
+  marketId: string;
   externalId: string;
   source: 'POLYMARKET' | 'KALSHI';
   yesBps: number;
@@ -63,9 +63,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ rows: cache.rows.slice(0, limit), cached: true });
     }
 
-    const chainId = getChainId();
-    const chain = chainId === 43114 ? avalanche : avalancheFuji;
-    const client = createPublicClient({ chain, transport: http(getAvalancheRpcUrl()) });
+    const client = getResilientPublicClient();
     const mirrorAddress = AVALANCHE_CONTRACTS.externalMarketMirror as `0x${string}`;
 
     const head = await client.getBlockNumber();
@@ -117,6 +115,7 @@ export async function GET(request: NextRequest) {
             functionName: 'getMirrorMarket',
             args: [mirrorKey as `0x${string}`],
           })) as {
+            marketId: bigint;
             externalLink: {
               externalId: string;
               source: number;
@@ -130,6 +129,7 @@ export async function GET(request: NextRequest) {
           const yesBps = Number(data.externalLink.lastSyncPrice);
           const row: TickerRow = {
             mirrorKey,
+            marketId: data.marketId.toString(),
             externalId: data.externalLink.externalId,
             source: Number(data.externalLink.source) === 0 ? 'POLYMARKET' : 'KALSHI',
             yesBps,

@@ -13,22 +13,26 @@ import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 import { chainMetrics } from '@/lib/metrics';
 import { bumpMirrorCacheVersion } from '@/lib/mirrorCacheVersion';
 import {
-  enforceTradeLimits,
-  recordSpend,
+  reserveAndSpend,
+  releaseReservation,
   computeMinSharesOut,
   getUserSpendInfo,
   MAX_SLIPPAGE_BPS,
   PER_TRADE_CAP_WEI,
   PER_USER_DAILY_CAP_WEI,
 } from '@/lib/safetyLimits';
+import { requireSessionForAddress } from '@/lib/auth/requireSession';
 
 /**
- * Run enforceTradeLimits and rethrow as structured APIError codes so the
- * client can distinguish TRADING_PAUSED / PER_TRADE_CAP_EXCEEDED / DAILY_CAP_REACHED.
+ * Atomically reserve daily-spend budget AND debit it before the on-chain tx.
+ * Bug #1 fix: the previous enforceTradeLimits + recordSpend pair had a
+ * lost-update window between the cap check and the spend write. reserveAndSpend
+ * is a single synchronous read-modify-write — concurrent calls cannot both pass
+ * the cap before either records. The caller MUST releaseReservation on tx failure.
  */
 function applyTradeLimits(addr: string, requestedWei: bigint) {
   try {
-    return enforceTradeLimits(addr, requestedWei);
+    return reserveAndSpend(addr, requestedWei);
   } catch (limitErr) {
     const msg = limitErr instanceof Error ? limitErr.message : 'Safety limit hit';
     if (/Trading paused/i.test(msg)) throw ErrorResponses.tradingPaused();
@@ -63,19 +67,39 @@ function applyTradeLimits(addr: string, requestedWei: bigint) {
 
 const idempotencyCache = new Map<string, { timestamp: number; result: unknown }>();
 const IDEMPOTENCY_WINDOW_MS = 60_000;
+const IDEMPOTENCY_MAX_SIZE = 10_000;
+const IDEMPOTENCY_TRIM_TARGET = 5_000;
 
 function cleanupIdempotencyCache() {
   const now = Date.now();
   for (const [key, value] of idempotencyCache.entries()) {
     if (now - value.timestamp > IDEMPOTENCY_WINDOW_MS * 2) idempotencyCache.delete(key);
   }
-  if (idempotencyCache.size > 10_000) {
-    const entries = Array.from(idempotencyCache.entries())
-      .sort((a, b) => a[1].timestamp - b[1].timestamp)
-      .slice(0, 5_000);
-    idempotencyCache.clear();
-    entries.forEach(([k, v]) => idempotencyCache.set(k, v));
+  if (idempotencyCache.size > IDEMPOTENCY_MAX_SIZE) {
+    trimIdempotencyCache();
   }
+}
+
+/**
+ * Bug #4 fix: trim BEFORE inserting so the cache never transiently exceeds the
+ * cap. Map.set() is synchronous and JS is single-threaded, so calling
+ * `idempotencySet()` instead of `idempotencyCache.set()` guarantees that no
+ * concurrent request observes size > IDEMPOTENCY_MAX_SIZE.
+ */
+function trimIdempotencyCache() {
+  if (idempotencyCache.size < IDEMPOTENCY_MAX_SIZE) return;
+  const entries = Array.from(idempotencyCache.entries())
+    .sort((a, b) => a[1].timestamp - b[1].timestamp)
+    .slice(idempotencyCache.size - IDEMPOTENCY_TRIM_TARGET);
+  idempotencyCache.clear();
+  for (const [k, v] of entries) idempotencyCache.set(k, v);
+}
+
+function idempotencySet(key: string, value: { timestamp: number; result: unknown }) {
+  if (idempotencyCache.size >= IDEMPOTENCY_MAX_SIZE) {
+    trimIdempotencyCache();
+  }
+  idempotencyCache.set(key, value);
 }
 
 const sourceToUint8 = (source: string): number => {
@@ -88,15 +112,15 @@ const sourceToUint8 = (source: string): number => {
 const ActionSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('vrfCopyTrade'),
-    mirrorKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+    mirrorKey: z.string().regex(/^0[xX][0-9a-fA-F]{64}$/),
     agentId: z.union([z.string(), z.number()]).optional(),
-    userAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+    userAddress: z.string().regex(/^0[xX][0-9a-fA-F]{40}$/),
     isYes: z.boolean(),
     amount: z.string().regex(/^[0-9]+$/),
   }),
   z.object({
     action: z.literal('createMirror'),
-    walletAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+    walletAddress: z.string().regex(/^0[xX][0-9a-fA-F]{40}$/),
     externalId: z.string().min(1).max(256),
     source: z.string(),
     question: z.string().min(1).max(1024),
@@ -106,8 +130,8 @@ const ActionSchema = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('trade'),
-    walletAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
-    mirrorKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+    walletAddress: z.string().regex(/^0[xX][0-9a-fA-F]{40}$/),
+    mirrorKey: z.string().regex(/^0[xX][0-9a-fA-F]{64}$/),
     isYes: z.boolean(),
     amount: z.string().regex(/^[0-9]+(\.[0-9]+)?$/),
     minSharesOut: z.string().regex(/^[0-9]+$/).optional(),
@@ -119,27 +143,27 @@ const ActionSchema = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('getMirrorMarket'),
-    mirrorKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+    mirrorKey: z.string().regex(/^0[xX][0-9a-fA-F]{64}$/),
   }),
   z.object({
     action: z.literal('query'),
-    mirrorKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+    mirrorKey: z.string().regex(/^0[xX][0-9a-fA-F]{64}$/),
   }),
   z.object({
     action: z.literal('syncPrice'),
-    mirrorKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+    mirrorKey: z.string().regex(/^0[xX][0-9a-fA-F]{64}$/),
     newYesPrice: z.number().int().min(0).max(10_000),
-    signature: z.string().regex(/^0x[0-9a-fA-F]+$/),
+    signature: z.string().regex(/^0[xX][0-9a-fA-F]+$/),
   }),
   z.object({
     action: z.literal('resolve'),
-    mirrorKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+    mirrorKey: z.string().regex(/^0[xX][0-9a-fA-F]{64}$/),
     outcome: z.union([z.literal('yes'), z.literal('no')]),
-    signature: z.string().regex(/^0x[0-9a-fA-F]+$/),
+    signature: z.string().regex(/^0[xX][0-9a-fA-F]+$/),
   }),
 ]);
 
-export type MirrorAction = z.infer<typeof ActionSchema>;
+type MirrorAction = z.infer<typeof ActionSchema>;
 
 const READ_ACTIONS = new Set(['getMirrorKey', 'getMirrorMarket', 'query']);
 
@@ -194,7 +218,7 @@ function findEvent(
   return null;
 }
 
-export async function handleMirrorAction(action: MirrorAction): Promise<unknown> {
+async function handleMirrorAction(action: MirrorAction): Promise<unknown> {
   const provider = getProvider();
   const reader = readContract(provider);
 
@@ -266,39 +290,43 @@ export async function handleMirrorAction(action: MirrorAction): Promise<unknown>
         requestedWei
       );
 
-      // Slippage floor: derive minSharesOut from current pool state via static call.
-      let minSharesOut = action.minSharesOut ? BigInt(action.minSharesOut) : 0n;
-      if (minSharesOut === 0n) {
-        try {
-          const expected = await reader.tradeMirror.staticCall(
-            action.mirrorKey,
-            action.isYes,
-            allowedWei,
-            0n
-          );
-          if (typeof expected === 'bigint') {
-            minSharesOut = computeMinSharesOut(expected, MAX_SLIPPAGE_BPS);
+      try {
+        // Slippage floor: derive minSharesOut from current pool state via static call.
+        let minSharesOut = action.minSharesOut ? BigInt(action.minSharesOut) : 0n;
+        if (minSharesOut === 0n) {
+          try {
+            const expected = await reader.tradeMirror.staticCall(
+              action.mirrorKey,
+              action.isYes,
+              allowedWei,
+              0n
+            );
+            if (typeof expected === 'bigint') {
+              minSharesOut = computeMinSharesOut(expected, MAX_SLIPPAGE_BPS);
+            }
+          } catch {
+            // staticCall not supported or pool empty
           }
-        } catch {
-          // staticCall not supported or pool empty
         }
-      }
 
-      await ensureCrownAllowance(wallet, allowedWei);
-      const tx = await writer.tradeMirror(action.mirrorKey, action.isYes, allowedWei, minSharesOut);
-      const receipt: ethers.TransactionReceipt = await tx.wait();
-      const ev = findEvent(writer, receipt, 'MirrorTradeExecuted');
-      recordSpend(action.walletAddress, allowedWei);
-      return {
-        txHash: receipt.hash,
-        blockNumber: receipt.blockNumber,
-        sharesOut: ev?.args?.tokensReceived?.toString() ?? null,
-        amountWei: allowedWei.toString(),
-        minSharesOut: minSharesOut.toString(),
-        capped,
-        cappedReason: reason,
-        slippageBps: MAX_SLIPPAGE_BPS,
-      };
+        await ensureCrownAllowance(wallet, allowedWei);
+        const tx = await writer.tradeMirror(action.mirrorKey, action.isYes, allowedWei, minSharesOut);
+        const receipt: ethers.TransactionReceipt = await tx.wait();
+        const ev = findEvent(writer, receipt, 'MirrorTradeExecuted');
+        return {
+          txHash: receipt.hash,
+          blockNumber: receipt.blockNumber,
+          sharesOut: ev?.args?.tokensReceived?.toString() ?? null,
+          amountWei: allowedWei.toString(),
+          minSharesOut: minSharesOut.toString(),
+          capped,
+          cappedReason: reason,
+          slippageBps: MAX_SLIPPAGE_BPS,
+        };
+      } catch (txErr) {
+        releaseReservation(action.walletAddress, allowedWei);
+        throw txErr;
+      }
     }
 
     case 'vrfCopyTrade': {
@@ -309,20 +337,24 @@ export async function handleMirrorAction(action: MirrorAction): Promise<unknown>
         action.userAddress,
         requestedWei
       );
-      await ensureCrownAllowance(wallet, allowedWei);
-      const agentIdBig = BigInt(action.agentId ?? 0);
-      const tx = await writer.vrfCopyTrade(action.mirrorKey, agentIdBig, action.isYes, allowedWei);
-      const receipt: ethers.TransactionReceipt = await tx.wait();
-      const requested = findEvent(writer, receipt, 'VRFCopyTradeRequested');
-      recordSpend(action.userAddress, allowedWei);
-      return {
-        txHash: receipt.hash,
-        blockNumber: receipt.blockNumber,
-        requestId: requested?.args?.requestId?.toString() ?? null,
-        amountWei: allowedWei.toString(),
-        capped,
-        cappedReason: reason,
-      };
+      try {
+        await ensureCrownAllowance(wallet, allowedWei);
+        const agentIdBig = BigInt(action.agentId ?? 0);
+        const tx = await writer.vrfCopyTrade(action.mirrorKey, agentIdBig, action.isYes, allowedWei);
+        const receipt: ethers.TransactionReceipt = await tx.wait();
+        const requested = findEvent(writer, receipt, 'VRFCopyTradeRequested');
+        return {
+          txHash: receipt.hash,
+          blockNumber: receipt.blockNumber,
+          requestId: requested?.args?.requestId?.toString() ?? null,
+          amountWei: allowedWei.toString(),
+          capped,
+          cappedReason: reason,
+        };
+      } catch (txErr) {
+        releaseReservation(action.userAddress, allowedWei);
+        throw txErr;
+      }
     }
 
     case 'syncPrice': {
@@ -376,6 +408,13 @@ export async function POST(request: NextRequest) {
       strictWalletLimit: isWrite,
     });
 
+    // SIWE guard for write actions — only the owner of `wallet` may submit
+    // a server-signed tx on its behalf. Read actions (READ_ACTIONS) are
+    // intentionally unauthenticated.
+    if (isWrite) {
+      requireSessionForAddress(request, wallet);
+    }
+
     const startedAt = Date.now();
     if (isWrite) {
       const idempotencyKey = keccak256(toBytes(JSON.stringify(action)));
@@ -393,7 +432,7 @@ export async function POST(request: NextRequest) {
         });
       }
       const result = await handleMirrorAction(action);
-      idempotencyCache.set(idempotencyKey, { timestamp: Date.now(), result });
+      idempotencySet(idempotencyKey, { timestamp: Date.now(), result });
       // Writes invalidate the read caches in /api/markets/ticker and
       // /api/mirror/positions so the user sees their fresh trade immediately.
       bumpMirrorCacheVersion();

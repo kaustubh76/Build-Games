@@ -22,6 +22,13 @@ import { validateEnvironmentOrThrow } from "@/lib/validateEnv";
 if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-production-build') {
   const isProd = process.env.NODE_ENV === 'production';
   validateEnvironmentOrThrow({ strict: isProd, checkSensitive: isProd });
+  // Wire the Telegram whale-alert fan-out (idempotent; wires once per process).
+  // Module is loaded lazily so the unit tests don't pull whaleTrackerService.
+  if (process.env.TELEGRAM_BOT_TOKEN) {
+    void import('@/lib/telegram/wireWhaleAlerts').then((m) =>
+      m.wireTelegramWhaleAlerts()
+    );
+  }
 }
 
 export const metadata: Metadata = {

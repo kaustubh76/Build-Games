@@ -87,6 +87,7 @@ export function useMirrorMarketCreation() {
       try {
         const response = await fetch('/api/mirror/execute', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'createMirror',
@@ -168,6 +169,7 @@ export function useMirrorMarketTrade() {
       try {
         const response = await fetch('/api/mirror/execute', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'trade',
@@ -292,6 +294,7 @@ export function useMirrorMarketQuery() {
     try {
       const response = await fetch('/api/mirror/execute', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'query',
@@ -432,6 +435,7 @@ export function useMirrorMarketSync() {
       try {
         const response = await fetch('/api/mirror/execute', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'syncPrice',
@@ -467,6 +471,7 @@ export function useMirrorMarketSync() {
       try {
         const response = await fetch('/api/mirror/execute', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'resolve',

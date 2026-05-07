@@ -10,6 +10,8 @@ import { avalancheFuji } from 'viem/chains';
 import { EXTERNAL_MARKET_MIRROR_ABI } from '@/constants/abis';
 import { prisma } from '@/lib/prisma';
 import { ChainMetrics } from '@/lib/metrics';
+import { persistReceipt, buildEnvelope } from '@/lib/storage/persistReceipt';
+import { isTier1AuditOnly, isTier2EventSourced } from '@/lib/storage/featureFlags';
 import { globalErrorHandler } from '@/lib/errorRecovery';
 import { globalAlertManager, AlertSeverity } from '@/lib/alerting/alertManager';
 import { getAvalancheRpcUrl } from '@/constants';
@@ -444,15 +446,20 @@ export class ExternalMarketEventListener {
 
       const args = decoded.args as any;
 
-      // Store price sync history
-      await prisma.priceSyncHistory.create({
-        data: {
-          mirrorKey: args.mirrorKey || '',
-          oldPrice: Number(args.oldPrice || 0),
-          newPrice: Number(args.newPrice || 0),
-          syncedAt: new Date(Number(args.timestamp || 0) * 1000),
-        },
-      });
+      // Store price sync history (0G receipt + dual-write Prisma row)
+      const psh = {
+        mirrorKey: args.mirrorKey || '',
+        oldPrice: Number(args.oldPrice || 0),
+        newPrice: Number(args.newPrice || 0),
+        syncedAt: new Date(Number(args.timestamp || 0) * 1000),
+      };
+      await persistReceipt(
+        buildEnvelope({ type: 'price-sync', payload: { ...psh, syncedAt: psh.syncedAt.toISOString() } }),
+        `pricesync-${psh.mirrorKey}-${Date.now()}.json`
+      );
+      if (!isTier1AuditOnly()) {
+        await prisma.priceSyncHistory.create({ data: psh });
+      }
     } catch (error) {
       console.error('[EventListener] Error handling MirrorPriceSynced:', error);
     }
@@ -471,19 +478,33 @@ export class ExternalMarketEventListener {
 
       const args = decoded.args as any;
 
-      // Update trade record with VRF execution
-      await prisma.mirrorTrade.updateMany({
-        where: {
-          mirrorKey: args.mirrorKey || '',
-          traderAddress: args.follower || '',
-          blockNumber: Number(log.blockNumber || 0),
-        },
-        data: {
-          isVRFTrade: true,
-          completed: true,
-          completedAt: new Date(),
-        },
-      });
+      // VRFCopyTradeExecuted: chain event is canonical. 0G receipt for the
+      // event payload; Prisma row update only in dual-write mode.
+      const vrfData = {
+        mirrorKey: args.mirrorKey || '',
+        follower: args.follower || '',
+        blockNumber: Number(log.blockNumber || 0),
+        txHash: log.transactionHash || '',
+        completedAt: new Date().toISOString(),
+      };
+      await persistReceipt(
+        buildEnvelope({ type: 'mirror-trade-vrf-completed', payload: vrfData }),
+        `mirror-trade-vrf-${vrfData.mirrorKey}-${vrfData.blockNumber}.json`
+      );
+      if (!isTier2EventSourced()) {
+        await prisma.mirrorTrade.updateMany({
+          where: {
+            mirrorKey: vrfData.mirrorKey,
+            traderAddress: vrfData.follower,
+            blockNumber: vrfData.blockNumber,
+          },
+          data: {
+            isVRFTrade: true,
+            completed: true,
+            completedAt: new Date(),
+          },
+        });
+      }
     } catch (error) {
       console.error('[EventListener] Error handling VRFCopyTradeExecuted:', error);
     }
@@ -502,21 +523,29 @@ export class ExternalMarketEventListener {
 
       const args = decoded.args as any;
 
-      // Create trade record for agent
-      await prisma.mirrorTrade.create({
-        data: {
-          mirrorKey: args.mirrorKey || '',
-          traderAddress: '0x0000000000000000000000000000000000000000', // System/agent address
-          agentId: String(args.agentId || 0),
-          isYes: args.isYes || false,
-          amount: (args.amount || 0n).toString(),
-          sharesReceived: '0', // Not in event
-          price: 0,
-          blockNumber: Number(log.blockNumber || 0),
-          txHash: log.transactionHash || '',
-          timestamp: new Date(),
-        },
-      });
+      // AgentTradeExecuted: chain event is canonical. 0G receipt holds the
+      // full payload; Prisma row only in dual-write mode.
+      const agentTrade = {
+        mirrorKey: args.mirrorKey || '',
+        traderAddress: '0x0000000000000000000000000000000000000000',
+        agentId: String(args.agentId || 0),
+        isYes: args.isYes || false,
+        amount: (args.amount || 0n).toString(),
+        sharesReceived: '0',
+        price: 0,
+        blockNumber: Number(log.blockNumber || 0),
+        txHash: log.transactionHash || '',
+        timestamp: new Date().toISOString(),
+      };
+      await persistReceipt(
+        buildEnvelope({ type: 'mirror-trade-agent', payload: agentTrade }),
+        `mirror-trade-agent-${agentTrade.mirrorKey}-${agentTrade.blockNumber}.json`
+      );
+      if (!isTier2EventSourced()) {
+        await prisma.mirrorTrade.create({
+          data: { ...agentTrade, timestamp: new Date(agentTrade.timestamp) },
+        });
+      }
     } catch (error) {
       console.error('[EventListener] Error handling AgentTradeExecuted:', error);
     }
@@ -535,16 +564,26 @@ export class ExternalMarketEventListener {
 
       const args = decoded.args as any;
 
-      // Update trade with prediction data
-      await prisma.mirrorTrade.updateMany({
-        where: {
-          mirrorKey: args.mirrorKey || '',
-          blockNumber: Number(log.blockNumber || 0),
-        },
-        data: {
-          predictionHash: `${args.outcome}:${args.confidence}`,
-        },
-      });
+      // PredictionStored: chain event is canonical. 0G receipt; Prisma update
+      // only in dual-write mode.
+      const predData = {
+        mirrorKey: args.mirrorKey || '',
+        blockNumber: Number(log.blockNumber || 0),
+        predictionHash: `${args.outcome}:${args.confidence}`,
+      };
+      await persistReceipt(
+        buildEnvelope({ type: 'mirror-prediction-stored', payload: predData }),
+        `prediction-${predData.mirrorKey}-${predData.blockNumber}.json`
+      );
+      if (!isTier2EventSourced()) {
+        await prisma.mirrorTrade.updateMany({
+          where: {
+            mirrorKey: predData.mirrorKey,
+            blockNumber: predData.blockNumber,
+          },
+          data: { predictionHash: predData.predictionHash },
+        });
+      }
     } catch (error) {
       console.error('[EventListener] Error handling PredictionStored:', error);
     }
@@ -598,20 +637,29 @@ export class ExternalMarketEventListener {
 
   private async updateDatabaseForTrade(event: MirrorTradeExecutedEvent): Promise<void> {
     try {
-      // Create trade record
-      await prisma.mirrorTrade.create({
-        data: {
-          mirrorKey: event.mirrorKey,
-          traderAddress: event.trader,
-          isYes: event.isYes,
-          amount: event.amountIn.toString(),
-          sharesReceived: event.sharesOut.toString(),
-          price: 0, // Not available from event
-          blockNumber: Number(event.blockNumber),
-          txHash: event.transactionHash,
-          timestamp: new Date(),
-        },
-      });
+      // 0G receipt is canonical for the trade row; Prisma row only in
+      // dual-write mode. The MirrorMarket totalVolume update below stays
+      // because MirrorMarket is Tier 5 (kept in DB) for now.
+      const tradeData = {
+        mirrorKey: event.mirrorKey,
+        traderAddress: event.trader,
+        isYes: event.isYes,
+        amount: event.amountIn.toString(),
+        sharesReceived: event.sharesOut.toString(),
+        price: 0,
+        blockNumber: Number(event.blockNumber),
+        txHash: event.transactionHash,
+        timestamp: new Date().toISOString(),
+      };
+      await persistReceipt(
+        buildEnvelope({ type: 'mirror-trade-executed', payload: tradeData }),
+        `mirror-trade-${tradeData.mirrorKey}-${tradeData.blockNumber}.json`
+      );
+      if (!isTier2EventSourced()) {
+        await prisma.mirrorTrade.create({
+          data: { ...tradeData, timestamp: new Date(tradeData.timestamp) },
+        });
+      }
 
       // Update mirror market volume
       const market = await prisma.mirrorMarket.findUnique({

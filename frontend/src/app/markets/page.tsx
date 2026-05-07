@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMarkets } from '@/hooks/useMarkets';
 import { MarketCard } from '@/components/markets/MarketCard';
 import { MarketStatus } from '@/services/predictionMarketService';
@@ -38,6 +39,7 @@ const MarketCardSkeleton = () => (
 );
 
 export default function MarketsPage() {
+  const router = useRouter();
   const { markets, activeMarkets, resolvedMarkets, loading, error, refetch } = useMarkets();
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [sortBy, setSortBy] = useState<SortOption>('volume');
@@ -85,7 +87,13 @@ export default function MarketsPage() {
 
   return (
     <main className="container-arcade py-6 md:py-8">
-      <MirrorTickerBar className="rounded-lg mb-6" limit={8} />
+      <MirrorTickerBar
+        className="rounded-lg mb-6"
+        limit={8}
+        onRowClick={(row) => {
+          if (row.marketId) router.push(`/markets/${row.marketId}`);
+        }}
+      />
       {/* Hero Section */}
       <div className="text-center mb-8 md:mb-12 animate-fade-in">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 md:mb-4 arcade-glow">

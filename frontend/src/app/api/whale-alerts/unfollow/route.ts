@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { requireSessionForAddress } from '@/lib/auth/requireSession';
 
 interface UnfollowRequest {
   userAddress: string;
@@ -33,6 +34,9 @@ export async function POST(request: NextRequest) {
     if (!whaleAddress || !isAddress(whaleAddress)) {
       throw ErrorResponses.badRequest('Invalid whale address');
     }
+
+    // SIWE guard: only the wallet owner may unfollow on their own behalf.
+    requireSessionForAddress(request, userAddress);
 
     // Soft delete by setting isActive = false
     const result = await prisma.whaleFollow.updateMany({

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     applyRateLimit(request, { prefix: 'safety-read', maxRequests: 60, windowMs: 60_000 });
     const address = request.nextUrl.searchParams.get('address');
-    if (!address || !/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    if (!address || !/^0[xX][0-9a-fA-F]{40}$/.test(address)) {
       throw ErrorResponses.badRequest('Missing or invalid address');
     }
     return NextResponse.json({
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       throw ErrorResponses.badRequest('Body must be JSON');
     }
     const { address, action } = body as { address?: string; action?: string };
-    if (!address || !/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    if (!address || !/^0[xX][0-9a-fA-F]{40}$/.test(address)) {
       throw ErrorResponses.badRequest('Missing or invalid address');
     }
     if (action === 'pause') {

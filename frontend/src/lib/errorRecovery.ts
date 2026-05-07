@@ -13,6 +13,30 @@
  */
 
 import { prisma } from './prisma';
+import { persistReceipt, buildEnvelope } from '@/lib/storage/persistReceipt';
+import { isTier1AuditOnly } from '@/lib/storage/featureFlags';
+
+/**
+ * Tier 1: SystemAudit dual-write helper. Always persists a 0G receipt; the
+ * legacy Prisma row is skipped once `ENABLE_0G_AUDIT_LOGS=1`. Failures on
+ * either path are swallowed — audit writes must never break the calling op.
+ */
+async function persistSystemAudit(data: {
+  eventType: string;
+  oldValue: string;
+  newValue: string;
+  txHash: string;
+  blockNumber: number;
+}): Promise<void> {
+  await persistReceipt(
+    buildEnvelope({ type: 'system-audit', payload: data }),
+    `audit-${data.eventType}-${Date.now()}.json`
+  );
+  if (isTier1AuditOnly()) return;
+  await prisma.systemAudit.create({ data }).catch((e) => {
+    console.error('[persistSystemAudit] Prisma write failed', e);
+  });
+}
 
 // ============================================================================
 // Types
@@ -301,21 +325,19 @@ export class RetryHandler {
   }
 
   private async logToDeadLetterQueue(context: ErrorContext, error: Error): Promise<void> {
-    // Store failed operation for manual review/retry
-    await prisma.systemAudit.create({
-      data: {
-        eventType: 'FAILED_OPERATION',
-        oldValue: context.operation,
-        newValue: JSON.stringify({
-          error: error.message,
-          stack: error.stack,
-          metadata: context.metadata,
-          severity: context.severity,
-          timestamp: new Date().toISOString(),
-        }),
-        txHash: 'N/A',
-        blockNumber: 0,
-      },
+    // Store failed operation for manual review/retry (0G + dual-write Prisma)
+    await persistSystemAudit({
+      eventType: 'FAILED_OPERATION',
+      oldValue: context.operation,
+      newValue: JSON.stringify({
+        error: error.message,
+        stack: error.stack,
+        metadata: context.metadata,
+        severity: context.severity,
+        timestamp: new Date().toISOString(),
+      }),
+      txHash: 'N/A',
+      blockNumber: 0,
     });
 
     console.error(
@@ -500,16 +522,14 @@ export class GracefulDegradation {
     this.featureFlags.set(feature, false);
     console.warn(`[GracefulDegradation] Feature '${feature}' disabled: ${reason}`);
 
-    // Log to audit
-    prisma.systemAudit.create({
-      data: {
-        eventType: 'FEATURE_DISABLED',
-        oldValue: feature,
-        newValue: reason,
-        txHash: 'N/A',
-        blockNumber: 0,
-      },
-    }).catch(console.error);
+    // Log to audit (0G receipt + dual-write Prisma row)
+    void persistSystemAudit({
+      eventType: 'FEATURE_DISABLED',
+      oldValue: feature,
+      newValue: reason,
+      txHash: 'N/A',
+      blockNumber: 0,
+    });
   }
 
   static enableFeature(feature: string): void {

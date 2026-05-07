@@ -1,129 +1,124 @@
 /**
- * Next.js Middleware for Request Authentication
+ * Next.js Middleware — defense-in-depth presence check.
  *
- * This middleware provides security for protected API routes by:
- * 1. Logging access to sensitive endpoints
- * 2. Optionally enforcing wallet signature authentication
+ * Edge runtime can't run Node `crypto`, so the middleware does NOT verify the
+ * session JWT here — it only checks that a session cookie is present on
+ * routes in PROTECTED_ROUTES. The authoritative check lives in each route
+ * handler via `requireSessionForAddress()` (which does the HMAC verify on
+ * the Node runtime).
  *
- * Current mode: LOGGING ONLY (audit mode)
- * - All requests are allowed through
- * - Unauthenticated requests to protected routes are logged for monitoring
+ * Modes (AUTH_ENFORCEMENT_MODE):
+ *   'warn' (default) — log presence/absence but always pass through.
+ *   'enforce'        — return 401 if cookie is missing on protected routes.
+ *                      Note: this is BEFORE we verify the signature; expired
+ *                      or revoked cookies still get rejected at the route
+ *                      handler. Middleware reduces wasted work, route is
+ *                      authoritative.
  *
- * To enable enforcement:
- * 1. Set AUTH_ENFORCEMENT_MODE='enforce' in environment
- * 2. Update client code to include signature headers
+ * Legacy `X-Address` / `X-Signature` per-request signing scheme is kept for
+ * back-compat with old clients during rollout — if those headers are present,
+ * we treat the request as authenticated and skip the cookie check.
  */
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Protected routes that require authentication for write operations
+// SESSION_COOKIE_NAME is duplicated here (not imported from session.ts) to
+// avoid pulling Node `crypto` into the edge bundle.
+const SESSION_COOKIE_NAME = 'wai_session';
+
+// Protected routes — superset of the high-risk routes guarded at handler level.
 const PROTECTED_ROUTES = [
   { path: '/api/arena/battles', methods: ['POST', 'PATCH', 'DELETE'] },
+  { path: '/api/arena/betting', methods: ['POST'] },
   { path: '/api/agents/authorize', methods: ['POST', 'DELETE'] },
+  { path: '/api/copy-trade/whale-mirror', methods: ['POST'] },
   { path: '/api/copy-trade/execute', methods: ['POST'] },
   { path: '/api/agents/external-trade', methods: ['POST'] },
   { path: '/api/agents/execute-trade', methods: ['POST'] },
+  { path: '/api/mirror/execute', methods: ['POST'] },
   { path: '/api/oracle/resolve', methods: ['POST'] },
+  { path: '/api/markets/user-create', methods: ['POST'] },
+  { path: '/api/creator/record-fee', methods: ['POST'] },
+  { path: '/api/whale-alerts/follow', methods: ['POST'] },
+  { path: '/api/whale-alerts/unfollow', methods: ['POST'] },
+  { path: '/api/whale-alerts/update-config', methods: ['POST'] },
+  { path: '/api/whale-alerts/subscribe-telegram', methods: ['POST', 'DELETE'] },
 ];
 
-// Public routes that never require authentication
+// Public routes that never require authentication.
 const PUBLIC_ROUTES = [
   '/api/health',
+  '/api/auth',              // sign-in flow itself must remain unauthenticated
   '/api/arena/markets',
   '/api/external/markets',
   '/api/leaderboard',
   '/api/game-master',       // Server-to-server (called by cron)
-  '/api/cron/game-loop',    // Vercel cron (authenticated via CRON_SECRET)
+  '/api/cron',              // Vercel cron (authenticated via CRON_SECRET)
 ];
 
-// Authentication mode: 'log' | 'warn' | 'enforce'
-// - log: Log unauthenticated requests but allow them
-// - warn: Log and add warning header but allow them
-// - enforce: Block unauthenticated requests (requires client updates)
+// 'warn' (default) | 'enforce'
 const AUTH_MODE = process.env.AUTH_ENFORCEMENT_MODE || 'warn';
 
 function isProtectedRoute(pathname: string, method: string): boolean {
-  // Check if it's explicitly public
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
-    return false;
-  }
-
-  // Check if it matches a protected route
+  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) return false;
   return PROTECTED_ROUTES.some(
     route => pathname.startsWith(route.path) && route.methods.includes(method)
   );
 }
 
-function hasAuthHeaders(request: NextRequest): boolean {
-  const address = request.headers.get('X-Address');
-  const signature = request.headers.get('X-Signature');
-  const timestamp = request.headers.get('X-Timestamp');
-  const message = request.headers.get('X-Message');
+function hasLegacyAuthHeaders(request: NextRequest): boolean {
+  // Old per-request signing scheme — kept for back-compat during rollout.
+  return !!(
+    request.headers.get('X-Address') &&
+    request.headers.get('X-Signature') &&
+    request.headers.get('X-Timestamp') &&
+    request.headers.get('X-Message')
+  );
+}
 
-  return !!(address && signature && timestamp && message);
+function hasSessionCookie(request: NextRequest): boolean {
+  return !!request.cookies.get(SESSION_COOKIE_NAME)?.value;
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;
 
-  // Only apply to API routes
-  if (!pathname.startsWith('/api/')) {
+  if (!pathname.startsWith('/api/')) return NextResponse.next();
+  if (!isProtectedRoute(pathname, method)) return NextResponse.next();
+
+  if (hasSessionCookie(request) || hasLegacyAuthHeaders(request)) {
     return NextResponse.next();
   }
 
-  // Check if this is a protected route
-  const isProtected = isProtectedRoute(pathname, method);
-
-  if (!isProtected) {
-    return NextResponse.next();
-  }
-
-  // Check for authentication headers
-  const hasAuth = hasAuthHeaders(request);
-
-  if (hasAuth) {
-    // Has auth headers - allow through (signature verification happens in route)
-    return NextResponse.next();
-  }
-
-  // Handle unauthenticated request based on mode
   const clientIP = request.headers.get('x-forwarded-for') || 'unknown';
   const timestamp = new Date().toISOString();
 
-  switch (AUTH_MODE) {
-    case 'enforce':
-      // Block unauthenticated requests
-      console.warn(
-        `[AUTH] BLOCKED: ${method} ${pathname} from ${clientIP} at ${timestamp} - Missing authentication`
-      );
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Authentication required',
-          message: 'This endpoint requires wallet signature authentication',
-        },
-        { status: 401 }
-      );
-
-    case 'warn':
-      // Allow but add warning header
-      console.warn(
-        `[AUTH] WARNING: ${method} ${pathname} from ${clientIP} at ${timestamp} - Unauthenticated request`
-      );
-      const response = NextResponse.next();
-      response.headers.set('X-Auth-Warning', 'Authentication recommended for this endpoint');
-      return response;
-
-    case 'log':
-    default:
-      // Just log and allow
-      console.log(
-        `[AUTH] AUDIT: ${method} ${pathname} from ${clientIP} at ${timestamp} - No auth headers`
-      );
-      return NextResponse.next();
+  if (AUTH_MODE === 'enforce') {
+    console.warn(
+      `[AUTH] BLOCKED: ${method} ${pathname} from ${clientIP} at ${timestamp} — no session cookie`
+    );
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Authentication required',
+        code: 'UNAUTHORIZED',
+        message: 'Sign in (POST /api/auth/verify) before calling this endpoint',
+      },
+      { status: 401 }
+    );
   }
+
+  // Default 'warn' mode — log + add warning header so clients can spot the
+  // gap during rollout, but allow through. Route handler still gets to
+  // decide via requireSessionForAddress (which is also gated by AUTH_ENFORCE).
+  console.warn(
+    `[AUTH] WARN: ${method} ${pathname} from ${clientIP} at ${timestamp} — no session cookie`
+  );
+  const response = NextResponse.next();
+  response.headers.set('X-Auth-Warning', 'Sign in required (will be enforced soon)');
+  return response;
 }
 
 // Configure which routes this middleware applies to

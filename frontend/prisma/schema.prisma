@@ -287,6 +287,10 @@ model AIDebate {
   providerAddress     String?
   isVerified          Boolean @default(false)
 
+  // 0G Storage receipt (Tier 3 transcript bundling). When set, this is the
+  // canonical handle for the bundled debate transcript (rounds + final).
+  receiptRootHash     String?
+
   // Status
   status    String   @default("pending") // 'pending' | 'in_progress' | 'completed' | 'failed'
   createdAt DateTime @default(now())

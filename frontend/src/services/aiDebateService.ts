@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { isTier3BundledReceipts } from '@/lib/storage/featureFlags';
 import {
   UnifiedMarket,
   MarketSource,
@@ -403,6 +404,20 @@ Respond with ONLY valid JSON:
     agentRole: DebateAgentRole,
     response: DebateAgentResponse
   ): Promise<DebateRound> {
+    // Tier 3 transcript bundling — when ENABLE_0G_TIER3=1, skip the per-round
+    // Prisma write; the bundled debate transcript is uploaded to 0G when the
+    // parent debate completes and the receiptRootHash is stored on AIDebate.
+    if (isTier3BundledReceipts()) {
+      return {
+        id: `mem-debateround-${debateId}-${roundNumber}-${agentRole}`,
+        roundNumber,
+        agentRole,
+        argument: response.argument,
+        sources: response.sources,
+        confidence: response.confidence,
+        timestamp: Date.now(),
+      };
+    }
     const round = await prisma.aIDebateRound.create({
       data: {
         debateId,

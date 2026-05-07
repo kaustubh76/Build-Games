@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isAddress } from 'viem';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { requireSessionForAddress } from '@/lib/auth/requireSession';
 
 interface FollowRequest {
   userAddress: string;
@@ -39,6 +40,9 @@ export async function POST(request: NextRequest) {
     if (!whaleAddress || !isAddress(whaleAddress)) {
       throw ErrorResponses.badRequest('Invalid whale address');
     }
+
+    // SIWE guard: only the wallet owner may modify their own follow list.
+    requireSessionForAddress(request, userAddress);
 
     // Validate config
     if (!config || typeof config.copyPercentage !== 'number') {

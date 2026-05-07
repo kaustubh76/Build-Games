@@ -450,6 +450,15 @@ export class ChainMetrics {
   static reset(): void {
     this.registry.reset();
   }
+
+  /**
+   * In-process snapshot of all metrics. Equivalent to exportJSON() but with
+   * a name that better signals "use this from soak tests instead of scraping
+   * /api/metrics over HTTP".
+   */
+  static snapshot() {
+    return this.registry.exportJSON();
+  }
 }
 
 // ============================================================================

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, http, parseAbiItem, type Log } from 'viem';
-import { avalancheFuji, avalanche } from 'viem/chains';
+import { parseAbiItem, type Log } from 'viem';
 import { AVALANCHE_CONTRACTS } from '@/lib/apiConfig';
-import { getAvalancheRpcUrl, getChainId } from '@/constants';
+import { getResilientPublicClient } from '@/lib/viemClient';
 import { chainMetrics } from '@/lib/metrics';
+import { handleAPIError, createAPILogger, ErrorResponses } from '@/lib/api';
 
 /**
  * GET /api/cron/sync-agent-events
@@ -47,22 +47,23 @@ const EVENTS = [
 
 export async function GET(request: NextRequest) {
   const startedAt = Date.now();
-  const isDev = process.env.NODE_ENV !== 'production';
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = request.headers.get('authorization');
-  const forced = request.nextUrl.searchParams.get('force') === '1';
-  if (cronSecret) {
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-  } else if (!isDev && !forced) {
-    return NextResponse.json({ error: 'CRON_SECRET unset' }, { status: 401 });
-  }
+  const logger = createAPILogger(request);
+  logger.start();
 
   try {
-    const chainId = getChainId();
-    const chain = chainId === 43114 ? avalanche : avalancheFuji;
-    const client = createPublicClient({ chain, transport: http(getAvalancheRpcUrl()) });
+    const isDev = process.env.NODE_ENV !== 'production';
+    const cronSecret = process.env.CRON_SECRET;
+    const auth = request.headers.get('authorization');
+    const forced = request.nextUrl.searchParams.get('force') === '1';
+    if (cronSecret) {
+      if (auth !== `Bearer ${cronSecret}`) {
+        throw ErrorResponses.unauthorized('Invalid or missing cron secret');
+      }
+    } else if (!isDev && !forced) {
+      throw ErrorResponses.unauthorized('CRON_SECRET unset on this deployment');
+    }
+
+    const client = getResilientPublicClient();
 
     const inftAddress = AVALANCHE_CONTRACTS.aiAgentINFT as `0x${string}`;
     const head = Number(await client.getBlockNumber());
@@ -73,7 +74,11 @@ export async function GET(request: NextRequest) {
       lastSyncedBlock = head;
       chainMetrics.setGauge('inft_events_synced_block', head);
       chainMetrics.setGauge('inft_events_blocks_behind', 0);
-      return NextResponse.json({ success: true, message: 'Already at head', head, synced: head });
+      logger.complete(200, 'Already at chain head');
+      return NextResponse.json(
+        { success: true, message: 'Already at head', head, synced: head },
+        { headers: logger.getResponseHeaders() }
+      );
     }
 
     const allLogs: Log[] = [];
@@ -126,21 +131,24 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    return NextResponse.json({
-      success: true,
-      head,
-      fromBlock,
-      toBlock,
-      logsProcessed: allLogs.length,
-      counts: lastRunMetrics.counts,
-      blocksBehind: Math.max(0, head - toBlock),
-      durationMs: lastRunMetrics.durationMs,
-      checkpointStorage: 'in-memory (no centralized DB)',
-    });
+    logger.complete(200, `Synced ${allLogs.length} logs (blocks ${fromBlock}..${toBlock})`);
+    return NextResponse.json(
+      {
+        success: true,
+        head,
+        fromBlock,
+        toBlock,
+        logsProcessed: allLogs.length,
+        counts: lastRunMetrics.counts,
+        blocksBehind: Math.max(0, head - toBlock),
+        durationMs: lastRunMetrics.durationMs,
+        checkpointStorage: 'in-memory (no centralized DB)',
+      },
+      { headers: logger.getResponseHeaders() }
+    );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
     chainMetrics.incrementCounter('inft_indexer_errors_total', 1);
-    console.error('[sync-agent-events] error', error);
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    logger.error('sync-agent-events failed', error);
+    return handleAPIError(error, 'API:Cron:SyncAgentEvents:GET');
   }
 }

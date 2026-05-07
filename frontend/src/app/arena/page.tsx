@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 import { useAccount, useWriteContract, useWatchContractEvent } from 'wagmi';
 import { encodePacked, keccak256, decodeEventLog } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -2311,6 +2312,15 @@ export default function ArenaPage() {
             >
               THE ULTIMATE BATTLEFIELD WHERE LEGENDS CLASH
             </p>
+            {/* Replays CTA — link to verifiable past battles */}
+            <div className="mt-3 flex items-center justify-center">
+              <Link
+                href="/arena/replay"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-fuchsia-500/20 hover:bg-fuchsia-500/40 border border-fuchsia-400/40 text-fuchsia-200 text-xs"
+              >
+                🪞 Watch verifiable battle replays →
+              </Link>
+            </div>
             {/* Storage Sync Status */}
             {(isBattleSyncing || lastSyncedBattleId || battleSyncErrors.length > 0) && (
               <div className="mt-3 flex items-center justify-center gap-2">

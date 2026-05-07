@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, http, parseAbiItem } from 'viem';
-import { avalancheFuji, avalanche } from 'viem/chains';
-import { getAvalancheRpcUrl, getChainId, chainsToContracts } from '@/constants';
+import { parseAbiItem } from 'viem';
+import { getChainId, chainsToContracts } from '@/constants';
+import { getResilientPublicClient } from '@/lib/viemClient';
 import { handleAPIError, applyRateLimit } from '@/lib/api';
 
 /**
@@ -51,8 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     const chainId = getChainId();
-    const chain = chainId === 43114 ? avalanche : avalancheFuji;
-    const client = createPublicClient({ chain, transport: http(getAvalancheRpcUrl()) });
+    const client = getResilientPublicClient();
 
     const contracts = chainsToContracts[chainId] ?? chainsToContracts[43113];
     const arenaAddress = (contracts as Record<string, string> | undefined)?.PredictionArena ??

@@ -7,6 +7,7 @@ import {
   getAvalancheRpcUrl,
   ArenaFactoryAbi,
 } from '../../../../constants';
+import { handleAPIError, createAPILogger, ErrorResponses } from '@/lib/api';
 
 /**
  * GET /api/cron/game-loop
@@ -17,15 +18,19 @@ import {
  *   3. Calls game-master to execute the next round for active battles
  *
  * Secured by CRON_SECRET — Vercel sets this automatically for cron routes.
+ * Errors funnel through `handleAPIError` so the response shape is the same
+ * `{ error, code, details }` envelope clients see for any other 4xx/5xx.
  */
 export async function GET(request: NextRequest) {
-  // Verify cron secret (Vercel sets Authorization header automatically)
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const logger = createAPILogger(request);
+  logger.start();
 
   try {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      throw ErrorResponses.unauthorized('Invalid or missing cron secret');
+    }
+
     const chainId = getChainId();
     const chain = chainId === 43114 ? avalanche : avalancheFuji;
 
@@ -45,7 +50,12 @@ export async function GET(request: NextRequest) {
     }) as string[];
 
     if (!arenas || arenas.length === 0) {
-      return NextResponse.json({ success: true, message: 'No arenas found', actions: [] });
+      logger.info('No arenas found', { factoryAddress });
+      logger.complete(200);
+      return NextResponse.json(
+        { success: true, message: 'No arenas found', actions: [] },
+        { headers: logger.getResponseHeaders() }
+      );
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
@@ -62,6 +72,8 @@ export async function GET(request: NextRequest) {
     });
     if (startRes.ok) {
       results.push({ phase: 'checkAndStartGames', ...(await startRes.json()) });
+    } else {
+      logger.warn('checkAndStartGames returned non-OK status', { status: startRes.status });
     }
 
     // Phase 2: Execute next rounds for battles in progress
@@ -75,19 +87,22 @@ export async function GET(request: NextRequest) {
     });
     if (roundRes.ok) {
       results.push({ phase: 'checkAndExecuteRounds', ...(await roundRes.json()) });
+    } else {
+      logger.warn('checkAndExecuteRounds returned non-OK status', { status: roundRes.status });
     }
 
-    return NextResponse.json({
-      success: true,
-      arenaCount: arenas.length,
-      results,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error('[Cron:GameLoop] Error:', error);
+    logger.complete(200, `Processed ${arenas.length} arenas across 2 phases`);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      {
+        success: true,
+        arenaCount: arenas.length,
+        results,
+        timestamp: new Date().toISOString(),
+      },
+      { headers: logger.getResponseHeaders() }
     );
+  } catch (error) {
+    logger.error('cron game-loop failed', error);
+    return handleAPIError(error, 'API:Cron:GameLoop:GET');
   }
 }

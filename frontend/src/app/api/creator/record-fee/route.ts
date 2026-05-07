@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { requireSessionForAddress } from '@/lib/auth/requireSession';
+import { persistReceipt, buildEnvelope } from '@/lib/storage/persistReceipt';
+import { isTier1AuditOnly } from '@/lib/storage/featureFlags';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +33,9 @@ export async function POST(request: NextRequest) {
     if (!marketId || !creatorAddress || !tradeVolume) {
       throw ErrorResponses.badRequest('Missing required fields: marketId, creatorAddress, tradeVolume');
     }
+
+    // SIWE guard: only the creator wallet may credit fees to itself.
+    requireSessionForAddress(request, creatorAddress);
 
     const volume = parseFloat(tradeVolume);
     if (isNaN(volume) || volume <= 0) {
@@ -79,18 +85,26 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Record the fee entry
-    const feeEntry = await prisma.creatorFeeEntry.create({
-      data: {
-        creatorAddress,
-        marketId: marketId.toString(),
-        tradeVolume: volume.toString(),
-        feeAmount: calculatedFee.toString(),
-        traderAddress: traderAddress || null,
-        txHash: txHash || null,
-        source: 'market_trade',
-      },
-    });
+    // Record the fee entry — 0G receipt is canonical; Prisma row is dual-write
+    // during rollout (skipped once ENABLE_0G_AUDIT_LOGS=1).
+    const feeData = {
+      creatorAddress,
+      marketId: marketId.toString(),
+      tradeVolume: volume.toString(),
+      feeAmount: calculatedFee.toString(),
+      traderAddress: traderAddress || null,
+      txHash: txHash || null,
+      source: 'market_trade',
+    };
+    const receipt = await persistReceipt(
+      buildEnvelope({ type: 'creator-fee', payload: feeData }),
+      `creator-fee-${creatorAddress}-${Date.now()}.json`
+    );
+    let feeEntryId: string | null = null;
+    if (!isTier1AuditOnly()) {
+      const feeEntry = await prisma.creatorFeeEntry.create({ data: feeData });
+      feeEntryId = feeEntry.id;
+    }
 
     // Update market revenue if it's a user-created market
     if (marketId.toString().startsWith('user_') || typeof marketId === 'number') {
@@ -131,7 +145,8 @@ export async function POST(request: NextRequest) {
         totalPending: updatedCreator.pendingRewards,
         totalEarned: updatedCreator.totalFeesEarned,
         tier: newTier || updatedCreator.tier,
-        feeEntryId: feeEntry.id,
+        feeEntryId,
+        receipt: receipt ? { rootHash: receipt.rootHash, txHash: receipt.txHash } : null,
       },
     });
   } catch (error) {

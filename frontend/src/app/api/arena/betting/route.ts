@@ -9,6 +9,8 @@ import { prisma } from '@/lib/prisma';
 import { handleAPIError, ErrorResponses } from '@/lib/api/errorHandler';
 import { validateAddress, validateBigIntString, validateBoolean } from '@/lib/api/validation';
 import { applyRateLimit, RateLimitPresets } from '@/lib/api/rateLimit';
+import { requireSessionForAddress } from '@/lib/auth/requireSession';
+import { persistReceipt, buildEnvelope } from '@/lib/storage/persistReceipt';
 
 /**
  * GET /api/arena/betting?battleId=xxx
@@ -44,16 +46,20 @@ export async function GET(request: NextRequest) {
     });
 
     if (!pool) {
-      // Create pool for this battle
-      pool = await prisma.battleBettingPool.create({
-        data: {
-          battleId,
-          totalWarrior1Bets: '0',
-          totalWarrior2Bets: '0',
-          totalBettors: 0,
-          bettingOpen: battle.status === 'active' && battle.currentRound <= 2,
-        },
-      });
+      // Create pool for this battle (Prisma is canonical for now;
+      // Tier 2 read-side switch is a follow-up).
+      const poolData = {
+        battleId,
+        totalWarrior1Bets: '0',
+        totalWarrior2Bets: '0',
+        totalBettors: 0,
+        bettingOpen: battle.status === 'active' && battle.currentRound <= 2,
+      };
+      await persistReceipt(
+        buildEnvelope({ type: 'battle-betting-pool-init', payload: poolData }),
+        `betting-pool-${battleId}-init.json`
+      );
+      pool = await prisma.battleBettingPool.create({ data: poolData });
     }
 
     // Calculate odds
@@ -132,6 +138,9 @@ export async function POST(request: NextRequest) {
     validateAddress(bettorAddress, 'bettorAddress');
     validateBoolean(betOnWarrior1, 'betOnWarrior1');
     validateBigIntString(amount, 'amount');
+
+    // SIWE guard: only the bettor's own wallet may place a bet under their address.
+    requireSessionForAddress(request, bettorAddress);
 
     // Get battle
     const battle = await prisma.predictionBattle.findUnique({
@@ -333,7 +342,20 @@ export async function PATCH(request: NextRequest) {
     }
     // Losers get 0
 
-    // Update bet as claimed
+    // Update bet as claimed (0G receipt + Prisma row).
+    const claimData = {
+      betId: bet.id,
+      battleId: bet.battleId,
+      bettorAddress: bet.bettorAddress,
+      payout: payout.toString(),
+      won,
+      isDraw,
+      claimedAt: new Date().toISOString(),
+    };
+    await persistReceipt(
+      buildEnvelope({ type: 'battle-bet-claimed', payload: claimData }),
+      `bet-claimed-${bet.id}.json`
+    );
     await prisma.battleBet.update({
       where: { id: bet.id },
       data: {
@@ -371,6 +393,14 @@ export async function DELETE(request: NextRequest) {
       throw ErrorResponses.badRequest('battleId is required');
     }
 
+    // 0G receipt + Prisma update — the Prisma row is the read path for now.
+    await persistReceipt(
+      buildEnvelope({
+        type: 'battle-betting-pool-closed',
+        payload: { battleId, closedAt: new Date().toISOString() },
+      }),
+      `betting-pool-${battleId}-closed.json`
+    );
     await prisma.battleBettingPool.update({
       where: { battleId },
       data: { bettingOpen: false },

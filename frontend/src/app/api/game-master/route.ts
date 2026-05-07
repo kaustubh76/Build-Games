@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { avalancheFuji, avalanche } from 'viem/chains';
-import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { handleAPIError, applyRateLimit, ErrorResponses, log } from '@/lib/api';
 import { getAvalancheRpcUrl, getAvalancheFallbackRpcUrl, getChainId } from '@/constants';
 
 const RPC_TIMEOUT = 30000; // 30 seconds
@@ -44,7 +44,7 @@ async function executeWithAvalancheFallback<T>(
   try {
     return await fn(createAvalanchePublicClient());
   } catch (error) {
-    console.warn('[Avalanche] Primary RPC failed, trying fallback...');
+    log.warn('[Avalanche] Primary RPC failed, trying fallback...');
     return await fn(createAvalancheFallbackClient());
   }
 }
@@ -123,7 +123,7 @@ async function getWarriorBattleData(
       Luck: Math.round(details.traits.luck * 100)
     };
 
-    console.log(`Game Master: Fetched NFT #${nftId} data - ${details.name}`);
+    log.info(`Game Master: Fetched NFT #${nftId} data - ${details.name}`);
 
     return {
       personality: {
@@ -133,7 +133,7 @@ async function getWarriorBattleData(
       traits
     };
   } catch (error) {
-    console.warn(`Game Master: Failed to fetch NFT #${nftId} data, using seeded fallback:`, error);
+    log.warn(`Game Master: Failed to fetch NFT #${nftId} data, using seeded fallback`, { error: String(error) });
     return defaults;
   }
 }
@@ -196,7 +196,7 @@ async function waitForReceiptWithFallback(hash: `0x${string}`) {
     return await primaryClient.waitForTransactionReceipt({ hash, timeout: RPC_TIMEOUT });
   } catch (error) {
     if (isTimeoutError(error)) {
-      console.warn('[Game Master] Primary RPC timed out waiting for receipt, trying fallback...');
+      log.warn('[Game Master] Primary RPC timed out waiting for receipt, trying fallback...');
       return await fallbackClient.waitForTransactionReceipt({ hash, timeout: RPC_TIMEOUT });
     }
     throw error;
@@ -289,14 +289,14 @@ async function getArenaState(arenaAddress: string): Promise<ArenaState | null> {
       playerTwoBetAddresses: playerTwoBetAddresses as string[]
     };
   } catch (error) {
-    console.error(`Failed to get arena state for ${arenaAddress}:`, error);
+    log.error(`Failed to get arena state for ${arenaAddress}:`, error);
     return null;
   }
 }
 
 async function startGame(arenaAddress: string): Promise<boolean> {
   try {
-    console.log(`Game Master: Starting game for arena ${arenaAddress}`);
+    log.info(`Game Master: Starting game for arena ${arenaAddress}`);
     
     const hash = await getWalletClient().writeContract({
       address: arenaAddress as `0x${string}`,
@@ -305,15 +305,15 @@ async function startGame(arenaAddress: string): Promise<boolean> {
       chain: getChain(),
     });
 
-    console.log(`Game Master: Start game transaction sent: ${hash}`);
+    log.info(`Game Master: Start game transaction sent: ${hash}`);
 
     // Wait for transaction confirmation
     const receipt = await waitForReceiptWithFallback(hash);
 
-    console.log(`Game Master: Game started successfully for arena ${arenaAddress}`);
+    log.info(`Game Master: Game started successfully for arena ${arenaAddress}`);
     return receipt.status === 'success';
   } catch (error) {
-    console.error(`Game Master: Failed to start game for arena ${arenaAddress}:`, error);
+    log.error(`Game Master: Failed to start game for arena ${arenaAddress}:`, error);
     return false;
   }
 }
@@ -350,7 +350,7 @@ async function generateAIMoves(arenaAddress: string): Promise<{ moves: { agent_1
     ]);
 
     // Fetch actual NFT metadata for both warriors in parallel
-    console.log(`Game Master: Fetching NFT data for warriors #${warriorsOneNFTId} and #${warriorsTwoNFTId}`);
+    log.info(`Game Master: Fetching NFT data for warriors #${warriorsOneNFTId} and #${warriorsTwoNFTId}`);
     const [warrior1Data, warrior2Data] = await Promise.all([
       getWarriorBattleData(warriorsOneNFTId as bigint),
       getWarriorBattleData(warriorsTwoNFTId as bigint)
@@ -378,7 +378,7 @@ async function generateAIMoves(arenaAddress: string): Promise<{ moves: { agent_1
     };
 
     // Call AI for move selection
-    console.log('Game Master: Calling AI for move selection...');
+    log.info('Game Master: Calling AI for move selection...');
     const response = await fetch(`${getApiBaseUrl()}/api/generate-battle-moves`, {
       method: 'POST',
       headers: {
@@ -391,17 +391,17 @@ async function generateAIMoves(arenaAddress: string): Promise<{ moves: { agent_1
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Game Master: AI API Error:', errorText);
+      log.error('Game Master: AI API Error:', errorText);
       return { error: `AI API HTTP error (${response.status}): ${errorText.slice(0, 200)}` };
     }
 
     const data = await response.json();
     if (!data.success) {
-      console.error('Game Master: AI API Error:', data.error);
+      log.error('Game Master: AI API Error:', data.error);
       return { error: `AI API returned failure: ${data.error}` };
     }
 
-    console.log('Game Master: AI Response:', data.response);
+    log.info('Game Master: AI Response:', data.response);
 
     // Parse the AI response to extract moves
     try {
@@ -439,32 +439,32 @@ async function generateAIMoves(arenaAddress: string): Promise<{ moves: { agent_1
           }
         };
       } else {
-        console.error('Game Master: Invalid AI response format');
+        log.error('Game Master: Invalid AI response format');
         return { error: 'Invalid AI response format — could not extract agent moves' };
       }
     } catch (parseError) {
-      console.error('Game Master: Failed to parse AI response:', parseError);
+      log.error('Game Master: Failed to parse AI response:', parseError);
       return { error: `Failed to parse AI JSON response: ${(parseError as Error).message}` };
     }
   } catch (error) {
-    console.error('Game Master: Failed to generate AI moves:', error);
+    log.error('Game Master: Failed to generate AI moves:', error);
     return { error: `Failed to generate AI moves: ${(error as Error).message}` };
   }
 }
 
 async function executeNextRound(arenaAddress: string): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log(`Game Master: Executing next round for arena ${arenaAddress}`);
+    log.info(`Game Master: Executing next round for arena ${arenaAddress}`);
 
     // Generate AI moves
     const result = await generateAIMoves(arenaAddress);
     if ('error' in result) {
-      console.error('Game Master: Failed to generate AI moves:', result.error);
+      log.error('Game Master: Failed to generate AI moves:', result.error);
       return { success: false, error: result.error };
     }
     const moves = result.moves;
 
-    console.log(`Game Master: AI selected moves - Agent 1: ${moves.agent_1.move}, Agent 2: ${moves.agent_2.move}`);
+    log.info(`Game Master: AI selected moves - Agent 1: ${moves.agent_1.move}, Agent 2: ${moves.agent_2.move}`);
 
     // Map move names to contract enum values (handles AI response variations)
     const moveMapping: { [key: string]: number } = {
@@ -483,7 +483,7 @@ async function executeNextRound(arenaAddress: string): Promise<{ success: boolea
       const key = raw.toLowerCase().trim();
       const value = moveMapping[key];
       if (value === undefined) {
-        console.warn(`[GameMaster] Unknown move from AI: "${raw}" (${label}), defaulting to strike(0)`);
+        log.warn(`[GameMaster] Unknown move from AI: "${raw}" (${label}), defaulting to strike(0)`);
         return 0;
       }
       return value;
@@ -511,7 +511,7 @@ async function executeNextRound(arenaAddress: string): Promise<{ success: boolea
       message: { raw: dataHash }
     });
 
-    console.log(`Game Master: Executing battle with moves ${warriorsOneMove} vs ${warriorsTwoMove}`);
+    log.info(`Game Master: Executing battle with moves ${warriorsOneMove} vs ${warriorsTwoMove}`);
 
     const hash = await getWalletClient().writeContract({
       address: arenaAddress as `0x${string}`,
@@ -521,15 +521,15 @@ async function executeNextRound(arenaAddress: string): Promise<{ success: boolea
       chain: getChain(),
     });
 
-    console.log(`Game Master: Battle transaction sent: ${hash}`);
+    log.info(`Game Master: Battle transaction sent: ${hash}`);
 
     // Wait for transaction confirmation
     const receipt = await waitForReceiptWithFallback(hash);
 
-    console.log(`Game Master: Next round executed successfully for arena ${arenaAddress}`);
+    log.info(`Game Master: Next round executed successfully for arena ${arenaAddress}`);
     return { success: receipt.status === 'success' };
   } catch (error) {
-    console.error(`Game Master: Failed to execute next round for arena ${arenaAddress}:`, error);
+    log.error(`Game Master: Failed to execute next round for arena ${arenaAddress}:`, error);
     return { success: false, error: `Round execution failed: ${(error as Error).message}` };
   }
 }
@@ -569,7 +569,7 @@ export async function POST(request: NextRequest) {
 
     // Process arenas sequentially (avoid nonce conflicts on game master wallet)
     for (const arenaAddress of arenaAddresses) {
-      console.log(`Game Master: Processing ${action} for arena ${arenaAddress}`);
+      log.info(`Game Master: Processing ${action} for arena ${arenaAddress}`);
 
       const arenaState = arenaStates.get(arenaAddress) ?? null;
       if (!arenaState) {
@@ -589,7 +589,7 @@ export async function POST(request: NextRequest) {
                                arenaState.playerTwoBetAddresses.length > 0;
 
         if (shouldStartGame) {
-          console.log(`Game Master: Starting game for arena ${arenaAddress} - betting period ended`);
+          log.info(`Game Master: Starting game for arena ${arenaAddress} - betting period ended`);
           const success = await startGame(arenaAddress);
           results[arenaAddress] = { success, action: 'started', bettingEndTime, currentTime };
         } else {
@@ -615,7 +615,7 @@ export async function POST(request: NextRequest) {
                                   currentTime >= roundEndTime;
 
         if (shouldExecuteRound) {
-          console.log(`Game Master: Executing next round for arena ${arenaAddress} - round interval passed`);
+          log.info(`Game Master: Executing next round for arena ${arenaAddress} - round interval passed`);
           const roundResult = await executeNextRound(arenaAddress);
           results[arenaAddress] = { success: roundResult.success, action: 'executed_round', error: roundResult.error, roundEndTime, currentTime, round: arenaState.currentRound };
         } else {

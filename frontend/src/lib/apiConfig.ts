@@ -16,22 +16,91 @@ export const AVALANCHE_MAINNET_RPC = process.env.NEXT_PUBLIC_AVALANCHE_MAINNET_R
 export const AVALANCHE_CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '43113', 10);
 
 // ============================================================================
-// Contract Addresses - Avalanche Fuji Testnet (43113)
+// Contract Addresses — chain-aware, single source of truth
 // ============================================================================
+//
+// Resolution order (highest precedence wins):
+//   1. Per-contract env override (e.g. NEXT_PUBLIC_CROWN_TOKEN)
+//   2. chainsToContracts[NEXT_PUBLIC_CHAIN_ID] from constants.ts
+//   3. Throws at module-load if a non-local chain resolves to 0x0…0
+//
+// Why this layout: the legacy `as const` flat map silently fell back to
+// hardcoded Fuji addresses when NEXT_PUBLIC_CHAIN_ID flipped to 43114.
+// That's a foot-gun for the mainnet cutover. Now: a misconfigured mainnet
+// deploy (zero-address placeholders, no env overrides) crashes loudly at
+// startup via the instrumentation hook + envValidator.
+//
+// The export shape (the keys) is preserved so the 59 existing call sites
+// (`AVALANCHE_CONTRACTS.crownToken` etc.) keep working unchanged.
 
-export const AVALANCHE_CONTRACTS = {
-  crownToken: process.env.NEXT_PUBLIC_CROWN_TOKEN || '0xF0011ca65e3F6314B180a8848ae373042bAEc9b4',
-  predictionMarketAMM: process.env.NEXT_PUBLIC_PREDICTION_MARKET || '0xeBe1DB030bBFC5bCdD38593C69e4899887D2e487',
-  aiAgentRegistry: process.env.NEXT_PUBLIC_AI_AGENT_REGISTRY || '0x5e0Df8750114ecBC0850494fb1a2b9001b61254e',
-  aiDebateOracle: process.env.NEXT_PUBLIC_AI_DEBATE_ORACLE || '0x17f63e80bd0db1ed77f6dcf54d2bb7ae3fb43f7d',
-  outcomeToken: process.env.NEXT_PUBLIC_OUTCOME_TOKEN || '0x578F5D284F1Ac91115293cC36eD2DF487550C1da',
-  creatorRevenueShare: process.env.NEXT_PUBLIC_CREATOR_REVENUE || '0x05Ca49f32B482e0Dce58e39A22F31e5f56A43Ee7',
-  warriorsNFT: process.env.NEXT_PUBLIC_WARRIORS_NFT || '0x218d3efaB076bd03E278CDCf3B488AA107215b8a',
-  arenaFactory: process.env.NEXT_PUBLIC_ARENA_FACTORY || '0xe9faCA292CEF42489AF4d20266964Fb6425AE122',
-  externalMarketMirror: process.env.NEXT_PUBLIC_EXTERNAL_MARKET_MIRROR || '0x1cfa9eD162f90B1eD6d9A01c504fFc28B7412473',
-  aiAgentINFT: process.env.NEXT_PUBLIC_AI_AGENT_INFT || '0xbAE259eeA7fd49F631dE44Ac8d4fd2eb6C7F8Cb8',
-  agentINFTOracle: process.env.NEXT_PUBLIC_AGENT_INFT_ORACLE || '0xf986215373Bc8E5A1a698Be72270c0e1FC4716e3',
+import { chainsToContracts, getChainId } from '@/constants';
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+/** Map of API-route key → corresponding key in `chainsToContracts` map. */
+const CONTRACT_KEY_MAP = {
+  crownToken: 'crownToken',
+  predictionMarketAMM: 'predictionMarketAMM',
+  aiAgentRegistry: 'aiAgentRegistry',
+  aiDebateOracle: 'aiDebateOracle',
+  outcomeToken: 'outcomeToken',
+  creatorRevenueShare: 'creatorRevenueShare',
+  warriorsNFT: 'warriorsNFT',
+  arenaFactory: 'ArenaFactory', // note: capital-A in constants.ts
+  externalMarketMirror: 'externalMarketMirror',
+  aiAgentINFT: 'aiAgentINFT',
+  agentINFTOracle: 'agentINFTOracle',
 } as const;
+
+/** Per-contract env override variable name. */
+const CONTRACT_ENV_OVERRIDE = {
+  crownToken: 'NEXT_PUBLIC_CROWN_TOKEN',
+  predictionMarketAMM: 'NEXT_PUBLIC_PREDICTION_MARKET',
+  aiAgentRegistry: 'NEXT_PUBLIC_AI_AGENT_REGISTRY',
+  aiDebateOracle: 'NEXT_PUBLIC_AI_DEBATE_ORACLE',
+  outcomeToken: 'NEXT_PUBLIC_OUTCOME_TOKEN',
+  creatorRevenueShare: 'NEXT_PUBLIC_CREATOR_REVENUE',
+  warriorsNFT: 'NEXT_PUBLIC_WARRIORS_NFT',
+  arenaFactory: 'NEXT_PUBLIC_ARENA_FACTORY',
+  externalMarketMirror: 'NEXT_PUBLIC_EXTERNAL_MARKET_MIRROR',
+  aiAgentINFT: 'NEXT_PUBLIC_AI_AGENT_INFT',
+  agentINFTOracle: 'NEXT_PUBLIC_AGENT_INFT_ORACLE',
+} as const;
+
+function resolveContracts(): Record<keyof typeof CONTRACT_KEY_MAP, string> {
+  const chainId = getChainId();
+  const chainContracts = chainsToContracts[chainId] || {};
+  const out: Record<string, string> = {};
+
+  for (const apiKey of Object.keys(CONTRACT_KEY_MAP) as Array<keyof typeof CONTRACT_KEY_MAP>) {
+    const envName = CONTRACT_ENV_OVERRIDE[apiKey];
+    const envValue = process.env[envName];
+    const chainValue = (chainContracts as Record<string, string | undefined>)[
+      CONTRACT_KEY_MAP[apiKey]
+    ];
+    out[apiKey] = (envValue && envValue.length > 0 ? envValue : chainValue) || '';
+  }
+
+  // Refuse zero/empty addresses for non-local chains. Local (31337) is allowed
+  // to use placeholders since contracts are deployed dynamically per-test.
+  if (chainId !== 31337) {
+    const bad: string[] = [];
+    for (const [k, v] of Object.entries(out)) {
+      if (!v || v.toLowerCase() === ZERO_ADDRESS) {
+        bad.push(`${k} (set ${CONTRACT_ENV_OVERRIDE[k as keyof typeof CONTRACT_ENV_OVERRIDE]} or update chainsToContracts[${chainId}] in constants.ts)`);
+      }
+    }
+    if (bad.length > 0) {
+      throw new Error(
+        `[apiConfig] Refusing to start: chain ${chainId} has zero/empty contract addresses for: ${bad.join(', ')}`
+      );
+    }
+  }
+
+  return out as Record<keyof typeof CONTRACT_KEY_MAP, string>;
+}
+
+export const AVALANCHE_CONTRACTS = resolveContracts();
 
 // ============================================================================
 // API Rate Limits

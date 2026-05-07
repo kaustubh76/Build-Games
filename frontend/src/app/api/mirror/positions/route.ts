@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     });
 
     const walletAddress = request.nextUrl.searchParams.get('walletAddress');
-    if (!walletAddress || !/^0x[0-9a-fA-F]{40}$/.test(walletAddress)) {
+    if (!walletAddress || !/^0[xX][0-9a-fA-F]{40}$/.test(walletAddress)) {
       throw ErrorResponses.badRequest('Missing or invalid walletAddress');
     }
     const trader = walletAddress.toLowerCase();

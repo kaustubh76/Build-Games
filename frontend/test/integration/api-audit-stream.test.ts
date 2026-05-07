@@ -46,7 +46,7 @@ describe('/api/copy-trade/audit', () => {
     );
     const body = await res.json();
     expect(body.cached).toBe(true);
-  }, 90_000);
+  }, 180_000);
 });
 
 describe('/api/whale-alerts/stream', () => {

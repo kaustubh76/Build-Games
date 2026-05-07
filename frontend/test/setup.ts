@@ -19,6 +19,9 @@ process.env.NEXT_PUBLIC_CHAIN_ID = process.env.NEXT_PUBLIC_CHAIN_ID || '43113';
 process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL =
   process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL || 'https://api.avax-test.network/ext/bc/C/rpc';
 process.env.CRON_SECRET = process.env.CRON_SECRET || 'test-cron-secret';
+// 32+ chars satisfies the SIWE session HMAC requirement.
+process.env.SESSION_SECRET =
+  process.env.SESSION_SECRET || 'test-session-secret-must-be-at-least-32-chars';
 
 // Conditional jest-dom: only registers when running in a happy-dom env.
 // Use dynamic import (works in both CJS + ESM contexts vitest may run under).

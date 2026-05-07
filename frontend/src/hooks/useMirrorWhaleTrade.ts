@@ -93,6 +93,7 @@ export function useMirrorWhaleTrade() {
       try {
         const res = await fetch('/api/copy-trade/whale-mirror', {
           method: 'POST',
+          credentials: 'include', // attach SIWE session cookie if present
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userAddress: address,

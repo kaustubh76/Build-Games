@@ -255,3 +255,34 @@ export const RateLimitPresets = {
     windowMs: 60000, // 120 per minute
   },
 } as const;
+
+// ============================================================================
+// Test/soak inspectors — gated to non-production environments. Soak tests use
+// these to assert internal state without parsing /api/metrics responses.
+// ============================================================================
+
+function assertNotProduction(name: string): void {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`${name} is unavailable in production`);
+  }
+}
+
+export function __getRateLimitState(): {
+  size: number;
+  entries: Array<{ key: string; count: number; resetAt: number }>;
+} {
+  assertNotProduction('__getRateLimitState');
+  return {
+    size: rateLimitMap.size,
+    entries: Array.from(rateLimitMap.entries()).map(([key, entry]) => ({
+      key,
+      count: entry.count,
+      resetAt: entry.resetAt,
+    })),
+  };
+}
+
+export function __resetRateLimitState(): void {
+  assertNotProduction('__resetRateLimitState');
+  rateLimitMap.clear();
+}

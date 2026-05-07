@@ -10,15 +10,16 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createPublicClient, http, keccak256, encodePacked } from 'viem';
-import { avalancheFuji } from 'viem/chains';
+import { keccak256, encodePacked } from 'viem';
 import { AVALANCHE_CONTRACTS } from '@/lib/apiConfig';
 import { EXTERNAL_MARKET_MIRROR_ABI } from '@/constants/abis/externalMarketMirrorAbi';
+import { getResilientPublicClient } from '@/lib/viemClient';
 
-const RPC = process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL!;
-
-describe('Fuji RPC sanity', () => {
-  const client = createPublicClient({ chain: avalancheFuji, transport: http(RPC) });
+describe('Fuji RPC sanity (resilient client with primary→fallback)', () => {
+  // Uses the production resilient client so a rate-limited primary RPC
+  // (which is the steady state on Fuji's free public endpoint) doesn't
+  // cascade-fail the suite.
+  const client = getResilientPublicClient();
 
   it('returns a current block number', async () => {
     const block = await client.getBlockNumber();

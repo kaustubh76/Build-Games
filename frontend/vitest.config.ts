@@ -18,6 +18,7 @@ export default defineConfig({
       '**/.next/**',
       '__tests__/**', // Legacy stale test (eventTracking.test.ts) — replaced by test/integration/fuji-rpc.test.ts
       'test/e2e/**', // Playwright owns these
+      'test/load/**', // Soak/chaos suites — run via `npm run test:soak`
     ],
     testTimeout: 60_000, // Integration tests scan up to 200k Fuji blocks
     hookTimeout: 30_000,

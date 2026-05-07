@@ -127,3 +127,99 @@ export function computeMinSharesOut(
   const bps = BigInt(Math.max(0, Math.min(10_000, maxSlippageBps)));
   return (expectedSharesWei * (10_000n - bps)) / 10_000n;
 }
+
+/**
+ * Bug #1 fix: atomically reserve daily-spend budget AND debit it in a single
+ * synchronous block. Use this instead of `enforceTradeLimits` + `recordSpend`
+ * pairs at route-handler call sites where two concurrent requests from the
+ * same wallet could both pass the cap check before either writes the spend.
+ *
+ * If the on-chain tx subsequently fails, the caller MUST call
+ * `releaseReservation(addr, allowedWei)` to refund the daily budget.
+ *
+ * Race-safety note: JavaScript single-threaded execution + no awaits in this
+ * function = no other handler can interleave between the read and write.
+ * That's the entire fix.
+ */
+export function reserveAndSpend(
+  addr: string,
+  requestedWei: bigint
+): { allowedWei: bigint; capped: boolean; reason?: string } {
+  if (isUserPaused(addr)) {
+    throw new Error('Trading paused for this user. Resume to continue.');
+  }
+  if (requestedWei <= 0n) {
+    throw new Error('Trade amount must be > 0');
+  }
+  if (requestedWei > PER_TRADE_CAP_WEI) {
+    throw new Error(`Per-trade cap exceeded: max ${PER_TRADE_CAP_WEI.toString()} wei`);
+  }
+
+  // Single synchronous read-modify-write — no awaits, no other handler can
+  // interleave. `currentSpend()` reads-or-creates the live ref; we mutate
+  // the ref's `spentWei` field by exactly the amount we're about to commit.
+  const s = currentSpend(addr);
+  const remainingNow = PER_USER_DAILY_CAP_WEI - s.spentWei;
+  if (remainingNow <= 0n) {
+    throw new Error('Daily mirror-trade cap reached. Try again tomorrow or pause + resume.');
+  }
+  const capped = requestedWei > remainingNow;
+  const allowedWei = capped ? remainingNow : requestedWei;
+  s.spentWei += allowedWei;
+  return capped
+    ? {
+        allowedWei,
+        capped: true,
+        reason: `Capped to remaining daily budget (${remainingNow.toString()} wei)`,
+      }
+    : { allowedWei, capped: false };
+}
+
+/**
+ * Refund a reservation previously granted by `reserveAndSpend`. Use this in
+ * the catch path of route handlers when the on-chain tx fails after the
+ * reservation succeeded — otherwise the user is debited for trades that
+ * never executed.
+ *
+ * Idempotent in the sense that calling with 0n is a no-op. Saturates at 0n
+ * (never goes negative).
+ */
+export function releaseReservation(addr: string, refundWei: bigint): void {
+  if (refundWei <= 0n) return;
+  const k = key(addr);
+  const existing = userDailySpend.get(k);
+  if (!existing) return;
+  existing.spentWei =
+    existing.spentWei > refundWei ? existing.spentWei - refundWei : 0n;
+}
+
+// ============================================================================
+// Test/soak inspectors — gated to non-production environments.
+// ============================================================================
+
+function assertNotProduction(name: string): void {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`${name} is unavailable in production`);
+  }
+}
+
+export function __resetSafetyState(): void {
+  assertNotProduction('__resetSafetyState');
+  userDailySpend.clear();
+  pausedUsers.clear();
+}
+
+export function __getSafetyState(): {
+  userDailySpend: Array<{ key: string; spentWei: string; windowStart: number }>;
+  pausedUsers: string[];
+} {
+  assertNotProduction('__getSafetyState');
+  return {
+    userDailySpend: Array.from(userDailySpend.entries()).map(([k, v]) => ({
+      key: k,
+      spentWei: v.spentWei.toString(),
+      windowStart: v.windowStart,
+    })),
+    pausedUsers: Array.from(pausedUsers),
+  };
+}

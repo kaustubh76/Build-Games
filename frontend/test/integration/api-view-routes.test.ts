@@ -154,7 +154,7 @@ describe('/api/mirror/positions', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toMatchObject({ positions: [] });
-  });
+  }, 120_000);
 
   it('rejects a missing walletAddress', async () => {
     const { GET } = await import('@/app/api/mirror/positions/route');
