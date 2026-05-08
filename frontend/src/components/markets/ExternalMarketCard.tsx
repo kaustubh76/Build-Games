@@ -67,8 +67,8 @@ export function ExternalMarketCard({
   // Format volume for display
   const formatVolume = (vol: string) => {
     const num = parseFloat(vol);
-    if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `$${(num / 1000).toFixed(1)}K`;
+    if (num >= 1000000) return `$${(num / 1000000).toFixed(0)}M`;
+    if (num >= 1000) return `$${(num / 1000).toFixed(0)}K`;
     return `$${num.toFixed(0)}`;
   };
 
@@ -130,8 +130,8 @@ export function ExternalMarketCard({
         {/* Probability Bars */}
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-green-400 font-medium">Yes {market.yesPrice.toFixed(1)}%</span>
-            <span className="text-red-400 font-medium">No {market.noPrice.toFixed(1)}%</span>
+            <span className="text-green-400 font-medium">Yes {market.yesPrice.toFixed(0)}%</span>
+            <span className="text-red-400 font-medium">No {market.noPrice.toFixed(0)}%</span>
           </div>
           <div className="h-3 bg-gray-700 rounded-full overflow-hidden flex">
             <div

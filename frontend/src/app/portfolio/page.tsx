@@ -8,6 +8,8 @@ import { formatTokenAmount } from '@/utils/format';
 import { useMarkets, useUserPositions, useTokenBalance } from '@/hooks/useMarkets';
 import { MarketStatus, MarketOutcome, type Market, type Position } from '@/services/predictionMarketService';
 import PortfolioPerformanceChart from '@/components/portfolio/PortfolioPerformanceChart';
+import { DataState } from '@/components/common/DataState';
+import { ConnectWalletPrompt } from '@/components/common/ConnectWalletPrompt';
 
 type PositionTab = 'active' | 'resolved' | 'liquidity';
 
@@ -34,28 +36,14 @@ const PositionCardSkeleton = () => (
 export default function PortfolioPage() {
   const { address, isConnected } = useAccount();
   const { markets } = useMarkets();
-  const { positions, loading: positionsLoading } = useUserPositions();
+  const { positions, loading: positionsLoading, error: positionsError, refetch: refetchPositions } = useUserPositions();
   const { balance, balanceFormatted } = useTokenBalance();
 
   const [activeTab, setActiveTab] = useState<PositionTab>('active');
 
   if (!isConnected) {
     return (
-      <main className="container-arcade py-12 md:py-20">
-        <div className="text-center animate-fade-in">
-          <div className="text-5xl md:text-6xl mb-6">🔐</div>
-          <h1
-            className="text-2xl md:text-3xl text-red-400 mb-4 arcade-glow"
-            style={{ fontFamily: 'Press Start 2P, monospace' }}
-          >
-            CONNECT WALLET
-          </h1>
-          <p className="text-slate-400 mb-8 text-sm md:text-base">
-            Connect your wallet to view your portfolio and positions
-          </p>
-          <w3m-connect-button />
-        </div>
-      </main>
+      <ConnectWalletPrompt description="Connect your wallet to view your portfolio and positions." />
     );
   }
 
@@ -227,36 +215,28 @@ export default function PortfolioPage() {
       </div>
 
       {/* Positions List */}
-      {positionsLoading ? (
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <PositionCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : getDisplayedPositions().length === 0 ? (
-        <div className="card text-center py-12 md:py-16 animate-fade-in">
-          <div className="text-4xl md:text-5xl mb-4">
-            {activeTab === 'active' ? '📊' : activeTab === 'resolved' ? '✅' : '💧'}
+      <DataState
+        loading={positionsLoading}
+        error={positionsError}
+        empty={!positionsLoading && !positionsError && getDisplayedPositions().length === 0}
+        onRetry={refetchPositions}
+        loadingSkeleton={
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <PositionCardSkeleton key={i} />
+            ))}
           </div>
-          <h3 className="text-lg md:text-xl font-semibold text-white mb-2">
-            No {activeTab} positions
-          </h3>
-          <p className="text-slate-400 mb-6 text-sm max-w-md mx-auto">
-            {activeTab === 'active'
-              ? "Start trading to see your positions here"
-              : activeTab === 'resolved'
-              ? "Your resolved positions will appear here"
-              : "Provide liquidity to markets to earn fees"
-            }
-          </p>
-          <Link
-            href="/markets"
-            className="btn btn-primary"
-          >
-            Browse Markets
-          </Link>
-        </div>
-      ) : (
+        }
+        emptyTitle={`No ${activeTab} positions`}
+        emptyHint={
+          activeTab === 'active'
+            ? 'Start trading to see your positions here.'
+            : activeTab === 'resolved'
+            ? 'Your resolved positions will appear here.'
+            : 'Provide liquidity to markets to earn fees.'
+        }
+        emptyCta={{ label: 'Browse Markets', href: '/markets' }}
+      >
         <div className="space-y-3 md:space-y-4">
           {getDisplayedPositions().map((market, index) => (
             <div
@@ -272,7 +252,7 @@ export default function PortfolioPage() {
             </div>
           ))}
         </div>
-      )}
+      </DataState>
 
       {/* Quick Actions */}
       <div className="mt-8 md:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 animate-fade-in" style={{ animationDelay: '200ms' }}>

@@ -814,7 +814,7 @@ const WarriorsMinterPage = memo(function WarriorsMinterPage() {
           className={`text-xs ${value === 0 ? 'text-red-300' : 'text-orange-300'}`}
           style={{fontFamily: 'Press Start 2P, monospace'}}
         >
-          {value.toFixed(1)} {value === 0 && '(INACTIVE)'}
+          {value.toFixed(0)} {value === 0 && '(INACTIVE)'}
         </span>
       </div>
       <div className={`w-full bg-gray-800 h-2 border ${value === 0 ? 'border-red-600' : 'border-orange-600'}`}>

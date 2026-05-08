@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { useArenaLeaderboard } from '@/hooks/arena';
 import { formatEther } from 'viem';
+import { formatTokenAmount } from '@/lib/format/blockchain';
 
 type SortOption = 'rating' | 'wins' | 'earnings';
 
@@ -285,7 +286,7 @@ export default function LeaderboardPage() {
             {leaderboard.map((entry, index) => {
               const tier = getTierFromRating(entry.arenaRating);
               const winRate = entry.totalBattles > 0
-                ? ((entry.wins / entry.totalBattles) * 100).toFixed(1)
+                ? ((entry.wins / entry.totalBattles) * 100).toFixed(0)
                 : '0.0';
               const rank = entry.rank || index + 1;
               const rankIcons: Record<number, string> = { 1: '\u{1F947}', 2: '\u{1F948}', 3: '\u{1F949}' };
@@ -348,7 +349,7 @@ export default function LeaderboardPage() {
                   <div className="hidden md:block md:col-span-2 text-right">
                     <p className="text-red-400 font-medium text-sm">
                       {entry.totalEarnings && entry.totalEarnings !== '0'
-                        ? `${formatEther(BigInt(entry.totalEarnings))} CRwN`
+                        ? `${formatTokenAmount(entry.totalEarnings)} CRwN`
                         : `${entry.wins} wins`}
                     </p>
                   </div>

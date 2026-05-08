@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { WhaleAlertFeed } from '@/components/whale/WhaleAlertFeed';
 import { WhaleAlertCard } from '@/components/whale/WhaleAlertCard';
 import { TrackedTradersList } from '@/components/whale/TrackedTradersList';
+import { DataState } from '@/components/common/DataState';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   useWhaleHistory,
   useTrackedTraders,
@@ -18,8 +20,8 @@ type Tab = 'live' | 'history' | 'traders';
 
 // Helper functions for formatting
 function formatVolume(amount: number): string {
-  if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
-  if (amount >= 1000) return `$${(amount / 1000).toFixed(1)}K`;
+  if (amount >= 1000000) return `$${(amount / 1000000).toFixed(0)}M`;
+  if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`;
   return `$${amount.toFixed(0)}`;
 }
 
@@ -41,6 +43,8 @@ export default function WhaleTrackerPage() {
   const {
     trades: historicalTrades,
     loading: historyLoading,
+    error: historyError,
+    refetch: refetchHistory,
   } = useWhaleHistory(50, sourceFilter || undefined);
 
   const { traders } = useTrackedTraders();
@@ -148,7 +152,9 @@ export default function WhaleTrackerPage() {
           <div className="lg:col-span-2">
             {activeTab === 'live' && (
               <div className="arcade-card p-6">
-                <WhaleAlertFeed maxAlerts={20} />
+                <ErrorBoundary context="whale-tracker.live" compact>
+                  <WhaleAlertFeed maxAlerts={20} />
+                </ErrorBoundary>
               </div>
             )}
 
@@ -172,28 +178,30 @@ export default function WhaleTrackerPage() {
                   </select>
                 </div>
 
-                {historyLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500" />
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {historicalTrades.map((trade) => (
-                      <WhaleAlertCard key={trade.id} trade={trade} compact />
-                    ))}
-                    {historicalTrades.length === 0 && (
-                      <div className="text-center py-8 text-gray-400">
-                        No whale trades found
-                      </div>
-                    )}
-                  </div>
-                )}
+                <ErrorBoundary context="whale-tracker.history" compact>
+                  <DataState
+                    loading={historyLoading}
+                    error={historyError}
+                    empty={!historyLoading && !historyError && historicalTrades.length === 0}
+                    onRetry={refetchHistory}
+                    emptyTitle="No whale trades found"
+                    emptyHint="Try changing the source filter or check back later — large trades happen sporadically."
+                  >
+                    <div className="space-y-3">
+                      {historicalTrades.map((trade) => (
+                        <WhaleAlertCard key={trade.id} trade={trade} compact />
+                      ))}
+                    </div>
+                  </DataState>
+                </ErrorBoundary>
               </div>
             )}
 
             {activeTab === 'traders' && (
               <div className="arcade-card p-6">
-                <TrackedTradersList onTraderSelect={setSelectedTrader} />
+                <ErrorBoundary context="whale-tracker.traders" compact>
+                  <TrackedTradersList onTraderSelect={setSelectedTrader} />
+                </ErrorBoundary>
               </div>
             )}
           </div>

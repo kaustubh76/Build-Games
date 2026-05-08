@@ -77,13 +77,13 @@ function PositionRow({ position }: { position: PortfolioPosition }) {
         </span>
       </td>
       <td className="p-4 text-right text-gray-300">
-        {position.avgPrice.toFixed(1)}%
+        {position.avgPrice.toFixed(0)}%
       </td>
       <td className="p-4 text-right text-white font-medium">
-        {position.currentPrice.toFixed(1)}%
+        {position.currentPrice.toFixed(0)}%
       </td>
       <td className={`p-4 text-right font-medium ${pnlColor}`}>
-        {pnlSign}{Number(formatEther(position.unrealizedPnL)).toFixed(4)} CRwN
+        {pnlSign}{Number(formatEther(position.unrealizedPnL)).toFixed(2)} CRwN
       </td>
     </tr>
   );
@@ -168,18 +168,18 @@ export function UnifiedPortfolio() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard
           label="Total Value"
-          value={Number(totalValueFormatted).toFixed(4)}
+          value={Number(totalValueFormatted).toFixed(2)}
           suffix="CRwN"
         />
         <SummaryCard
           label="Unrealized P&L"
-          value={`${isPnLPositive ? '+' : ''}${Number(formatEther(portfolio.totalUnrealizedPnL)).toFixed(4)}`}
+          value={`${isPnLPositive ? '+' : ''}${Number(formatEther(portfolio.totalUnrealizedPnL)).toFixed(2)}`}
           suffix="CRwN"
           isPositive={portfolio.totalUnrealizedPnL >= 0n}
         />
         <SummaryCard
           label="Realized P&L"
-          value={`${portfolio.totalRealizedPnL >= 0n ? '+' : ''}${Number(formatEther(portfolio.totalRealizedPnL)).toFixed(4)}`}
+          value={`${portfolio.totalRealizedPnL >= 0n ? '+' : ''}${Number(formatEther(portfolio.totalRealizedPnL)).toFixed(2)}`}
           suffix="CRwN"
           isPositive={portfolio.totalRealizedPnL >= 0n}
         />

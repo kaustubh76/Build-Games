@@ -57,7 +57,7 @@ export function CreatorRevenueCard({ creator, breakdown }: CreatorRevenueCardPro
                 />
                 <span className="text-sm text-gray-400 flex-1">{item.source}</span>
                 <span className="text-sm text-white font-medium">
-                  {item.percentage.toFixed(1)}%
+                  {item.percentage.toFixed(0)}%
                 </span>
               </div>
             ))}

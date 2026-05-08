@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useCopyTrade, useCopyTradeConfig } from '@/hooks/useCopyTrade';
 import { formatEther } from 'viem';
+import { formatTokenAmount } from '@/lib/format/blockchain';
+import { useAmountInput } from '@/hooks/useAmountInput';
 
 interface CopyTradeSettingsProps {
   agentId: bigint;
@@ -25,7 +27,13 @@ export function CopyTradeSettings({ agentId, agentName, onUpdate }: CopyTradeSet
     switchToAvalanche
   } = useCopyTrade(agentId);
 
-  const [newMaxAmount, setNewMaxAmount] = useState('');
+  const {
+    value: newMaxAmount,
+    onChange: handleMaxAmountChange,
+    error: amountError,
+    isValid: amountValid,
+    setValue: setNewMaxAmount,
+  } = useAmountInput({ unit: 'CRwN' });
   const [isEditing, setIsEditing] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [showConfirmUnfollow, setShowConfirmUnfollow] = useState(false);
@@ -33,7 +41,7 @@ export function CopyTradeSettings({ agentId, agentName, onUpdate }: CopyTradeSet
   // Initialize edit value when config loads
   useEffect(() => {
     if (config && config.maxAmountPerTrade) {
-      setNewMaxAmount(formatEther(config.maxAmountPerTrade));
+      setNewMaxAmount(formatTokenAmount(config.maxAmountPerTrade));
     }
   }, [config]);
 
@@ -65,9 +73,8 @@ export function CopyTradeSettings({ agentId, agentName, onUpdate }: CopyTradeSet
 
   const handleUpdateMaxAmount = async () => {
     setLocalError(null);
-    const amount = parseFloat(newMaxAmount);
-    if (isNaN(amount) || amount <= 0) {
-      setLocalError('Please enter a valid amount greater than 0.');
+    if (!amountValid) {
+      setLocalError(amountError || 'Please enter a valid amount greater than 0.');
       return;
     }
 
@@ -126,20 +133,27 @@ export function CopyTradeSettings({ agentId, agentName, onUpdate }: CopyTradeSet
           <div>
             <p className="text-sm text-gray-400">Max Amount Per Trade</p>
             {isEditing ? (
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="number"
-                  value={newMaxAmount}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setNewMaxAmount(e.target.value);
-                    setLocalError(null);
-                  }}
-                  className="w-32 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-red-500"
-                  placeholder="100"
-                  min="1"
-                  disabled={isLoading}
-                />
-                <span className="text-gray-400 text-sm">CRwN</span>
+              <div className="mt-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={newMaxAmount}
+                    onChange={(e) => {
+                      handleMaxAmountChange(e);
+                      setLocalError(null);
+                    }}
+                    className={`w-32 bg-gray-700 border rounded px-2 py-1 text-white text-sm focus:outline-none ${
+                      amountError ? 'border-red-500 focus:border-red-500' : 'border-gray-600 focus:border-red-500'
+                    }`}
+                    placeholder="100"
+                    disabled={isLoading}
+                  />
+                  <span className="text-gray-400 text-sm">CRwN</span>
+                </div>
+                {amountError ? (
+                  <p className="mt-1 text-xs text-red-400" role="alert">{amountError}</p>
+                ) : null}
               </div>
             ) : (
               <p className="text-white font-medium">{maxAmountFormatted} CRwN</p>
@@ -161,7 +175,7 @@ export function CopyTradeSettings({ agentId, agentName, onUpdate }: CopyTradeSet
                   setIsEditing(false);
                   setLocalError(null);
                   if (config) {
-                    setNewMaxAmount(formatEther(config.maxAmountPerTrade));
+                    setNewMaxAmount(formatTokenAmount(config.maxAmountPerTrade));
                   }
                 }}
                 disabled={isLoading}
@@ -171,7 +185,7 @@ export function CopyTradeSettings({ agentId, agentName, onUpdate }: CopyTradeSet
               </button>
               <button
                 onClick={handleUpdateMaxAmount}
-                disabled={isLoading || needsChainSwitch}
+                disabled={isLoading || needsChainSwitch || !amountValid}
                 className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50"
               >
                 {isLoading ? 'Saving...' : 'Save'}
@@ -185,7 +199,7 @@ export function CopyTradeSettings({ agentId, agentName, onUpdate }: CopyTradeSet
           <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-700">
             <div>
               <p className="text-xs text-gray-400">Total Copied</p>
-              <p className="text-white font-medium">{formatEther(config.totalCopied)} CRwN</p>
+              <p className="text-white font-medium">{formatTokenAmount(config.totalCopied)} CRwN</p>
             </div>
             <div>
               <p className="text-xs text-gray-400">Following Since</p>

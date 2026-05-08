@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
-import { formatEther } from 'viem';
+import { formatTokenAmount } from '@/lib/format/blockchain';
 import { type MicroMarketDisplay } from '@/services/microMarketService';
 import { useMicroMarketTrade, useMicroMarketPosition, useMicroMarketTokenBalance } from '@/hooks/useMicroMarkets';
+import { useAmountInput } from '@/hooks/useAmountInput';
 
 interface MicroMarketTradePanelProps {
   market: MicroMarketDisplay;
@@ -28,15 +29,23 @@ export function MicroMarketTradePanel({ market, onSuccess }: MicroMarketTradePan
 
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [isYes, setIsYes] = useState(true);
-  const [amount, setAmount] = useState('');
+  const {
+    value: amount,
+    onChange: handleAmountChange,
+    error: amountError,
+    isValid: amountValid,
+    parsedWei: amountWeiBigInt,
+    setValue: setAmount,
+    reset: resetAmount,
+  } = useAmountInput({ unit: 'CRwN' });
 
   const isLoading = isPending || isConfirming;
   const canTrade = market.canTrade && !market.isExpired;
   const isResolved = market.status === 2;
-  const needsApproval = BigInt(amount || '0') * BigInt(10 ** 18) > allowance;
+  const needsApproval = amountWeiBigInt !== null && amountWeiBigInt > allowance;
 
   const handleTrade = async () => {
-    if (!amount || parseFloat(amount) <= 0) return;
+    if (!amountValid) return;
 
     if (needsApproval) {
       await approveTokens(amount);
@@ -46,7 +55,7 @@ export function MicroMarketTradePanel({ market, onSuccess }: MicroMarketTradePan
       await sell(isYes, amount);
     }
 
-    setAmount('');
+    resetAmount();
     refetchPosition();
     refetchBalance();
     onSuccess?.();
@@ -149,23 +158,27 @@ export function MicroMarketTradePanel({ market, onSuccess }: MicroMarketTradePan
             </label>
             <div className="relative">
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500"
+                onChange={handleAmountChange}
+                className={`w-full bg-gray-800 border rounded-lg px-4 py-3 text-white focus:outline-none ${
+                  amountError ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-red-500'
+                }`}
                 placeholder="0.00"
-                min="0"
-                step="0.01"
               />
               {tradeType === 'buy' && (
                 <button
-                  onClick={() => setAmount(formatEther(balance))}
+                  onClick={() => setAmount(formatTokenAmount(balance))}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-red-400 hover:text-red-300"
                 >
                   Max
                 </button>
               )}
             </div>
+            {amountError ? (
+              <p className="mt-1 text-xs text-red-400" role="alert">{amountError}</p>
+            ) : null}
             {tradeType === 'buy' && (
               <p className="text-xs text-gray-500 mt-1">
                 Balance: {balanceFormatted} CRwN
@@ -176,7 +189,7 @@ export function MicroMarketTradePanel({ market, onSuccess }: MicroMarketTradePan
           {/* Trade Button */}
           <button
             onClick={handleTrade}
-            disabled={isLoading || !amount || parseFloat(amount) <= 0}
+            disabled={isLoading || !amountValid}
             className={`w-full py-3 rounded-lg font-medium transition-colors ${
               isYes
                 ? 'bg-green-600 hover:bg-green-500 text-white'

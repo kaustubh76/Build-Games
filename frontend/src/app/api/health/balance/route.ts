@@ -78,7 +78,7 @@ export async function GET(_request: NextRequest) {
       {
         ok: !belowFloor,
         wallet: walletAddress,
-        balanceCRwN: balanceCRwN.toFixed(6),
+        balanceCRwN: balanceCRwN.toFixed(2),
         floorCRwN: floor.toFixed(2),
         belowFloor,
         reason: belowFloor

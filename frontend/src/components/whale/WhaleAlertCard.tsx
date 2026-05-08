@@ -45,7 +45,7 @@ export function WhaleAlertCard({
   const formatAmount = (amount: string) => {
     const num = parseFloat(amount);
     if (num >= 1000000) return `$${(num / 1000000).toFixed(2)}M`;
-    if (num >= 1000) return `$${(num / 1000).toFixed(1)}K`;
+    if (num >= 1000) return `$${(num / 1000).toFixed(0)}K`;
     return `$${num.toFixed(0)}`;
   };
 
@@ -155,7 +155,7 @@ export function WhaleAlertCard({
         <div className="p-3 bg-gray-800/50 rounded-lg">
           <div className="text-gray-400 text-xs mb-1">Price</div>
           <div className="text-white">
-            {(trade.price / 100).toFixed(1)}%
+            {(trade.price / 100).toFixed(0)}%
           </div>
         </div>
 

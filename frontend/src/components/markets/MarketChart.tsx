@@ -162,14 +162,14 @@ export function MarketChart({ market }: MarketChartProps) {
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-green-500" />
                 <span className="text-green-400 font-bold text-xl">
-                  {yesProbability.toFixed(1)}%
+                  {yesProbability.toFixed(0)}%
                 </span>
                 <span className="text-gray-400 text-sm">YES</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-red-500" />
                 <span className="text-red-400 font-bold text-xl">
-                  {noProbability.toFixed(1)}%
+                  {noProbability.toFixed(0)}%
                 </span>
                 <span className="text-gray-400 text-sm">NO</span>
               </div>
@@ -180,7 +180,7 @@ export function MarketChart({ market }: MarketChartProps) {
               ? 'bg-green-500/20 text-green-400'
               : 'bg-red-500/20 text-red-400'
           }`}>
-            {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(1)}%
+            {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(0)}%
           </div>
         </div>
       </div>
@@ -207,9 +207,9 @@ export function MarketChart({ market }: MarketChartProps) {
         <div className="relative h-48 w-full">
           {/* Y-axis labels */}
           <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-500 w-8">
-            <span>{maxPrice.toFixed(1)}%</span>
-            <span>{((maxPrice + minPrice) / 2).toFixed(1)}%</span>
-            <span>{minPrice.toFixed(1)}%</span>
+            <span>{maxPrice.toFixed(0)}%</span>
+            <span>{((maxPrice + minPrice) / 2).toFixed(0)}%</span>
+            <span>{minPrice.toFixed(0)}%</span>
           </div>
 
           {/* Chart area */}
@@ -285,13 +285,13 @@ export function MarketChart({ market }: MarketChartProps) {
         <div>
           <span className="text-gray-400 block">Current YES</span>
           <span className="text-green-400 font-medium">
-            {yesProbability.toFixed(1)}%
+            {yesProbability.toFixed(0)}%
           </span>
         </div>
         <div>
           <span className="text-gray-400 block">Current NO</span>
           <span className="text-red-400 font-medium">
-            {noProbability.toFixed(1)}%
+            {noProbability.toFixed(0)}%
           </span>
         </div>
         <div>

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useFollowingAgents, useAgentStats } from '@/hooks/useAgents';
 import { useCopyTradeConfig, useCopyTrade } from '@/hooks/useCopyTrade';
 import { useCopyTradePnL, getPnLColorClass } from '@/hooks/useCopyTradePnL';
+import { ConnectWalletPrompt } from '@/components/common/ConnectWalletPrompt';
 
 export default function CopyTradingPage() {
   const { isConnected } = useAccount();
@@ -32,22 +33,7 @@ export default function CopyTradingPage() {
   };
 
   if (!isConnected) {
-    return (
-      <main className="container-arcade py-12 md:py-20">
-        <div className="text-center animate-fade-in">
-          <div className="text-5xl md:text-6xl mb-6">&#x1F512;</div>
-          <h1
-            className="text-2xl md:text-3xl text-red-400 mb-4 arcade-glow"
-            style={{ fontFamily: 'Press Start 2P, monospace' }}
-          >
-            CONNECT WALLET
-          </h1>
-          <p className="text-slate-400 mb-8 text-sm">
-            Connect your wallet to manage copy trading.
-          </p>
-        </div>
-      </main>
-    );
+    return <ConnectWalletPrompt description="Connect your wallet to manage copy trading." />;
   }
 
   return (
@@ -90,7 +76,7 @@ export default function CopyTradingPage() {
           </div>
           <div className="arcade-card p-4 text-center" style={{ border: '2px solid rgba(100, 116, 139, 0.3)', borderRadius: '12px', backdropFilter: 'blur(20px)' }}>
             <p className="text-2xl font-bold text-white">
-              {isPnLLoading ? '...' : `${winRate.toFixed(1)}%`}
+              {isPnLLoading ? '...' : `${winRate.toFixed(0)}%`}
             </p>
             <p className="text-xs text-slate-400" style={{ fontFamily: 'Press Start 2P, monospace', fontSize: '0.45rem' }}>WIN RATE</p>
           </div>
@@ -149,7 +135,7 @@ export default function CopyTradingPage() {
                           trade.pnl && BigInt(trade.pnl) > 0n ? 'text-green-400' :
                           trade.pnl && BigInt(trade.pnl) < 0n ? 'text-red-400' : 'text-gray-400'
                         }`}>
-                          {trade.pnl ? `${(Number(trade.pnl) / 1e18).toFixed(4)}` : '-'}
+                          {trade.pnl ? `${(Number(trade.pnl) / 1e18).toFixed(2)}` : '-'}
                         </td>
                       </tr>
                     ))
@@ -291,7 +277,7 @@ function CopyTradeAgentRow({
 
   // Calculate estimated PnL from this agent
   const estimatedPnL = config ?
-    (Number(agent.pnl || 0) * Number(config.totalCopied) / 1e18).toFixed(4) :
+    (Number(agent.pnl || 0) * Number(config.totalCopied) / 1e18).toFixed(2) :
     '0.00';
 
   return (
@@ -311,7 +297,7 @@ function CopyTradeAgentRow({
                 {agent.pnlFormatted}
               </span>
               <span className="text-gray-500">|</span>
-              <span className="text-gray-400">Win Rate: {agent.winRate?.toFixed(1) || '0.0'}%</span>
+              <span className="text-gray-400">Win Rate: {agent.winRate?.toFixed(0) || '0.0'}%</span>
             </div>
           </div>
         </div>

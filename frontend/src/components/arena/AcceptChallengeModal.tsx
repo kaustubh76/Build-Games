@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAccount, useChainId } from 'wagmi';
 import { formatEther } from 'viem';
+import { formatTokenAmount } from '@/lib/format/blockchain';
 import { useUserNFTs } from '@/hooks/useUserNFTs';
 import { fetchWithTimeout, isTimeoutError, TimeoutDefaults } from '@/lib/fetchWithTimeout';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -137,7 +138,7 @@ export function AcceptChallengeModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-lg mx-4 overflow-hidden">
+      <div className="relative bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-gray-700 bg-gradient-to-r from-green-900/30 to-emerald-900/30">
           <h2 id="accept-challenge-title" className="text-2xl font-bold text-white">Accept Challenge</h2>
@@ -162,7 +163,7 @@ export function AcceptChallengeModal({
               <div className="flex-1">
                 <p className="text-gray-400 text-xs">Stakes</p>
                 <p className="text-red-400 text-sm font-medium">
-                  {formatEther(BigInt(battle.stakes))} CRwN
+                  {formatTokenAmount(battle.stakes)} CRwN
                 </p>
               </div>
             </div>
@@ -255,7 +256,7 @@ export function AcceptChallengeModal({
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
             <p className="text-yellow-400 text-sm font-medium">Stake Required</p>
             <p className="text-white text-lg font-bold mt-1">
-              {formatEther(BigInt(battle.stakes))} CRwN
+              {formatTokenAmount(battle.stakes)} CRwN
             </p>
             <p className="text-gray-400 text-xs mt-2">
               This amount will be locked until the battle concludes

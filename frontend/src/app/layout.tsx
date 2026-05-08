@@ -11,19 +11,18 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { GamificationProvider } from "@/contexts/GamificationContext";
 import { ToastContainer } from "@/components/gamification/ToastContainer";
 import { GamificationOverlay } from "@/components/gamification/GamificationOverlay";
-import { validateEnvironmentOrThrow } from "@/lib/validateEnv";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-// Validate environment variables on server startup (runtime only, not during build).
-// Skip validation during Next.js build phase to allow CI builds without full env.
-// In production we run with strict: true + checkSensitive: true so a missing
-// PRIVATE_KEY / GAME_MASTER_PRIVATE_KEY / DATABASE_URL crashes the server
-// immediately instead of failing at the first signed call. In dev we keep
-// the looser warn-only behavior.
+// Env validation now lives in src/instrumentation.ts (Next 15's startup hook),
+// which runs assertEnvOrThrow() from @/lib/envValidator with the canonical
+// chain-conditional spec table. Validation runs ONCE at boot rather than on
+// every server-render. The legacy validateEnvironmentOrThrow call was
+// redundant; helper functions in lib/validateEnv.ts (getRequiredEnv,
+// validators, etc.) remain available for opportunistic use.
+//
+// We keep the Telegram whale-alert fan-out wiring here because it's an
+// app-level effect, not env validation.
 if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-production-build') {
-  const isProd = process.env.NODE_ENV === 'production';
-  validateEnvironmentOrThrow({ strict: isProd, checkSensitive: isProd });
-  // Wire the Telegram whale-alert fan-out (idempotent; wires once per process).
-  // Module is loaded lazily so the unit tests don't pull whaleTrackerService.
   if (process.env.TELEGRAM_BOT_TOKEN) {
     void import('@/lib/telegram/wireWhaleAlerts').then((m) =>
       m.wireTelegramWhaleAlerts()
@@ -79,7 +78,9 @@ export default function RootLayout(props: {children: ReactNode}) {
               <GamificationProvider>
                 <WarriorMessageProvider>
                   <Header />
-                  {props.children}
+                  <ErrorBoundary context="root">
+                    {props.children}
+                  </ErrorBoundary>
                   <Footer />
                   <WarriorAssistant />
                   <ToastContainer />

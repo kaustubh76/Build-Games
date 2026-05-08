@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useArenaLeaderboard } from '../../hooks/arena';
 import { formatEther } from 'viem';
+import { formatTokenAmount } from '@/lib/format/blockchain';
 
 type SortOption = 'rating' | 'wins' | 'earnings';
 
@@ -156,7 +157,7 @@ interface LeaderboardRowProps {
 function LeaderboardRow({ entry, rank, compact }: LeaderboardRowProps) {
   const tier = getTierFromRating(entry.arenaRating);
   const winRate = entry.totalBattles > 0
-    ? ((entry.wins / entry.totalBattles) * 100).toFixed(1)
+    ? ((entry.wins / entry.totalBattles) * 100).toFixed(0)
     : '0.0';
 
   const rankBadge = RANK_BADGES[rank];
@@ -241,7 +242,7 @@ function LeaderboardRow({ entry, rank, compact }: LeaderboardRowProps) {
       <div className="col-span-2 text-right">
         <p className="text-red-400 font-medium">
           {entry.totalEarnings
-            ? `${formatEther(BigInt(entry.totalEarnings))} CRwN`
+            ? `${formatTokenAmount(entry.totalEarnings)} CRwN`
             : `${entry.wins} wins`}
         </p>
       </div>

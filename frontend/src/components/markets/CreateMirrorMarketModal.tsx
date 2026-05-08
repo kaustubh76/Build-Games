@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { parseEther } from 'viem';
 import { useMirrorMarketCreation } from '@/hooks/useMirrorMarket';
 import { UnifiedMarket, MarketSource } from '@/types/externalMarket';
 import { formatTokenAmount } from '@/utils/format';
+import { useAmountInput } from '@/hooks/useAmountInput';
+
+const MIN_LIQUIDITY_WEI = parseEther('10');
 
 interface CreateMirrorMarketModalProps {
   market: UnifiedMarket;
@@ -23,7 +26,15 @@ export function CreateMirrorMarketModal({
   const { address, isConnected } = useAccount();
   const { createFromMarket, loading, error, clearError } = useMirrorMarketCreation();
 
-  const [liquidityAmount, setLiquidityAmount] = useState('100');
+  const {
+    value: liquidityAmount,
+    onChange: handleLiquidityChange,
+    error: liquidityError,
+    isValid: liquidityValid,
+    parsedWei: liquidityWei,
+    setValue: setLiquidityAmount,
+    reset: resetLiquidity,
+  } = useAmountInput({ initialValue: '100', unit: 'CRwN' });
   const [step, setStep] = useState<'input' | 'confirming' | 'success' | 'error'>('input');
   const [txResult, setTxResult] = useState<{ txHash: string; mirrorKey: string } | null>(null);
 
@@ -36,20 +47,23 @@ export function CreateMirrorMarketModal({
     }
   }, [isOpen, clearError]);
 
+  const meetsMinLiquidity = liquidityWei !== null && liquidityWei >= MIN_LIQUIDITY_WEI;
+
   const handleCreate = async () => {
-    if (!isConnected || !address) {
+    if (!isConnected || !address || !liquidityValid || !meetsMinLiquidity || !liquidityWei) {
       return;
     }
 
     setStep('confirming');
 
     try {
-      const result = await createFromMarket(market, parseEther(liquidityAmount).toString());
+      const result = await createFromMarket(market, liquidityWei.toString());
 
       if (result) {
         setTxResult({ txHash: result.txHash, mirrorKey: result.mirrorKey });
         setStep('success');
         onSuccess?.(result);
+        resetLiquidity();
       } else {
         setStep('error');
       }
@@ -91,7 +105,7 @@ export function CreateMirrorMarketModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg mx-4 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl">
+      <div className="relative z-10 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto bg-gray-900 border border-gray-700 rounded-xl shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
           <h2 className="text-xl font-bold text-white">Create Mirror Market</h2>
@@ -121,11 +135,11 @@ export function CreateMirrorMarketModal({
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-400">YES Price:</span>
-                    <span className="ml-2 text-green-400">{market.yesPrice.toFixed(1)}%</span>
+                    <span className="ml-2 text-green-400">{market.yesPrice.toFixed(0)}%</span>
                   </div>
                   <div>
                     <span className="text-gray-400">NO Price:</span>
-                    <span className="ml-2 text-red-400">{market.noPrice.toFixed(1)}%</span>
+                    <span className="ml-2 text-red-400">{market.noPrice.toFixed(0)}%</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Volume:</span>
@@ -147,12 +161,16 @@ export function CreateMirrorMarketModal({
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={liquidityAmount}
-                    onChange={(e) => setLiquidityAmount(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none"
+                    onChange={handleLiquidityChange}
+                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white focus:ring-1 outline-none ${
+                      liquidityError || (liquidityValid && !meetsMinLiquidity)
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                        : 'border-gray-600 focus:border-yellow-500 focus:ring-yellow-500'
+                    }`}
                     placeholder="Enter amount"
-                    min="10"
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
                     {[50, 100, 500].map((amount) => (
@@ -166,9 +184,15 @@ export function CreateMirrorMarketModal({
                     ))}
                   </div>
                 </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  Minimum: 10 CRwN. You earn 2% fees on all trades.
-                </p>
+                {liquidityError ? (
+                  <p className="mt-2 text-xs text-red-400" role="alert">{liquidityError}</p>
+                ) : liquidityValid && !meetsMinLiquidity ? (
+                  <p className="mt-2 text-xs text-red-400" role="alert">Minimum 10 CRwN required</p>
+                ) : (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Minimum: 10 CRwN. You earn 2% fees on all trades.
+                  </p>
+                )}
               </div>
 
               {/* Info Box */}
@@ -199,7 +223,7 @@ export function CreateMirrorMarketModal({
                 </button>
                 <button
                   onClick={handleCreate}
-                  disabled={!isConnected || loading || parseFloat(liquidityAmount) < 10}
+                  disabled={!isConnected || loading || !liquidityValid || !meetsMinLiquidity}
                   className="flex-1 px-4 py-3 bg-yellow-500 hover:bg-yellow-400 disabled:bg-gray-600 disabled:cursor-not-allowed text-black font-medium rounded-lg transition-colors"
                 >
                   {!isConnected

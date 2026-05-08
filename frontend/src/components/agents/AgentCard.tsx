@@ -76,7 +76,7 @@ export function AgentCard({ agent, showFollowButton = true, isINFT = false, inft
         <div className="grid grid-cols-3 gap-2 md:gap-4 mb-3 md:mb-4">
           <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 text-center">
             <span className="text-[10px] md:text-xs text-slate-400 block mb-0.5">Win Rate</span>
-            <p className="text-white font-semibold text-xs md:text-sm">{agent.winRate.toFixed(1)}%</p>
+            <p className="text-white font-semibold text-xs md:text-sm">{agent.winRate.toFixed(0)}%</p>
           </div>
           <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 text-center">
             <span className="text-[10px] md:text-xs text-slate-400 block mb-0.5">PnL</span>
@@ -241,7 +241,7 @@ export function INFTAgentCard({
           <div className="grid grid-cols-3 gap-2 md:gap-4">
             <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 text-center">
               <span className="text-[10px] md:text-xs text-slate-400 block mb-0.5">Win Rate</span>
-              <p className="text-white font-semibold text-xs md:text-sm">{agent.winRate.toFixed(1)}%</p>
+              <p className="text-white font-semibold text-xs md:text-sm">{agent.winRate.toFixed(0)}%</p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-2 md:p-3 text-center">
               <span className="text-[10px] md:text-xs text-slate-400 block mb-0.5">PnL</span>

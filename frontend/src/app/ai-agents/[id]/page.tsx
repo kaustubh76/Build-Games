@@ -225,7 +225,7 @@ export default function AgentProfilePage() {
           {/* Quick Stats */}
           <div className="grid grid-cols-4 gap-4 mt-8">
             <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-              <p className="text-2xl font-bold text-white">{agent.winRate.toFixed(1)}%</p>
+              <p className="text-2xl font-bold text-white">{agent.winRate.toFixed(0)}%</p>
               <p className="text-sm text-gray-400">Win Rate</p>
             </div>
             <div className="bg-gray-800/50 rounded-lg p-4 text-center">
@@ -334,13 +334,13 @@ export default function AgentProfilePage() {
                     externalPerformance.externalPnL >= 0n ? 'text-green-400' : 'text-red-400'
                   }`}>
                     {externalPerformance.externalPnL >= 0n ? '+' : ''}
-                    {Number(formatEther(externalPerformance.externalPnL)).toFixed(4)}
+                    {Number(formatEther(externalPerformance.externalPnL)).toFixed(2)}
                   </p>
                   <p className="text-sm text-gray-400">External PnL</p>
                 </div>
                 <div className="bg-gray-800/50 rounded-lg p-4 text-center">
                   <p className="text-2xl font-bold text-white">
-                    {externalPerformance.winRate.toFixed(1)}%
+                    {externalPerformance.winRate.toFixed(0)}%
                   </p>
                   <p className="text-sm text-gray-400">Win Rate</p>
                 </div>
@@ -380,7 +380,7 @@ export default function AgentProfilePage() {
                         market.pnl >= 0n ? 'text-green-400' : 'text-red-400'
                       }`}>
                         {market.pnl >= 0n ? '+' : ''}
-                        {Number(formatEther(market.pnl)).toFixed(4)} CRwN
+                        {Number(formatEther(market.pnl)).toFixed(2)} CRwN
                       </span>
                     </div>
                   ))}
@@ -553,7 +553,7 @@ export default function AgentProfilePage() {
                             market.pnl >= 0n ? 'text-green-400' : 'text-red-400'
                           }`}>
                             {market.pnl >= 0n ? '+' : ''}
-                            {Number(formatEther(market.pnl)).toFixed(4)} CRwN
+                            {Number(formatEther(market.pnl)).toFixed(2)} CRwN
                           </p>
                         </div>
                       </div>

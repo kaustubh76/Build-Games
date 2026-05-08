@@ -61,8 +61,8 @@ export function MarketCard({ market }: MarketCardProps) {
         {/* Probability Bars */}
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-green-400 font-medium">Yes {yesProbability.toFixed(1)}%</span>
-            <span className="text-red-400 font-medium">No {noProbability.toFixed(1)}%</span>
+            <span className="text-green-400 font-medium">Yes {yesProbability.toFixed(0)}%</span>
+            <span className="text-red-400 font-medium">No {noProbability.toFixed(0)}%</span>
           </div>
           <div className="h-3 bg-gray-700 rounded-full overflow-hidden flex">
             <div

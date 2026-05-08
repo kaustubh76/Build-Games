@@ -34,7 +34,7 @@ export function TierProgressCard({ creator }: TierProgressCardProps) {
         <div className="mb-6">
           <div className="flex justify-between text-sm mb-2">
             <span className="text-gray-400">Progress to Next Tier</span>
-            <span className="text-white">{progress.toFixed(1)}%</span>
+            <span className="text-white">{progress.toFixed(0)}%</span>
           </div>
           <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
             <div

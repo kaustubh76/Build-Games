@@ -40,7 +40,7 @@ export function PredictionCard({ prediction, rank }: PredictionCardProps) {
       <div className="mb-3">
         <div className="flex justify-between text-xs mb-1">
           <span className="text-gray-400">Confidence</span>
-          <span className="text-white">{prediction.confidencePercent.toFixed(1)}%</span>
+          <span className="text-white">{prediction.confidencePercent.toFixed(0)}%</span>
         </div>
         <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
           <div

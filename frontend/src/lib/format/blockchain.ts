@@ -61,7 +61,7 @@ export function truncateTxHash(
 export function formatTokenWithSymbol(
   amount: number | string | bigint,
   symbol: string,
-  decimals: number = 4
+  decimals: number = 2
 ): string {
   const num = typeof amount === 'bigint' ? Number(amount) : Number(amount);
 
@@ -73,6 +73,33 @@ export function formatTokenWithSymbol(
   });
 
   return `${formatted} ${symbol}`;
+}
+
+/**
+ * Format a wei amount as a human-readable token string truncated to N
+ * decimals (default 2). Use in JSX wherever raw `formatEther(...)` would
+ * otherwise leak an 18-decimal string into the UI.
+ *
+ * @example
+ * formatTokenAmount(1234567890123456789n) // "1.23"
+ * formatTokenAmount('5000000000000000000', 0) // "5"
+ */
+export function formatTokenAmount(
+  wei: bigint | string,
+  decimals: number = 2
+): string {
+  try {
+    const big = typeof wei === 'bigint' ? wei : BigInt(wei);
+    const ETHER = 1_000_000_000_000_000_000n;
+    const whole = big / ETHER;
+    const fracBig = big % ETHER;
+    if (decimals === 0) return whole.toString();
+    const scale = 10n ** BigInt(decimals);
+    const frac = (fracBig * scale) / ETHER;
+    return `${whole.toString()}.${frac.toString().padStart(decimals, '0')}`;
+  } catch {
+    return '0';
+  }
 }
 
 /**

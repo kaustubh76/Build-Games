@@ -46,7 +46,7 @@ export function DebatePanel({ debate, predictions }: DebatePanelProps) {
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3">
             <span className="text-gray-400">Confidence</span>
-            <p className="text-white font-medium text-lg">{debate.consensusConfidencePercent.toFixed(1)}%</p>
+            <p className="text-white font-medium text-lg">{debate.consensusConfidencePercent.toFixed(0)}%</p>
           </div>
         </div>
       </div>

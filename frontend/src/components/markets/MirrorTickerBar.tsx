@@ -25,8 +25,8 @@ const POLL_MS = 10_000;
 function formatVol(wei: string): string {
   try {
     const v = parseFloat(formatEther(BigInt(wei)));
-    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(0)}M`;
+    if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
     return v.toFixed(0);
   } catch {
     return '0';
@@ -182,7 +182,7 @@ export function MirrorTickerBar({
                 {r.source === 'POLYMARKET' ? 'POLY' : 'KAL'}
               </span>
               <span className="font-mono text-gray-400">{shortKey(r.mirrorKey)}</span>
-              <span className="text-white font-bold">{yes.toFixed(1)}%</span>
+              <span className="text-white font-bold">{yes.toFixed(0)}%</span>
               <span className={arrowColor}>{arrow}</span>
               <span className="text-gray-500">vol {formatVol(r.totalVolume)}</span>
             </RowTag>

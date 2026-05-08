@@ -10,6 +10,7 @@ import { MarketStatus, MarketOutcome } from '@/services/predictionMarketService'
 import { TradePanel } from '@/components/markets/TradePanel';
 import { LiquidityPanel } from '@/components/markets/LiquidityPanel';
 import { MarketChart } from '@/components/markets/MarketChart';
+import { ConnectWalletPrompt } from '@/components/common/ConnectWalletPrompt';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -305,9 +306,9 @@ export default function MarketDetailPage({ params }: PageProps) {
                             ? 'text-green-400' : 'text-yellow-400'
                         }`}>
                           {position.yesTokens > position.noTokens
-                            ? yesProbability.toFixed(1)
+                            ? yesProbability.toFixed(0)
                             : position.noTokens > position.yesTokens
-                            ? noProbability.toFixed(1)
+                            ? noProbability.toFixed(0)
                             : '50.0'}%
                         </p>
                       </div>
@@ -350,10 +351,10 @@ export default function MarketDetailPage({ params }: PageProps) {
             {isActive && <LiquidityPanel market={market} onComplete={handleTradeComplete} />}
 
             {!isConnected && (
-              <div className="arcade-card p-6 text-center">
-                <p className="text-gray-400 mb-4">Connect your wallet to start trading</p>
-                <w3m-connect-button />
-              </div>
+              <ConnectWalletPrompt
+                icon="💰"
+                description="Connect to trade and provide liquidity."
+              />
             )}
 
             {!isActive && !isResolved && (

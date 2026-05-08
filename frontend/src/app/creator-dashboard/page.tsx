@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import Link from 'next/link';
 import { useCreatorDashboard, useRevenueHistory, useGlobalCreatorStats, useAllTierInfo } from '@/hooks/useCreatorRevenue';
 import { CreatorRevenueCard, TierProgressCard, ClaimRewardsButton } from '@/components/creator';
+import { ConnectWalletPrompt } from '@/components/common/ConnectWalletPrompt';
 
 // Skeleton loader
 const DashboardSkeleton = () => (
@@ -42,15 +43,7 @@ export default function CreatorDashboardPage() {
   const { tiers } = useAllTierInfo();
 
   if (!isConnected) {
-    return (
-      <main className="container-arcade py-12 md:py-20">
-        <div className="text-center animate-fade-in">
-          <div className="text-5xl md:text-6xl mb-6">🔐</div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-4 arcade-glow">Connect Wallet</h1>
-          <p className="text-slate-400 mb-6 text-sm md:text-base">Please connect your wallet to view your creator dashboard.</p>
-        </div>
-      </main>
-    );
+    return <ConnectWalletPrompt description="Please connect your wallet to view your creator dashboard." />;
   }
 
   if (loading) {

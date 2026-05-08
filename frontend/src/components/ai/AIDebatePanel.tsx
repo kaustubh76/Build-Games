@@ -50,7 +50,7 @@ export function AIDebatePanel({
                   : 'text-red-400'
               }`}
             >
-              {(debate.finalPrediction.probability * 100).toFixed(1)}%{' '}
+              {(debate.finalPrediction.probability * 100).toFixed(0)}%{' '}
               {debate.finalPrediction.outcome.toUpperCase()}
             </span>
           </div>

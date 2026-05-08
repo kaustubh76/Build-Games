@@ -51,8 +51,8 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
 
   const formatVolume = (vol: string) => {
     const num = parseFloat(vol);
-    if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `$${(num / 1000).toFixed(1)}K`;
+    if (num >= 1000000) return `$${(num / 1000000).toFixed(0)}M`;
+    if (num >= 1000) return `$${(num / 1000).toFixed(0)}K`;
     return `$${num.toFixed(0)}`;
   };
 
@@ -232,7 +232,7 @@ export function TrackedTradersList({ onTraderSelect }: TrackedTradersListProps) 
                                 : 'text-red-400'
                             }
                           >
-                            {(trader.winRate * 100).toFixed(1)}%
+                            {(trader.winRate * 100).toFixed(0)}%
                           </span>
                         </span>
                       )}

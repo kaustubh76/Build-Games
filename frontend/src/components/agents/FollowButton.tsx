@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { useCopyTrade } from '@/hooks/useCopyTrade';
 import { useIsFollowing, useAgent } from '@/hooks/useAgents';
 import { useGamificationContext } from '@/contexts/GamificationContext';
+import { useAmountInput } from '@/hooks/useAmountInput';
 
 interface FollowButtonProps {
   agentId: bigint;
@@ -17,7 +18,12 @@ export function FollowButton({ agentId, onSuccess }: FollowButtonProps) {
   const { agent, loading: agentLoading } = useAgent(agentId);
   const { follow, unfollow, isPending, isConfirming, isSuccess, error, needsChainSwitch, switchToAvalanche, refetch: refetchCopyTrade } = useCopyTrade(agentId);
   const [showModal, setShowModal] = useState(false);
-  const [maxAmount, setMaxAmount] = useState('100');
+  const {
+    value: maxAmount,
+    onChange: handleMaxAmountChange,
+    error: amountError,
+    isValid: amountValid,
+  } = useAmountInput({ initialValue: '100', unit: 'CRwN' });
   const [localError, setLocalError] = useState<string | null>(null);
 
   // Gamification context - safely access (may not be available during SSR)
@@ -102,9 +108,8 @@ export function FollowButton({ agentId, onSuccess }: FollowButtonProps) {
   const handleConfirmFollow = async () => {
     setLocalError(null);
 
-    const amount = parseFloat(maxAmount);
-    if (isNaN(amount) || amount <= 0) {
-      setLocalError('Please enter a valid amount greater than 0.');
+    if (!amountValid) {
+      setLocalError(amountError || 'Please enter a valid amount greater than 0.');
       return;
     }
 
@@ -225,16 +230,21 @@ export function FollowButton({ agentId, onSuccess }: FollowButtonProps) {
                 Max Amount Per Trade (CRwN)
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={maxAmount}
                 onChange={(e) => {
-                  setMaxAmount(e.target.value);
+                  handleMaxAmountChange(e);
                   setLocalError(null);
                 }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500"
+                className={`w-full bg-gray-800 border rounded-lg px-4 py-3 text-white focus:outline-none ${
+                  amountError ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-red-500'
+                }`}
                 placeholder="100"
-                min="1"
               />
+              {amountError ? (
+                <p className="mt-1 text-xs text-red-400" role="alert">{amountError}</p>
+              ) : null}
             </div>
 
             {localError && (

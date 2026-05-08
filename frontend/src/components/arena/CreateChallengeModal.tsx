@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAccount, useChainId } from 'wagmi';
-import { parseEther } from 'viem';
 import { useArenaMarkets, ArenaMarket, MarketSourceFilter } from '@/hooks/arena/useArenaMarkets';
 import { useUserNFTs } from '@/hooks/useUserNFTs';
 import { fetchWithTimeout, isTimeoutError, TimeoutDefaults } from '@/lib/fetchWithTimeout';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useAmountInput } from '@/hooks/useAmountInput';
 
 interface CreateChallengeModalProps {
   isOpen: boolean;
@@ -40,7 +40,14 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
   const [selectedWarrior, setSelectedWarrior] = useState<number | null>(null);
   const [selectedMarket, setSelectedMarket] = useState<ArenaMarket | null>(null);
   const [side, setSide] = useState<'yes' | 'no'>('yes');
-  const [stakeAmount, setStakeAmount] = useState('1');
+  const {
+    value: stakeAmount,
+    onChange: handleStakeChange,
+    error: stakeError,
+    isValid: stakeValid,
+    parsedWei: stakeWei,
+    setValue: setStakeAmount,
+  } = useAmountInput({ initialValue: '1', unit: 'CRwN' });
   const [error, setError] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -88,9 +95,8 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
       return;
     }
 
-    const stake = parseFloat(stakeAmount);
-    if (isNaN(stake) || stake <= 0) {
-      setError('Please enter a valid stake amount');
+    if (!stakeValid || !stakeWei) {
+      setError(stakeError || 'Please enter a valid stake amount');
       return;
     }
 
@@ -109,7 +115,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
             question: selectedMarket.question,
             warrior1Id: selectedWarrior,
             warrior1Owner: address,
-            stakes: parseEther(stakeAmount).toString(),
+            stakes: stakeWei.toString(),
             challengerSideYes: side === 'yes',
           }),
         },
@@ -158,7 +164,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
       />
 
       {/* Modal */}
-      <div className="relative bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-lg mx-4 overflow-hidden">
+      <div className="relative bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-gray-700 bg-gradient-to-r from-red-900/30 to-pink-900/30">
           <h2 id="create-challenge-title" className="text-2xl font-bold text-white">Create Challenge</h2>
@@ -311,8 +317,8 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
                           {market.question}
                         </p>
                         <div className="flex gap-3 text-xs">
-                          <span className="text-green-400">Yes: {market.yesPrice.toFixed(1)}%</span>
-                          <span className="text-red-400">No: {market.noPrice.toFixed(1)}%</span>
+                          <span className="text-green-400">Yes: {market.yesPrice.toFixed(0)}%</span>
+                          <span className="text-red-400">No: {market.noPrice.toFixed(0)}%</span>
                         </div>
                       </button>
                     ))
@@ -342,8 +348,8 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
                 </div>
                 <p className="text-white text-sm mb-2">{selectedMarket.question}</p>
                 <div className="flex gap-4 text-sm">
-                  <span className="text-green-400">Yes: {selectedMarket.yesPrice.toFixed(1)}%</span>
-                  <span className="text-red-400">No: {selectedMarket.noPrice.toFixed(1)}%</span>
+                  <span className="text-green-400">Yes: {selectedMarket.yesPrice.toFixed(0)}%</span>
+                  <span className="text-red-400">No: {selectedMarket.noPrice.toFixed(0)}%</span>
                   <span className="text-gray-500">Vol: ${parseFloat(selectedMarket.volume).toLocaleString()}</span>
                 </div>
               </div>
@@ -390,21 +396,26 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
             </label>
             <div className="relative">
               <input
-                type="number"
-                min="0.1"
-                step="0.1"
+                type="text"
+                inputMode="decimal"
                 value={stakeAmount}
-                onChange={(e) => setStakeAmount(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500"
+                onChange={handleStakeChange}
+                className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white focus:outline-none ${
+                  stakeError ? 'border-red-500 focus:border-red-500' : 'border-gray-600 focus:border-red-500'
+                }`}
                 placeholder="1.0"
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
                 CRwN
               </span>
             </div>
-            <p className="text-gray-500 text-xs mt-2">
-              Winner takes both stakes minus platform fee
-            </p>
+            {stakeError ? (
+              <p className="mt-2 text-xs text-red-400" role="alert">{stakeError}</p>
+            ) : (
+              <p className="text-gray-500 text-xs mt-2">
+                Winner takes both stakes minus platform fee
+              </p>
+            )}
           </div>
 
           {/* Error */}
@@ -426,7 +437,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
           </button>
           <button
             onClick={handleSubmit}
-            disabled={loading || !selectedWarrior || !selectedMarket || !address}
+            disabled={loading || !selectedWarrior || !selectedMarket || !address || !stakeValid}
             className="flex-1 py-3 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl font-bold text-white hover:from-red-500 hover:to-pink-500 disabled:opacity-50 transition-all"
           >
             {loading ? 'Creating...' : 'Create Challenge'}

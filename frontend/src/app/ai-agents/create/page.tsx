@@ -10,6 +10,22 @@ import { useMintINFT, useMintCRwN } from '@/hooks/useAgentINFT';
 import { type AgentStrategy, type RiskProfile, type Specialization, type PersonaTraits } from '@/services/aiAgentService';
 import { INFTBadge } from '@/components/agents/INFTBadge';
 import { chainsToContracts, AIAgentRegistryAbi, crownTokenAbi, getChainId } from '@/constants';
+import { validateAmount } from '@/hooks/useAmountInput';
+import { ConnectWalletPrompt } from '@/components/common/ConnectWalletPrompt';
+
+/**
+ * Clamp an HTMLInputElement number-input value to an integer in [min, max].
+ * Returns `fallback` if the input is empty / NaN / non-finite — prevents
+ * the form's number fields from ever holding NaN, which used to silently
+ * propagate into contract calls.
+ */
+function clampInt(rawValue: string, min: number, max: number, fallback: number): number {
+  const parsed = parseInt(rawValue, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  if (parsed < min) return min;
+  if (parsed > max) return max;
+  return parsed;
+}
 
 export default function CreateAgentPage() {
   const router = useRouter();
@@ -161,11 +177,50 @@ export default function CreateAgentPage() {
 
   // Check if user has enough CRwN for staking
   // Don't show error while balance is still loading
-  const stakeAmountWei = BigInt(Math.floor(parseFloat(formData.stakeAmount || '0') * 1e18));
+  // Per-keystroke validation for the three CRwN amount inputs. Surfaces
+  // inline errors before submit (rejects scientific notation, decimals
+  // > 18, negatives, non-numeric input).
+  const stakeAmountValidation = validateAmount(formData.stakeAmount, { decimals: 18, unit: 'CRwN' });
+  const maxPositionValidation = validateAmount(formData.tradingLimits.maxPositionSize, { decimals: 18, unit: 'CRwN' });
+  const maxExposureValidation = validateAmount(formData.tradingLimits.maxDailyExposure, { decimals: 18, unit: 'CRwN' });
+
+  const stakeAmountWei = stakeAmountValidation.parsedWei ?? 0n;
   const hasEnoughBalance = crwnBalance >= stakeAmountWei;
-  const insufficientBalanceError = formData.mintAsINFT && !crwnBalanceLoading && !hasEnoughBalance && parseFloat(formData.stakeAmount) > 0;
+  const insufficientBalanceError = formData.mintAsINFT && !crwnBalanceLoading && !hasEnoughBalance && stakeAmountValidation.isValid;
 
   const handleCreate = async () => {
+    // Submit-time fence on the three CRwN amount inputs. The per-keystroke
+    // `validateAmount` derivations above already disable submit visuals on
+    // invalid input, but a programmatic submit (Enter key on a different
+    // field, etc.) can still reach here — keep the alert as a backstop.
+    if (!stakeAmountValidation.isValid || !maxPositionValidation.isValid || !maxExposureValidation.isValid) {
+      alert(
+        'Invalid amount in one of the CRwN fields. Use positive decimals only — no scientific notation, no negatives, no more than 18 decimal places.'
+      );
+      return;
+    }
+
+    // Defensive integer-bounds check. Number(input) silently produces NaN
+    // on garbage; a NaN sent to the contract / server yields opaque errors.
+    // Three fields: minConfidence (0-100), lookbackPeriod (1-20), maxDailyTrades (1-100).
+    const intGuards: Array<{ value: unknown; min: number; max: number; label: string }> = [
+      { value: formData.strategyParams.minConfidence, min: 0, max: 100, label: 'Min Confidence (0-100)' },
+      { value: formData.strategyParams.lookbackPeriod, min: 1, max: 20, label: 'Lookback Period (1-20)' },
+      { value: formData.tradingLimits.maxDailyTrades, min: 1, max: 100, label: 'Max Daily Trades (1-100)' },
+    ];
+    for (const g of intGuards) {
+      if (
+        typeof g.value !== 'number' ||
+        !Number.isFinite(g.value) ||
+        !Number.isInteger(g.value) ||
+        g.value < g.min ||
+        g.value > g.max
+      ) {
+        alert(`Invalid value for "${g.label}". Whole numbers only, within range.`);
+        return;
+      }
+    }
+
     if (formData.mintAsINFT) {
       // Wait for balance to load before validating
       if (crwnBalanceLoading) {
@@ -214,8 +269,9 @@ export default function CreateAgentPage() {
         };
 
         setMintStep('minting');
-        // Convert stakeAmount string to bigint (in wei)
-        const stakeAmountWei = BigInt(Math.floor(parseFloat(formData.stakeAmount) * 1e18));
+        // Convert stakeAmount to wei. Safe because handleCreate already
+        // ran the parseEther guard at the top of the function.
+        const stakeAmountWei = parseEther(formData.stakeAmount);
         const result = await mintINFT(
           metadata,
           stakeAmountWei,
@@ -266,12 +322,10 @@ export default function CreateAgentPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen">
-        <div className="container-arcade py-6 md:py-8 text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Connect Wallet</h1>
-          <p className="text-gray-400 mb-6">Please connect your wallet to create an AI agent.</p>
-        </div>
-      </div>
+      <ConnectWalletPrompt
+        icon="🤖"
+        description="Connect your wallet to create an AI agent."
+      />
     );
   }
 
@@ -423,7 +477,10 @@ export default function CreateAgentPage() {
                       value={formData.strategyParams.minConfidence}
                       onChange={(e) => setFormData({
                         ...formData,
-                        strategyParams: { ...formData.strategyParams, minConfidence: Number(e.target.value) }
+                        strategyParams: {
+                          ...formData.strategyParams,
+                          minConfidence: clampInt(e.target.value, 0, 100, formData.strategyParams.minConfidence),
+                        }
                       })}
                       className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-500"
                     />
@@ -439,7 +496,10 @@ export default function CreateAgentPage() {
                       value={formData.strategyParams.lookbackPeriod}
                       onChange={(e) => setFormData({
                         ...formData,
-                        strategyParams: { ...formData.strategyParams, lookbackPeriod: Number(e.target.value) }
+                        strategyParams: {
+                          ...formData.strategyParams,
+                          lookbackPeriod: clampInt(e.target.value, 1, 20, formData.strategyParams.lookbackPeriod),
+                        }
                       })}
                       className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-500"
                     />
@@ -615,16 +675,19 @@ export default function CreateAgentPage() {
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Stake Amount (CRwN)</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={formData.stakeAmount}
                   onChange={(e) => setFormData({ ...formData, stakeAmount: e.target.value })}
                   className={`w-full bg-gray-800 border rounded-lg px-4 py-3 text-white focus:outline-none ${
-                    insufficientBalanceError
+                    insufficientBalanceError || stakeAmountValidation.error
                       ? 'border-red-500 focus:border-red-500'
                       : 'border-gray-700 focus:border-red-500'
                   }`}
-                  min={requirementsFormatted[0]}
                 />
+                {stakeAmountValidation.error && (
+                  <p className="text-xs text-red-400 mt-1">{stakeAmountValidation.error}</p>
+                )}
                 {formData.mintAsINFT ? (
                   <div className="mt-2 space-y-2">
                     <div className="flex items-center justify-between">
@@ -668,15 +731,20 @@ export default function CreateAgentPage() {
                   <div>
                     <label className="block text-xs text-gray-400 mb-1">Max Position (CRwN)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={formData.tradingLimits.maxPositionSize}
                       onChange={(e) => setFormData({
                         ...formData,
                         tradingLimits: { ...formData.tradingLimits, maxPositionSize: e.target.value }
                       })}
-                      className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-red-500"
-                      min="1"
+                      className={`w-full bg-gray-900 border rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-red-500 ${
+                        maxPositionValidation.error ? 'border-red-500' : 'border-gray-700'
+                      }`}
                     />
+                    {maxPositionValidation.error && (
+                      <p className="text-xs text-red-400 mt-1">{maxPositionValidation.error}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs text-gray-400 mb-1">Max Daily Trades</label>
@@ -685,7 +753,10 @@ export default function CreateAgentPage() {
                       value={formData.tradingLimits.maxDailyTrades}
                       onChange={(e) => setFormData({
                         ...formData,
-                        tradingLimits: { ...formData.tradingLimits, maxDailyTrades: Number(e.target.value) }
+                        tradingLimits: {
+                          ...formData.tradingLimits,
+                          maxDailyTrades: clampInt(e.target.value, 1, 100, formData.tradingLimits.maxDailyTrades),
+                        }
                       })}
                       className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-red-500"
                       min="1"
@@ -695,15 +766,20 @@ export default function CreateAgentPage() {
                   <div>
                     <label className="block text-xs text-gray-400 mb-1">Daily Exposure (CRwN)</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={formData.tradingLimits.maxDailyExposure}
                       onChange={(e) => setFormData({
                         ...formData,
                         tradingLimits: { ...formData.tradingLimits, maxDailyExposure: e.target.value }
                       })}
-                      className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-red-500"
-                      min="1"
+                      className={`w-full bg-gray-900 border rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:border-red-500 ${
+                        maxExposureValidation.error ? 'border-red-500' : 'border-gray-700'
+                      }`}
                     />
+                    {maxExposureValidation.error && (
+                      <p className="text-xs text-red-400 mt-1">{maxExposureValidation.error}</p>
+                    )}
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">

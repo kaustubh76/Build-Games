@@ -201,12 +201,14 @@ export function useUserPositions() {
   const { markets } = useMarkets();
   const [positions, setPositions] = useState<Map<string, Position>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchAllPositions = useCallback(async () => {
     if (!address || markets.length === 0) return;
 
     try {
       setLoading(true);
+      setError(null);
       const posMap = new Map<string, Position>();
 
       for (const market of markets) {
@@ -219,6 +221,7 @@ export function useUserPositions() {
       setPositions(posMap);
     } catch (err) {
       console.error('Error fetching positions:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch positions');
     } finally {
       setLoading(false);
     }
@@ -228,7 +231,7 @@ export function useUserPositions() {
     fetchAllPositions();
   }, [fetchAllPositions]);
 
-  return { positions, loading, refetch: fetchAllPositions };
+  return { positions, loading, error, refetch: fetchAllPositions };
 }
 
 /**

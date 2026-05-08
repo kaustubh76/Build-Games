@@ -106,6 +106,11 @@ export const ENV_SPECS: EnvSpec[] = [
     severity: 'recommended',
     description: '0G Storage signer (receipts skipped if missing — graceful degrade)',
   },
+  {
+    name: 'NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID',
+    severity: 'recommended',
+    description: 'WalletConnect project ID (RainbowKit uses a default if missing)',
+  },
 
   // -- Prisma → 0G migration flags (default '' = dual-write rollout). Set
   // -- to '1' once the matching 0G receipts have been observed in production

@@ -208,7 +208,7 @@ export function formatTradePnL(pnl: string | null): string {
   const num = parseFloat(pnl);
   if (isNaN(num)) return '-';
   const prefix = num >= 0 ? '+' : '';
-  return `${prefix}${num.toFixed(4)}`;
+  return `${prefix}${num.toFixed(2)}`;
 }
 
 export default useAgentTrades;

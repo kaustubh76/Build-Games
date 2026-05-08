@@ -126,7 +126,7 @@ export function MirrorMarketPositions({ onPositionClick, compact = false }: Mirr
           <div>
             <div className="text-xs text-gray-500">Avg Return</div>
             <div className={`text-lg font-semibold ${avgPnLPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {avgPnLPercent >= 0 ? '+' : ''}{avgPnLPercent.toFixed(1)}%
+              {avgPnLPercent >= 0 ? '+' : ''}{avgPnLPercent.toFixed(0)}%
             </div>
           </div>
         </div>
@@ -187,7 +187,7 @@ function PositionCard({ position, compact, onClick }: PositionCardProps) {
         </div>
         <div className="text-right">
           <div className={`text-sm font-medium ${pnlPositive ? 'text-green-400' : 'text-red-400'}`}>
-            {pnlPositive ? '+' : ''}{(position.pnlPercent || 0).toFixed(1)}%
+            {pnlPositive ? '+' : ''}{(position.pnlPercent || 0).toFixed(0)}%
           </div>
           <div className="text-xs text-gray-500">
             {formatTokenAmount(BigInt(position.pnl || '0'))} CRwN
@@ -203,11 +203,11 @@ function PositionCard({ position, compact, onClick }: PositionCardProps) {
           </div>
           <div>
             <span className="text-gray-500">Avg:</span>
-            <span className="ml-1 text-white">{(position.avgPrice || 0).toFixed(1)}%</span>
+            <span className="ml-1 text-white">{(position.avgPrice || 0).toFixed(0)}%</span>
           </div>
           <div>
             <span className="text-gray-500">Current:</span>
-            <span className="ml-1 text-white">{(position.currentPrice || 0).toFixed(1)}%</span>
+            <span className="ml-1 text-white">{(position.currentPrice || 0).toFixed(0)}%</span>
           </div>
         </div>
       )}

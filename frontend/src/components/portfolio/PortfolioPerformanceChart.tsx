@@ -140,7 +140,7 @@ export function PortfolioPerformanceChart({ markets, userMarketIds }: PortfolioP
                   ? 'bg-green-500/20 text-green-400'
                   : 'bg-red-500/20 text-red-400'
               }`}>
-                {isProfitable ? '+' : ''}{currentStats.pnlPercent.toFixed(1)}%
+                {isProfitable ? '+' : ''}{currentStats.pnlPercent.toFixed(0)}%
               </div>
             </div>
           </div>
@@ -175,9 +175,9 @@ export function PortfolioPerformanceChart({ markets, userMarketIds }: PortfolioP
         <div className="relative h-48 w-full">
           {/* Y-axis labels */}
           <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-500 w-12">
-            <span>{maxPnl.toFixed(1)}</span>
+            <span>{maxPnl.toFixed(0)}</span>
             <span className="text-gray-400">0</span>
-            <span>{minPnl.toFixed(1)}</span>
+            <span>{minPnl.toFixed(0)}</span>
           </div>
 
           {/* Chart area */}
@@ -271,7 +271,7 @@ export function PortfolioPerformanceChart({ markets, userMarketIds }: PortfolioP
         <div>
           <span className="text-gray-400 block">ROI</span>
           <span className={`font-medium ${isProfitable ? 'text-green-400' : 'text-red-400'}`}>
-            {isProfitable ? '+' : ''}{currentStats.pnlPercent.toFixed(1)}%
+            {isProfitable ? '+' : ''}{currentStats.pnlPercent.toFixed(0)}%
           </span>
         </div>
       </div>

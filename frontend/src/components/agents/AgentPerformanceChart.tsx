@@ -41,7 +41,7 @@ export function AgentPerformanceChart({ performance }: AgentPerformanceChartProp
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-bold text-white">{winRate.toFixed(1)}%</span>
+            <span className="text-3xl font-bold text-white">{winRate.toFixed(0)}%</span>
             <span className="text-sm text-gray-400">Win Rate</span>
           </div>
         </div>
@@ -73,7 +73,7 @@ export function AgentPerformanceChart({ performance }: AgentPerformanceChartProp
         />
         <StatBox
           label="Avg Confidence"
-          value={`${performance.avgConfidencePercent.toFixed(1)}%`}
+          value={`${performance.avgConfidencePercent.toFixed(0)}%`}
           icon=""
         />
         <StatBox
@@ -136,7 +136,7 @@ function PerformanceBar({
     <div>
       <div className="flex justify-between text-sm mb-1">
         <span className="text-gray-400">{label}</span>
-        <span className="text-white">{value.toFixed(1)}%</span>
+        <span className="text-white">{value.toFixed(0)}%</span>
       </div>
       <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
         <div

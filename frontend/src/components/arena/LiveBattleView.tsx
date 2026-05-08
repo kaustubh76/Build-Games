@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { formatEther } from 'viem';
+import { formatTokenAmount } from '@/lib/format/blockchain';
 import { PredictionBattle, PredictionRound, DebateMove } from '../../types/predictionArena';
 import { useBattleBetting, formatOdds, formatMultiplier } from '../../hooks/arena';
+import { useAmountInput } from '@/hooks/useAmountInput';
 
 interface LiveBattleViewProps {
   battle: PredictionBattle;
@@ -30,7 +32,13 @@ const MOVE_COLORS: Record<string, string> = {
 export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBattleViewProps) {
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
   const [showBettingPanel, setShowBettingPanel] = useState(false);
-  const [betAmount, setBetAmount] = useState('1');
+  const {
+    value: betAmount,
+    onChange: handleBetChange,
+    error: betError,
+    isValid: betValid,
+    reset: resetBet,
+  } = useAmountInput({ initialValue: '1', unit: 'CRwN' });
   const [betSide, setBetSide] = useState<'yes' | 'no'>('yes');
 
   const { pool, userBet, placeBet, isPlacingBet } = useBattleBetting(battle.id);
@@ -39,9 +47,11 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
   const completedRounds = battle.rounds?.filter(r => r.roundWinner) || [];
 
   const handlePlaceBet = async () => {
+    if (!betValid) return;
     const success = await placeBet(betSide === 'yes', betAmount);
     if (success) {
       setShowBettingPanel(false);
+      resetBet();
     }
   };
 
@@ -67,7 +77,7 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
           <div className="text-right">
             <p className="text-gray-400 text-sm">Stakes (each)</p>
             <p className="text-xl font-bold text-red-400">
-              {formatEther(BigInt(battle.stakes))} CRwN
+              {formatTokenAmount(battle.stakes)} CRwN
             </p>
           </div>
         </div>
@@ -141,7 +151,7 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
               <div className="text-right">
                 <p className="text-sm text-gray-400">Total Pool</p>
                 <p className="text-lg font-bold text-red-400">
-                  {formatEther(BigInt(pool.totalPool || '0'))} CRwN
+                  {formatTokenAmount(pool.totalPool || '0')} CRwN
                 </p>
               </div>
             )}
@@ -151,7 +161,7 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
             <div className="bg-gray-700/50 rounded-xl p-4">
               <p className="text-gray-400 text-sm">Your Bet</p>
               <p className="text-white font-bold">
-                {formatEther(BigInt(userBet.amount))} CRwN on {userBet.betOnWarrior1 ? 'YES' : 'NO'}
+                {formatTokenAmount(userBet.amount)} CRwN on {userBet.betOnWarrior1 ? 'YES' : 'NO'}
               </p>
             </div>
           ) : (
@@ -189,23 +199,29 @@ export function LiveBattleView({ battle, onExecuteRound, isExecuting }: LiveBatt
                 </button>
               </div>
 
-              <div className="flex gap-4">
-                <input
-                  type="number"
-                  value={betAmount}
-                  onChange={(e) => setBetAmount(e.target.value)}
-                  min="0.1"
-                  step="0.1"
-                  className="flex-1 bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none"
-                  placeholder="Amount in CRwN"
-                />
-                <button
-                  onClick={handlePlaceBet}
-                  disabled={isPlacingBet || !betAmount}
-                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl font-bold text-white hover:from-red-500 hover:to-pink-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  {isPlacingBet ? 'Placing...' : 'Place Bet'}
-                </button>
+              <div>
+                <div className="flex gap-4">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={betAmount}
+                    onChange={handleBetChange}
+                    className={`flex-1 bg-gray-700 border rounded-xl px-4 py-3 text-white focus:outline-none ${
+                      betError ? 'border-red-500 focus:border-red-500' : 'border-gray-600 focus:border-red-500'
+                    }`}
+                    placeholder="Amount in CRwN"
+                  />
+                  <button
+                    onClick={handlePlaceBet}
+                    disabled={isPlacingBet || !betValid}
+                    className="px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl font-bold text-white hover:from-red-500 hover:to-pink-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {isPlacingBet ? 'Placing...' : 'Place Bet'}
+                  </button>
+                </div>
+                {betError ? (
+                  <p className="mt-2 text-xs text-red-400" role="alert">{betError}</p>
+                ) : null}
               </div>
             </div>
           )}

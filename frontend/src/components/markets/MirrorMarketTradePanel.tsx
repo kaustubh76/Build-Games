@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
 import { useMirrorMarketTrade, useVRFTrade, useMirrorMarketQuery, MirrorMarketState } from '@/hooks/useMirrorMarket';
 import { UnifiedMarket, MarketSource } from '@/types/externalMarket';
 import { formatTokenAmount } from '@/utils/format';
+import { useAmountInput } from '@/hooks/useAmountInput';
 
 interface MirrorMarketTradePanelProps {
   market: UnifiedMarket;
@@ -26,7 +26,15 @@ export function MirrorMarketTradePanel({
   const { queryMirrorMarket, mirrorMarket, loading: queryLoading } = useMirrorMarketQuery();
 
   const [selectedOutcome, setSelectedOutcome] = useState<Outcome>('yes');
-  const [amount, setAmount] = useState('');
+  const {
+    value: amount,
+    onChange: handleAmountChange,
+    error: amountError,
+    isValid: amountValid,
+    parsedWei: amountWeiBigInt,
+    setValue: setAmount,
+    reset: resetAmount,
+  } = useAmountInput({ unit: 'CRwN' });
   const [slippage, setSlippage] = useState(1); // 1% default
   const [useVRF, setUseVRF] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -43,9 +51,9 @@ export function MirrorMarketTradePanel({
   }, [mirrorKey, queryMirrorMarket]);
 
   const handleTrade = async () => {
-    if (!isConnected || !address || !amount) return;
+    if (!isConnected || !address || !amountValid || !amountWeiBigInt) return;
 
-    const amountWei = parseEther(amount).toString();
+    const amountWei = amountWeiBigInt.toString();
 
     try {
       let result;
@@ -73,7 +81,7 @@ export function MirrorMarketTradePanel({
           txHash: result.txHash,
           shares: ('sharesReceived' in result ? result.sharesReceived : undefined) || ('sharesOut' in result ? result.sharesOut : undefined) || '0',
         });
-        setAmount('');
+        resetAmount();
         onTradeComplete?.();
       }
     } catch {
@@ -117,11 +125,11 @@ export function MirrorMarketTradePanel({
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <span className="text-gray-500">YES:</span>
-              <span className="ml-2 text-green-400">{mirrorMarket.yesPrice.toFixed(1)}%</span>
+              <span className="ml-2 text-green-400">{mirrorMarket.yesPrice.toFixed(0)}%</span>
             </div>
             <div>
               <span className="text-gray-500">NO:</span>
-              <span className="ml-2 text-red-400">{mirrorMarket.noPrice.toFixed(1)}%</span>
+              <span className="ml-2 text-red-400">{mirrorMarket.noPrice.toFixed(0)}%</span>
             </div>
             <div>
               <span className="text-gray-500">Volume:</span>
@@ -146,7 +154,7 @@ export function MirrorMarketTradePanel({
           }`}
         >
           <div className="text-lg">YES</div>
-          <div className="text-sm opacity-70">{market.yesPrice.toFixed(1)}%</div>
+          <div className="text-sm opacity-70">{market.yesPrice.toFixed(0)}%</div>
         </button>
         <button
           onClick={() => setSelectedOutcome('no')}
@@ -157,7 +165,7 @@ export function MirrorMarketTradePanel({
           }`}
         >
           <div className="text-lg">NO</div>
-          <div className="text-sm opacity-70">{market.noPrice.toFixed(1)}%</div>
+          <div className="text-sm opacity-70">{market.noPrice.toFixed(0)}%</div>
         </button>
       </div>
 
@@ -166,11 +174,16 @@ export function MirrorMarketTradePanel({
         <label className="block text-sm text-gray-400 mb-2">Amount (CRwN)</label>
         <div className="relative">
           <input
-            type="number"
+            type="text"
+            inputMode="decimal"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={handleAmountChange}
             placeholder="0.0"
-            className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white text-lg focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none"
+            className={`w-full px-4 py-3 bg-gray-900 border rounded-lg text-white text-lg focus:ring-1 outline-none ${
+              amountError
+                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                : 'border-gray-600 focus:border-yellow-500 focus:ring-yellow-500'
+            }`}
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
             {[10, 50, 100].map((val) => (
@@ -184,6 +197,9 @@ export function MirrorMarketTradePanel({
             ))}
           </div>
         </div>
+        {amountError ? (
+          <p className="mt-1 text-xs text-red-400" role="alert">{amountError}</p>
+        ) : null}
       </div>
 
       {/* Trade Estimate */}
@@ -294,7 +310,7 @@ export function MirrorMarketTradePanel({
       {/* Trade Button */}
       <button
         onClick={handleTrade}
-        disabled={!isConnected || !amount || loading || (mirrorMarket != null && !mirrorMarket.isActive)}
+        disabled={!isConnected || !amountValid || loading || (mirrorMarket != null && !mirrorMarket.isActive)}
         className={`w-full py-4 rounded-lg font-semibold text-lg transition-all ${
           !isConnected || !amount || loading || (mirrorMarket && !mirrorMarket.isActive)
             ? 'bg-gray-700 text-gray-400 cursor-not-allowed'

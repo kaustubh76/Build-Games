@@ -24,7 +24,7 @@
     },
     {
       "path": "/api/cron/sync-agent-events",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "env": {

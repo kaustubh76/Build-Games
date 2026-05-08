@@ -10,6 +10,10 @@ import { avalancheFuji } from 'viem/chains';
 import { chainsToContracts, getAvalancheRpcUrl, getAvalancheFallbackRpcUrl, getChainId } from '@/constants';
 import { MarketSource } from '@/types/externalMarket';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { isTier2EventSourced } from '@/lib/storage/featureFlags';
+import { getResilientPublicClient } from '@/lib/viemClient';
+import { getMirrorTradesForTrader } from '@/lib/eventQuery/mirrorTrades';
+import { log } from '@/lib/api/logger';
 
 const RPC_TIMEOUT = 60000;
 
@@ -70,6 +74,52 @@ async function executeWithFallback<T>(
   }
 }
 
+/**
+ * Tier-2 read switch: event-sourced when ENABLE_0G_TIER2=1, Prisma otherwise.
+ * On event-sourced read failure (RPC down, range too large), falls back to
+ * Prisma with a logged warning — the page never goes blank during rollout.
+ */
+async function readMirrorTrades(traderAddress: `0x${string}`) {
+  const prismaRead = () =>
+    prisma.mirrorTrade.findMany({
+      where: {
+        traderAddress,
+        mirrorKey: { not: undefined },
+        NOT: { mirrorKey: '' },
+      },
+      orderBy: { timestamp: 'desc' },
+    });
+
+  if (!isTier2EventSourced()) return prismaRead();
+
+  const contracts = chainsToContracts[getChainId()];
+  const externalMarketMirrorAddress = contracts?.externalMarketMirror as
+    | `0x${string}`
+    | undefined;
+  if (!externalMarketMirrorAddress) {
+    log.warn('[portfolio/mirror] no externalMarketMirror contract for chain; using Prisma');
+    return prismaRead();
+  }
+
+  try {
+    const client = getResilientPublicClient();
+    const events = await getMirrorTradesForTrader(
+      client,
+      externalMarketMirrorAddress,
+      traderAddress
+    );
+    // Filter out empty mirrorKey to match the prisma where-clause.
+    return events
+      .filter((t) => t.mirrorKey && t.mirrorKey !== '')
+      .sort((a, b) => b.blockNumber - a.blockNumber);
+  } catch (err) {
+    log.warn('[portfolio/mirror] event-sourced read failed; falling back to Prisma', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return prismaRead();
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
@@ -87,17 +137,11 @@ export async function GET(request: NextRequest) {
       throw ErrorResponses.badRequest('Invalid or missing address parameter');
     }
 
-    // Get mirror trades from database (trades with mirrorKey)
-    const trades = await prisma.mirrorTrade.findMany({
-      where: {
-        traderAddress: address.toLowerCase(),
-        mirrorKey: { not: undefined },
-        NOT: { mirrorKey: '' },
-      },
-      orderBy: {
-        timestamp: 'desc',
-      },
-    });
+    // Get mirror trades. When ENABLE_0G_TIER2=1, we read from on-chain
+    // MirrorTradeExecuted logs; otherwise we read from Prisma. On any
+    // event-sourced read failure we fall back to Prisma so the page never
+    // breaks during the rollout window.
+    const trades = await readMirrorTrades(address.toLowerCase() as `0x${string}`);
 
     // Get mirror market metadata
     const mirrorKeys = [...new Set(trades.map((t) => t.mirrorKey).filter(Boolean))];

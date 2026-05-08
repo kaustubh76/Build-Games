@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { formatEther } from 'viem';
+import { formatTokenAmount } from '@/lib/format/blockchain';
 import Link from 'next/link';
 import { ArenaLeaderboard, CreateChallengeModal, AcceptChallengeModal } from '../../components/arena';
 
@@ -139,7 +140,7 @@ export default function PredictionArenaPage() {
           <StatCard title="Completed" value={battles.filter((b: Battle) => b.status === 'completed').length.toString()} />
           <StatCard
             title="Total Stakes"
-            value={`${battles.length > 0 ? formatEther(BigInt(battles.reduce((acc: number, b: Battle) => acc + parseInt(b.stakes || '0'), 0))) : '0'} CRwN`}
+            value={`${battles.length > 0 ? formatTokenAmount(BigInt(battles.reduce((acc: number, b: Battle) => acc + parseInt(b.stakes || '0'), 0))) : '0'} CRwN`}
           />
         </div>
 
@@ -319,7 +320,7 @@ function PredictionBattleCard({
           <div className="text-right ml-4">
             <p className="text-sm text-gray-400">Stakes (each)</p>
             <p className="text-xl font-bold text-yellow-400">
-              {formatEther(BigInt(battle.stakes))} CRwN
+              {formatTokenAmount(battle.stakes)} CRwN
             </p>
           </div>
         </div>

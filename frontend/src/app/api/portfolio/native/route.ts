@@ -10,6 +10,10 @@ import { avalancheFuji } from 'viem/chains';
 import { chainsToContracts, getAvalancheRpcUrl, getAvalancheFallbackRpcUrl, getChainId } from '@/constants';
 import { MarketSource } from '@/types/externalMarket';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { isTier2EventSourced } from '@/lib/storage/featureFlags';
+import { getResilientPublicClient } from '@/lib/viemClient';
+import { getNativeTradesForTrader } from '@/lib/eventQuery/nativeTrades';
+import { log } from '@/lib/api/logger';
 
 const RPC_TIMEOUT = 60000;
 
@@ -61,6 +65,56 @@ async function executeWithFallback<T>(
   }
 }
 
+/**
+ * Tier-2 read switch: event-sourced when ENABLE_0G_TIER2=1, Prisma otherwise.
+ * On any failure (RPC down, range too large, missing contract address), falls
+ * back to Prisma with a logged warning so the page never goes blank during
+ * rollout.
+ *
+ * Note: nothing in the indexer writes native trades into `mirrorTrade` with
+ * an empty mirrorKey, so the Prisma branch here returns zero rows in
+ * practice; the event-sourced branch is the corrected path.
+ */
+async function readNativeTrades(traderAddress: `0x${string}`) {
+  const prismaRead = () =>
+    prisma.mirrorTrade.findMany({
+      where: {
+        traderAddress,
+        mirrorKey: '',
+      },
+      orderBy: { timestamp: 'desc' },
+    });
+
+  if (!isTier2EventSourced()) return prismaRead();
+
+  const contracts = chainsToContracts[getChainId()];
+  const predictionMarketAddress = contracts?.predictionMarketAMM as
+    | `0x${string}`
+    | undefined;
+  if (
+    !predictionMarketAddress ||
+    predictionMarketAddress === '0x0000000000000000000000000000000000000000'
+  ) {
+    log.warn('[portfolio/native] no predictionMarketAMM contract for chain; using Prisma');
+    return prismaRead();
+  }
+
+  try {
+    const client = getResilientPublicClient();
+    const events = await getNativeTradesForTrader(
+      client,
+      predictionMarketAddress,
+      traderAddress
+    );
+    return events.sort((a, b) => b.blockNumber - a.blockNumber);
+  } catch (err) {
+    log.warn('[portfolio/native] event-sourced read failed; falling back to Prisma', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return prismaRead();
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
@@ -78,23 +132,18 @@ export async function GET(request: NextRequest) {
       throw ErrorResponses.badRequest('Invalid or missing address parameter');
     }
 
-    // Get native trades from database (trades without mirrorKey or with NATIVE source)
-    const trades = await prisma.mirrorTrade.findMany({
-      where: {
-        traderAddress: address.toLowerCase(),
-        mirrorKey: '',
-      },
-      orderBy: {
-        timestamp: 'desc',
-      },
-    });
+    const trades = await readNativeTrades(address.toLowerCase() as `0x${string}`);
 
-    // Group trades by market
+    // Group trades by market. `trades` is a union of Prisma rows and
+    // event-sourced rows — the downstream loop only reads fields common to
+    // both, but the .push() call below would otherwise have to be the
+    // intersection. Widen to the element type explicitly.
+    type Trade = (typeof trades)[number];
     const marketPositions = new Map<
       string,
       {
         marketId: string;
-        trades: typeof trades;
+        trades: Trade[];
         totalShares: bigint;
         totalCost: bigint;
         isYes: boolean;

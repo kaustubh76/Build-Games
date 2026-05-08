@@ -13,7 +13,11 @@ import { globalErrorHandler } from '@/lib/errorRecovery';
 import { prisma } from '@/lib/prisma';
 import { createPublicClient, http } from 'viem';
 import { avalancheFuji } from 'viem/chains';
-import { getAvalancheRpcUrl } from '@/constants';
+import { chainsToContracts, getAvalancheRpcUrl, getChainId } from '@/constants';
+import { isTier2EventSourced } from '@/lib/storage/featureFlags';
+import { getResilientPublicClient } from '@/lib/viemClient';
+import { getAllMirrorTrades } from '@/lib/eventQuery/mirrorTrades';
+import { log } from '@/lib/api/logger';
 
 // Create Avalanche public client
 function createAvalanchePublicClient() {
@@ -21,6 +25,58 @@ function createAvalanchePublicClient() {
     chain: avalancheFuji,
     transport: http(getAvalancheRpcUrl()),
   });
+}
+
+/**
+ * Tier-2 read switch: when ENABLE_0G_TIER2=1, derive `lastSyncedBlock` and
+ * `tradeCount` from on-chain `MirrorTradeExecuted` logs. Falls back to
+ * Prisma on RPC error or missing contract address so metrics never break.
+ */
+async function readTradeMetrics(): Promise<{
+  lastSyncedBlock: bigint;
+  tradeCount: number;
+}> {
+  const prismaRead = async () => {
+    const [lastTrade, tradeCount] = await Promise.all([
+      prisma.mirrorTrade.findFirst({
+        orderBy: { blockNumber: 'desc' },
+        select: { blockNumber: true },
+      }),
+      prisma.mirrorTrade.count(),
+    ]);
+    return {
+      lastSyncedBlock: lastTrade ? BigInt(lastTrade.blockNumber) : 0n,
+      tradeCount,
+    };
+  };
+
+  if (!isTier2EventSourced()) return prismaRead();
+
+  const contracts = chainsToContracts[getChainId()];
+  const externalMarketMirrorAddress = contracts?.externalMarketMirror as
+    | `0x${string}`
+    | undefined;
+  if (
+    !externalMarketMirrorAddress ||
+    externalMarketMirrorAddress === '0x0000000000000000000000000000000000000000'
+  ) {
+    log.warn('[metrics] no externalMarketMirror contract; using Prisma');
+    return prismaRead();
+  }
+
+  try {
+    const client = getResilientPublicClient();
+    const events = await getAllMirrorTrades(client, externalMarketMirrorAddress);
+    const maxBlock = events.length === 0
+      ? 0n
+      : BigInt(Math.max(...events.map((e) => e.blockNumber)));
+    return { lastSyncedBlock: maxBlock, tradeCount: events.length };
+  } catch (err) {
+    log.warn('[metrics] event-sourced read failed; falling back to Prisma', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return prismaRead();
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -72,22 +128,17 @@ async function updateRealTimeMetrics() {
     const client = createAvalanchePublicClient();
     const currentBlock = await client.getBlockNumber();
 
-    const lastTrade = await prisma.mirrorTrade.findFirst({
-      orderBy: { blockNumber: 'desc' },
-      select: { blockNumber: true },
-    });
-
-    const lastSyncedBlock = lastTrade ? BigInt(lastTrade.blockNumber) : 0n;
+    const { lastSyncedBlock, tradeCount } = await readTradeMetrics();
     const blocksBehind = Number(currentBlock - lastSyncedBlock);
 
     ChainMetrics.setEventsSynced(Number(lastSyncedBlock));
     ChainMetrics.setBlocksBehind(blocksBehind);
 
-    // Update business metrics
-    const [marketCount, activeMarkets, tradeCount] = await Promise.all([
+    // Market metrics stay on Prisma — no event-sourced helper for mirrorMarket
+    // and not in scope for this pass.
+    const [marketCount, activeMarkets] = await Promise.all([
       prisma.mirrorMarket.count(),
       prisma.mirrorMarket.count({ where: { isActive: true } }),
-      prisma.mirrorTrade.count(),
     ]);
 
     ChainMetrics.setTotalMarkets(marketCount);

@@ -146,11 +146,11 @@ export default function ExternalMarketDetailPage() {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-gray-900 rounded-lg p-4">
                   <div className="text-sm text-gray-400 mb-1">YES</div>
-                  <div className="text-3xl font-bold text-green-400">{market.yesPrice.toFixed(1)}%</div>
+                  <div className="text-3xl font-bold text-green-400">{market.yesPrice.toFixed(0)}%</div>
                 </div>
                 <div className="bg-gray-900 rounded-lg p-4">
                   <div className="text-sm text-gray-400 mb-1">NO</div>
-                  <div className="text-3xl font-bold text-red-400">{market.noPrice.toFixed(1)}%</div>
+                  <div className="text-3xl font-bold text-red-400">{market.noPrice.toFixed(0)}%</div>
                 </div>
               </div>
 
@@ -185,11 +185,11 @@ export default function ExternalMarketDetailPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <div className="text-sm text-gray-500">Mirror YES</div>
-                    <div className="text-lg font-semibold text-green-400">{mirrorMarket.yesPrice.toFixed(1)}%</div>
+                    <div className="text-lg font-semibold text-green-400">{mirrorMarket.yesPrice.toFixed(0)}%</div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Mirror NO</div>
-                    <div className="text-lg font-semibold text-red-400">{mirrorMarket.noPrice.toFixed(1)}%</div>
+                    <div className="text-lg font-semibold text-red-400">{mirrorMarket.noPrice.toFixed(0)}%</div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Mirror Volume</div>

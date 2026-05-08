@@ -383,7 +383,7 @@ export default function RiskPage() {
                     </td>
                     <td className="px-3 py-2 text-right font-mono">{formatCRwN(p.shares)}</td>
                     <td className="px-3 py-2 text-right font-mono text-xs">
-                      {(p.avgPrice * 100).toFixed(1)}% / {(p.currentPrice * 100).toFixed(1)}%
+                      {(p.avgPrice * 100).toFixed(0)}% / {(p.currentPrice * 100).toFixed(0)}%
                     </td>
                     <td className="px-3 py-2 text-right">{formatCRwN(p.value)}</td>
                     <td

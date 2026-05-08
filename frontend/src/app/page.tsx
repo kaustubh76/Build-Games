@@ -4,9 +4,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useState, useEffect } from 'react';
-import { parseEther } from 'viem';
 import { chainsToContracts, crownTokenAbi } from '../constants';
 import { useCRwNTokenMessages } from '../hooks/useCRwNTokenMessages';
+import { useAmountInput } from '../hooks/useAmountInput';
+import { ConnectWalletPrompt } from '@/components/common/ConnectWalletPrompt';
 import './home-glass.css';
 import { TodayPanel } from '@/components/gamification/TodayPanel';
 
@@ -111,7 +112,11 @@ const TokenExchangeCard = ({
   rate: string;
   type: 'mint' | 'burn';
 }) => {
-  const [amount, setAmount] = useState('');
+  // useAmountInput rejects scientific notation, decimals > 18, negatives,
+  // and other inputs that would crash parseEther downstream. The hook
+  // returns a `parsedWei` bigint that the submit handler uses directly.
+  const amountInput = useAmountInput({ decimals: 18 });
+  const amount = amountInput.value;
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const { address, chainId } = useAccount();
@@ -138,43 +143,35 @@ const TokenExchangeCard = ({
   const contractAddress = chainId ? chainsToContracts[chainId]?.crownToken : undefined;
 
   const handleExchange = async () => {
-    if (!amount || parseFloat(amount) <= 0 || !contractAddress || !address) return;
-    
+    const amountInWei = amountInput.parsedWei;
+    if (!amountInWei || !contractAddress || !address) return;
+
     setIsLoading(true);
-    
+
     // Trigger warrior message for transaction start
     showMessage({
       id: `${type}_start`,
-      text: type === 'mint' 
+      text: type === 'mint'
         ? `By the royal mint! Thy ${amount} AVAX shall be transformed into precious CRwN tokens!`
         : `The fires of conversion ignite! Thy ${amount} CRwN tokens shall return to pure AVAX!`,
       duration: 4000
     });
-    
-    try {
-      const amountInWei = parseEther(amount);
-      
-      if (type === 'mint') {
-        // Call mint function with value
-        writeContract({
-          address: contractAddress as `0x${string}`,
-          abi: crownTokenAbi,
-          functionName: 'mint',
-          args: [amountInWei],
-          value: amountInWei, // Send AVAX equivalent to mint amount
-        });
-      } else {
-        // Call burn function
-        writeContract({
-          address: contractAddress as `0x${string}`,
-          abi: crownTokenAbi,
-          functionName: 'burn',
-          args: [amountInWei],
-        });
-      }
-    } catch (error) {
-      console.error('Transaction failed:', error);
-      setIsLoading(false);
+
+    if (type === 'mint') {
+      writeContract({
+        address: contractAddress as `0x${string}`,
+        abi: crownTokenAbi,
+        functionName: 'mint',
+        args: [amountInWei],
+        value: amountInWei,
+      });
+    } else {
+      writeContract({
+        address: contractAddress as `0x${string}`,
+        abi: crownTokenAbi,
+        functionName: 'burn',
+        args: [amountInWei],
+      });
     }
   };
 
@@ -183,13 +180,12 @@ const TokenExchangeCard = ({
     if (isConfirmed || (!isConfirming && hash)) {
       setIsLoading(false);
       if (isConfirmed) {
-        setAmount('');
+        amountInput.reset();
         setSuccessMessage(`Successfully ${type === 'mint' ? 'minted' : 'burned'} ${amount} ${type === 'mint' ? 'CRwN' : 'CRwN'} tokens!`);
-        // Clear success message after 5 seconds
         setTimeout(() => setSuccessMessage(''), 5000);
       }
     }
-  }, [isConfirmed, isConfirming, hash, amount, type]);
+  }, [isConfirmed, isConfirming, hash, amount, type, amountInput]);
 
   const cardColor = type === 'mint' ? 'border-green-500' : 'border-red-500';
   const buttonColor = type === 'mint' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700';
@@ -243,22 +239,26 @@ const TokenExchangeCard = ({
             </label>
             <div className="relative">
               <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                type="text"
+                inputMode="decimal"
+                value={amountInput.value}
+                onChange={amountInput.onChange}
                 className="w-full p-3 bg-stone-800 border border-yellow-600 rounded text-white text-center text-lg"
                 placeholder="0.0"
-                step="0.01"
-                min="0"
               />
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-yellow-400 text-sm">
                 {fromToken}
               </span>
             </div>
+            {amountInput.error && (
+              <p className="mt-1 text-xs text-red-400" style={{ fontFamily: 'Press Start 2P, monospace' }}>
+                {amountInput.error}
+              </p>
+            )}
           </div>
 
           {/* Conversion Display */}
-          {amount && parseFloat(amount) > 0 && (
+          {amountInput.isValid && (
             <div className="bg-stone-700 p-3 rounded border border-gray-600">
               <div className="flex justify-between items-center">
                 <span className="text-gray-400 text-xs">YOU WILL RECEIVE</span>
@@ -272,7 +272,7 @@ const TokenExchangeCard = ({
           {/* Exchange Button */}
           <button
             onClick={handleExchange}
-            disabled={!amount || parseFloat(amount) <= 0 || isLoading}
+            disabled={!amountInput.isValid || isLoading}
             className={`w-full py-3 px-4 rounded text-white font-bold text-sm transition-all duration-200 ${buttonColor} disabled:opacity-50 disabled:cursor-not-allowed`}
             style={{
               fontFamily: 'Press Start 2P, monospace',
@@ -358,43 +358,10 @@ export default function HomePage() {
 
         {/* Wallet Connection Warning */}
         {isMounted && !isConnected && (
-          <div className="max-w-4xl mx-auto mb-12">
-            <div 
-              className="arcade-card p-8 border-red-600 bg-red-900/20"
-              style={{
-                background: 'radial-gradient(circle at top left, rgba(255, 182, 193, 0.2), rgba(255, 160, 160, 0.15) 50%), linear-gradient(135deg, rgba(255, 182, 193, 0.25) 0%, rgba(255, 160, 160, 0.2) 30%, rgba(255, 182, 193, 0.25) 100%)',
-                border: '3px solid #e53e3e',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1), 0 0 8px rgba(229, 62, 62, 0.2)',
-                borderRadius: '16px'
-              }}
-            >
-              <div className="text-center">
-                <div className="mb-4">
-                  <span className="text-4xl">🔒</span>
-                </div>
-                <h2 
-                  className="text-2xl text-red-400 mb-4 tracking-wider arcade-glow"
-                  style={{fontFamily: 'Press Start 2P, monospace'}}
-                >
-                  WALLET CONNECTION REQUIRED
-                </h2>
-                <p 
-                  className="text-red-200 text-sm leading-relaxed mb-4"
-                  style={{fontFamily: 'Press Start 2P, monospace'}}
-                >
-                  TO ENTER THE BATTLEFIELD AND ACCESS ALL FEATURES
-                </p>
-                <p 
-                  className="text-red-300 text-xs"
-                  style={{fontFamily: 'Press Start 2P, monospace'}}
-                >
-                  CONNECT YOUR WALLET TO PROCEED
-                </p>
-              </div>
-            </div>
-          </div>
+          <ConnectWalletPrompt
+            description="Connect your wallet to access the battlefield and all features."
+            hint="Use the Connect button in the header to get started."
+          />
         )}
 
         {/* Epic Game Mode Arena */}

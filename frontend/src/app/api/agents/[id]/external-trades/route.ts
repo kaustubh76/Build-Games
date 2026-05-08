@@ -8,6 +8,73 @@ import { type NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { MarketSource } from '@/types/externalMarket';
 import { handleAPIError, applyRateLimit } from '@/lib/api';
+import { isTier2EventSourced } from '@/lib/storage/featureFlags';
+import { getResilientPublicClient } from '@/lib/viemClient';
+import { getAgentTradesForAgent } from '@/lib/eventQuery/agentTrades';
+import { chainsToContracts, getChainId } from '@/constants';
+import { log } from '@/lib/api/logger';
+
+/**
+ * Tier-2 read switch for agent external trades. Reads `AgentTradeExecuted`
+ * logs filtered by indexed `agentId` when ENABLE_0G_TIER2=1, otherwise
+ * Prisma. Falls back to Prisma on any RPC error so the trade history
+ * never goes blank during rollout.
+ */
+async function readAgentTrades(agentId: string, limit: number, offset: number) {
+  const prismaRead = async () => {
+    const where = {
+      agentId,
+      mirrorKey: { not: undefined as unknown as string },
+      NOT: { mirrorKey: '' },
+    };
+    const [totalCount, trades] = await Promise.all([
+      prisma.mirrorTrade.count({ where }),
+      prisma.mirrorTrade.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+    ]);
+    return { totalCount, trades };
+  };
+
+  if (!isTier2EventSourced()) return prismaRead();
+
+  const contracts = chainsToContracts[getChainId()];
+  const externalMarketMirrorAddress = contracts?.externalMarketMirror as
+    | `0x${string}`
+    | undefined;
+  if (
+    !externalMarketMirrorAddress ||
+    externalMarketMirrorAddress === '0x0000000000000000000000000000000000000000'
+  ) {
+    log.warn('[agents/external-trades] no externalMarketMirror; using Prisma');
+    return prismaRead();
+  }
+
+  try {
+    const client = getResilientPublicClient();
+    const events = await getAgentTradesForAgent(
+      client,
+      externalMarketMirrorAddress,
+      agentId
+    );
+    // mirrorKey is non-empty by construction (every AgentTradeExecuted has
+    // an indexed mirrorKey). Sort by blockNumber desc to match the legacy
+    // `orderBy: timestamp desc` semantics, then paginate in memory.
+    const sorted = [...events].sort((a, b) => b.blockNumber - a.blockNumber);
+    return {
+      totalCount: sorted.length,
+      trades: sorted.slice(offset, offset + limit),
+    };
+  } catch (err) {
+    log.warn('[agents/external-trades] event-sourced read failed; falling back to Prisma', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return prismaRead();
+  }
+}
 
 export async function GET(
   request: NextRequest,
@@ -29,28 +96,7 @@ export async function GET(
     const offset = parseInt(searchParams.get('offset') || '0');
     const source = searchParams.get('source') as 'polymarket' | 'kalshi' | null;
 
-    // Get total count for pagination
-    const totalCount = await prisma.mirrorTrade.count({
-      where: {
-        agentId: agentId,
-        mirrorKey: { not: undefined },
-        NOT: { mirrorKey: '' },
-      },
-    });
-
-    // Get external trades for this agent (trades with mirrorKey)
-    const trades = await prisma.mirrorTrade.findMany({
-      where: {
-        agentId: agentId,
-        mirrorKey: { not: undefined },
-        NOT: { mirrorKey: '' },
-      },
-      orderBy: {
-        timestamp: 'desc',
-      },
-      take: limit,
-      skip: offset,
-    });
+    const { totalCount, trades } = await readAgentTrades(agentId, limit, offset);
 
     // Get mirror market metadata for these trades
     const mirrorKeys = [...new Set(trades.map((t) => t.mirrorKey).filter(Boolean))];

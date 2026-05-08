@@ -369,7 +369,7 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
                 </option>
                 {agents.map((agent) => (
                   <option key={agent.id.toString()} value={agent.id.toString()}>
-                    {agent.name} ({agent.winRate?.toFixed(1) || 0}% win rate)
+                    {agent.name} ({agent.winRate?.toFixed(0) || 0}% win rate)
                   </option>
                 ))}
               </select>
@@ -567,7 +567,7 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
               YES
             </div>
             <div className="text-sm text-gray-400">
-              {yesProbability.toFixed(1)}%
+              {yesProbability.toFixed(0)}%
             </div>
           </button>
           <button
@@ -583,7 +583,7 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
               NO
             </div>
             <div className="text-sm text-gray-400">
-              {noProbability.toFixed(1)}%
+              {noProbability.toFixed(0)}%
             </div>
           </button>
         </div>
@@ -741,9 +741,9 @@ export function TradePanel({ market, onTradeComplete }: TradePanelProps) {
                       ? 'text-green-400' : 'text-yellow-400'
                   }`}>
                     {position.yesTokens > position.noTokens
-                      ? yesProbability.toFixed(1)
+                      ? yesProbability.toFixed(0)
                       : position.noTokens > position.yesTokens
-                      ? noProbability.toFixed(1)
+                      ? noProbability.toFixed(0)
                       : '50.0'}%
                   </span>
                 </div>

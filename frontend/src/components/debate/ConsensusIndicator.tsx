@@ -59,7 +59,7 @@ export function ConsensusIndicator({
             <span className={`text-3xl font-bold ${outcomeColor === '#22c55e' ? 'text-green-400' : outcomeColor === '#ef4444' ? 'text-red-400' : 'text-gray-400'}`}>
               {outcomeLabel}
             </span>
-            <span className="text-sm text-gray-400">{confidencePercent.toFixed(1)}% conf</span>
+            <span className="text-sm text-gray-400">{confidencePercent.toFixed(0)}% conf</span>
           </div>
         </div>
       </div>
@@ -67,8 +67,8 @@ export function ConsensusIndicator({
       {/* Weight Distribution */}
       <div className="mb-4">
         <div className="flex justify-between text-sm mb-2">
-          <span className="text-green-400">Yes ({yesPercent.toFixed(1)}%)</span>
-          <span className="text-red-400">No ({noPercent.toFixed(1)}%)</span>
+          <span className="text-green-400">Yes ({yesPercent.toFixed(0)}%)</span>
+          <span className="text-red-400">No ({noPercent.toFixed(0)}%)</span>
         </div>
         <div className="h-4 bg-gray-700 rounded-full overflow-hidden flex">
           <div
@@ -110,7 +110,7 @@ export function ConsensusIndicator({
                   style={{ backgroundColor: item.color }}
                 />
                 <span className="text-sm text-gray-400 flex-1">{item.label}</span>
-                <span className="text-sm text-white">{item.percentage.toFixed(1)}%</span>
+                <span className="text-sm text-white">{item.percentage.toFixed(0)}%</span>
               </div>
             ))}
           </div>
