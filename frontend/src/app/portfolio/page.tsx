@@ -10,6 +10,7 @@ import { MarketStatus, MarketOutcome, type Market, type Position } from '@/servi
 import PortfolioPerformanceChart from '@/components/portfolio/PortfolioPerformanceChart';
 import { DataState } from '@/components/common/DataState';
 import { ConnectWalletPrompt } from '@/components/common/ConnectWalletPrompt';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 type PositionTab = 'active' | 'resolved' | 'liquidity';
 
@@ -115,7 +116,8 @@ export default function PortfolioPage() {
 
   return (
     <main className="container-arcade py-6 md:py-8">
-      {/* Header */}
+      {/* Header (kept outside the error boundary so the page chrome
+          stays visible even if the position list crashes) */}
       <div className="mb-6 md:mb-8 animate-fade-in">
         <h1
           className="text-2xl sm:text-3xl md:text-4xl text-red-400 mb-2 tracking-wider arcade-glow"
@@ -127,6 +129,7 @@ export default function PortfolioPage() {
           Track your prediction market positions and performance
         </p>
       </div>
+      <ErrorBoundary context="portfolio">
 
       {/* Overview Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8 animate-slide-up" style={{ animationDelay: '50ms' }}>
@@ -295,6 +298,7 @@ export default function PortfolioPage() {
           </p>
         </Link>
       </div>
+      </ErrorBoundary>
     </main>
   );
 }

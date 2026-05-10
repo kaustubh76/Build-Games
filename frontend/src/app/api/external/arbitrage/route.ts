@@ -149,7 +149,7 @@ function findArbitrageOpportunities(
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'external-arbitrage-get',
       maxRequests: 30,
       windowMs: 60000,
@@ -299,7 +299,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'external-arbitrage-post',
       maxRequests: 5,
       windowMs: 60000,

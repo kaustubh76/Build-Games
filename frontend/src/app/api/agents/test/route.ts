@@ -9,7 +9,7 @@ import { handleAPIError, applyRateLimit } from '@/lib/api';
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agents-test',
       maxRequests: 30,
       windowMs: 60000,

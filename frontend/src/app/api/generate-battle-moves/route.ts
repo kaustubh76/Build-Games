@@ -70,7 +70,7 @@ function generateTraitBasedMoves(battlePrompt: any): { agent_1: { move: string }
  */
 export async function POST(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'generate-battle-moves',
       maxRequests: 30,
       windowMs: 60000,

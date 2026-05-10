@@ -116,7 +116,7 @@ function eventToRecentTradeView(t: MirrorTradeFromEvent): RecentTradeView {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'events-status',
       maxRequests: 60,
       windowMs: 60000,

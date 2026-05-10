@@ -1,28 +1,18 @@
 /**
- * Rate Limiting Middleware
- * Provides in-memory rate limiting for API routes
+ * Rate Limiting Middleware — KV-backed, with in-memory fallback for dev/test.
+ *
+ * Backed by `lib/kv` so cold starts on Vercel don't reset the counters.
+ * Production must set `KV_REST_API_URL` + `KV_REST_API_TOKEN` for the real
+ * Upstash backend; without those the limiter falls back to per-process
+ * memory (acceptable for single-instance / local dev).
+ *
+ * Pattern: each request INCRs a key whose TTL is the rate-limit window.
+ * The new count is compared against `maxRequests`. The key auto-expires,
+ * so we don't need a separate cleanup pass.
  */
 
 import { ErrorResponses } from './errorHandler';
-
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
-
-// In-memory storage for rate limits
-// In production, consider using Redis for distributed rate limiting
-const rateLimitMap = new Map<string, RateLimitEntry>();
-
-// Cleanup old entries every 5 minutes to prevent memory leaks
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitMap.entries()) {
-    if (now > entry.resetAt) {
-      rateLimitMap.delete(key);
-    }
-  }
-}, 5 * 60 * 1000);
+import { incrWithTtl, __resetKvMemory, __getKvMemorySize } from '@/lib/kv';
 
 /**
  * Check if request is within rate limit
@@ -32,51 +22,32 @@ setInterval(() => {
  * @param windowMs - Time window in milliseconds
  * @returns Rate limit status
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   key: string,
   maxRequests: number = 10,
   windowMs: number = 60000
-): {
+): Promise<{
   allowed: boolean;
   remaining: number;
   resetIn: number;
   limit: number;
-} {
-  const now = Date.now();
-  const entry = rateLimitMap.get(key);
+}> {
+  const ttlSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+  const newCount = await incrWithTtl(`rl:${key}`, ttlSeconds);
 
-  // No entry or window expired - create new entry
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(key, {
-      count: 1,
-      resetAt: now + windowMs,
-    });
-
+  if (newCount > maxRequests) {
     return {
-      allowed: true,
-      remaining: maxRequests - 1,
+      allowed: false,
+      remaining: 0,
       resetIn: windowMs,
       limit: maxRequests,
     };
   }
 
-  // Check if limit exceeded
-  if (entry.count >= maxRequests) {
-    return {
-      allowed: false,
-      remaining: 0,
-      resetIn: entry.resetAt - now,
-      limit: maxRequests,
-    };
-  }
-
-  // Increment count
-  entry.count++;
-
   return {
     allowed: true,
-    remaining: maxRequests - entry.count,
-    resetIn: entry.resetAt - now,
+    remaining: Math.max(0, maxRequests - newCount),
+    resetIn: windowMs,
     limit: maxRequests,
   };
 }
@@ -132,7 +103,7 @@ export function getRateLimitKeyWithWallet(
  * @param options - Rate limit options
  * @throws APIError if rate limit exceeded
  */
-export function applyRateLimit(
+export async function applyRateLimit(
   request: Request,
   options: {
     prefix: string;
@@ -143,10 +114,10 @@ export function applyRateLimit(
     /** Use stricter limits for wallet-based tracking */
     strictWalletLimit?: boolean;
   }
-): void {
+): Promise<void> {
   // IP-based rate limiting
   const ipKey = getRateLimitKey(request, options.prefix);
-  const ipResult = checkRateLimit(ipKey, options.maxRequests, options.windowMs);
+  const ipResult = await checkRateLimit(ipKey, options.maxRequests, options.windowMs);
 
   if (!ipResult.allowed) {
     throw ErrorResponses.rateLimitExceeded(ipResult.resetIn);
@@ -166,7 +137,7 @@ export function applyRateLimit(
       ? Math.max(Math.floor((options.maxRequests || 10) / 2), 1) // Half the IP limit
       : options.maxRequests;
 
-    const walletResult = checkRateLimit(walletKey, walletMaxRequests, options.windowMs);
+    const walletResult = await checkRateLimit(walletKey, walletMaxRequests, options.windowMs);
 
     if (!walletResult.allowed) {
       throw ErrorResponses.rateLimitExceeded(walletResult.resetIn);
@@ -183,7 +154,7 @@ export function applyRateLimit(
  * @param options - Rate limit options
  * @throws APIError if rate limit exceeded
  */
-export function applyRateLimitWithBody(
+export async function applyRateLimitWithBody(
   request: Request,
   body: { userAddress?: string; walletAddress?: string; creatorAddress?: string },
   options: {
@@ -192,12 +163,12 @@ export function applyRateLimitWithBody(
     windowMs?: number;
     strictWalletLimit?: boolean;
   }
-): void {
+): Promise<void> {
   // Extract wallet address from common field names
   const walletAddress =
     body.userAddress || body.walletAddress || body.creatorAddress;
 
-  applyRateLimit(request, {
+  await applyRateLimit(request, {
     ...options,
     walletAddress,
   });
@@ -257,8 +228,9 @@ export const RateLimitPresets = {
 } as const;
 
 // ============================================================================
-// Test/soak inspectors — gated to non-production environments. Soak tests use
-// these to assert internal state without parsing /api/metrics responses.
+// Test/soak inspectors — gated to non-production environments. State now
+// lives in the KV-backed store (in-memory in dev/test); these helpers
+// delegate to the kv module's debug surface.
 // ============================================================================
 
 function assertNotProduction(name: string): void {
@@ -267,22 +239,27 @@ function assertNotProduction(name: string): void {
   }
 }
 
+/**
+ * Return the size of the rate-limit store. With KV-backed storage we don't
+ * have direct access to per-key counts (the SCAN cost isn't worth a debug
+ * helper), so the entries array is empty. Soak suites that previously
+ * inspected entries should switch to asserting via the limiter's response
+ * shape (`allowed`/`remaining`).
+ */
 export function __getRateLimitState(): {
   size: number;
   entries: Array<{ key: string; count: number; resetAt: number }>;
 } {
   assertNotProduction('__getRateLimitState');
-  return {
-    size: rateLimitMap.size,
-    entries: Array.from(rateLimitMap.entries()).map(([key, entry]) => ({
-      key,
-      count: entry.count,
-      resetAt: entry.resetAt,
-    })),
-  };
+  return { size: __getKvMemorySize(), entries: [] };
 }
 
+/**
+ * Reset the rate-limit store. In dev/test this clears the in-memory KV
+ * shim (the same underlying Map shared with the nonce store, idempotency
+ * cache, etc. — tests that touch multiple primitives should be aware).
+ */
 export function __resetRateLimitState(): void {
   assertNotProduction('__resetRateLimitState');
-  rateLimitMap.clear();
+  __resetKvMemory();
 }

@@ -29,6 +29,12 @@ export function useClickOutside<T extends HTMLElement>(
   enabled: boolean = true
 ): RefObject<T | null> {
   const ref = useRef<T>(null);
+  // Stabilize handler identity: consumers typically pass an inline arrow
+  // (`useClickOutside(() => setOpen(false))`) which is a new reference
+  // each render. Without the ref, the effect would tear down and rebuild
+  // the listener every render — wasteful and noisy in DevTools.
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
 
   useEffect(() => {
     if (!enabled) return;
@@ -41,7 +47,7 @@ export function useClickOutside<T extends HTMLElement>(
         return;
       }
 
-      handler(event);
+      handlerRef.current(event);
     };
 
     document.addEventListener('mousedown', listener);
@@ -51,7 +57,7 @@ export function useClickOutside<T extends HTMLElement>(
       document.removeEventListener('mousedown', listener);
       document.removeEventListener('touchstart', listener);
     };
-  }, [handler, enabled]);
+  }, [enabled]);
 
   return ref;
 }
@@ -81,6 +87,8 @@ export function useClickOutsideMultiple<T extends HTMLElement>(
   const refs = useRef<RefObject<T | null>[]>(
     Array.from({ length: count }, () => ({ current: null }))
   ).current;
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
 
   useEffect(() => {
     if (!enabled) return;
@@ -93,7 +101,7 @@ export function useClickOutsideMultiple<T extends HTMLElement>(
       });
 
       if (!isInside) {
-        handler(event);
+        handlerRef.current(event);
       }
     };
 
@@ -104,7 +112,7 @@ export function useClickOutsideMultiple<T extends HTMLElement>(
       document.removeEventListener('mousedown', listener);
       document.removeEventListener('touchstart', listener);
     };
-  }, [handler, enabled, refs]);
+  }, [enabled, refs]);
 
   return refs;
 }

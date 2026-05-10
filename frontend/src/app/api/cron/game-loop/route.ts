@@ -7,7 +7,8 @@ import {
   getAvalancheRpcUrl,
   ArenaFactoryAbi,
 } from '../../../../constants';
-import { handleAPIError, createAPILogger, ErrorResponses } from '@/lib/api';
+import { handleAPIError, createAPILogger } from '@/lib/api';
+import { requireCronSecret } from '@/lib/auth/requireCronSecret';
 
 /**
  * GET /api/cron/game-loop
@@ -26,10 +27,7 @@ export async function GET(request: NextRequest) {
   logger.start();
 
   try {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      throw ErrorResponses.unauthorized('Invalid or missing cron secret');
-    }
+    requireCronSecret(request);
 
     const chainId = getChainId();
     const chain = chainId === 43114 ? avalanche : avalancheFuji;

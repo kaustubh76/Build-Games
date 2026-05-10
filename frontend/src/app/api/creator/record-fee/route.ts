@@ -4,56 +4,78 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 import { requireSessionForAddress } from '@/lib/auth/requireSession';
 import { persistReceipt, buildEnvelope } from '@/lib/storage/persistReceipt';
 import { isTier1AuditOnly } from '@/lib/storage/featureFlags';
 
+// Numeric fields stored as strings (Prisma columns are String). We bound
+// them at validation time so a malicious caller can't pass `1e30` or a
+// negative — both would corrupt the running totals on the creator row.
+// Cap at 1B CRwN per record (sanity, well above any real trade) so an
+// attacker who got past the SIWE guard for their own address still can't
+// blow the balance up to nonsense.
+const MAX_PER_RECORD = 1_000_000_000;
+const PostBodySchema = z.object({
+  marketId: z.union([z.string(), z.number().int()]),
+  creatorAddress: z.string().min(1),
+  tradeVolume: z
+    .union([z.string(), z.number()])
+    .transform((v) => (typeof v === 'number' ? v : parseFloat(v)))
+    .refine((n) => Number.isFinite(n) && n > 0 && n <= MAX_PER_RECORD, {
+      message: `tradeVolume must be a finite positive number ≤ ${MAX_PER_RECORD}`,
+    }),
+  feeAmount: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((v) =>
+      v === undefined ? undefined : typeof v === 'number' ? v : parseFloat(v)
+    )
+    .refine((n) => n === undefined || (Number.isFinite(n) && n >= 0 && n <= MAX_PER_RECORD), {
+      message: `feeAmount must be a finite non-negative number ≤ ${MAX_PER_RECORD}`,
+    }),
+  traderAddress: z.string().optional().nullable(),
+  txHash: z.string().optional().nullable(),
+});
+
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting (30 fee recordings per minute)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'creator-record-fee-post',
       maxRequests: 30,
       windowMs: 60000,
     });
 
-    const body = await request.json();
-    const {
-      marketId,
-      creatorAddress,
-      tradeVolume,
-      feeAmount,
-      traderAddress,
-      txHash,
-    } = body;
-
-    // Validation
-    if (!marketId || !creatorAddress || !tradeVolume) {
-      throw ErrorResponses.badRequest('Missing required fields: marketId, creatorAddress, tradeVolume');
+    const raw = await request.json().catch(() => null);
+    const parsed = PostBodySchema.safeParse(raw);
+    if (!parsed.success) {
+      throw ErrorResponses.badRequest(
+        `Invalid body: ${parsed.error.issues.map((i) => i.message).join('; ')}`
+      );
     }
+    const { marketId, creatorAddress, tradeVolume: volume, feeAmount, traderAddress, txHash } = parsed.data;
 
     // SIWE guard: only the creator wallet may credit fees to itself.
     requireSessionForAddress(request, creatorAddress);
 
-    const volume = parseFloat(tradeVolume);
-    if (isNaN(volume) || volume <= 0) {
-      throw ErrorResponses.badRequest('Invalid trade volume');
-    }
-
     // Calculate fee (2% of trade volume by default)
-    const calculatedFee = feeAmount ? parseFloat(feeAmount) : volume * 0.02;
+    const calculatedFee = feeAmount ?? volume * 0.02;
 
-    // Check if creator exists
-    let creator = await prisma.creator.findUnique({
-      where: { address: creatorAddress },
-    });
-
-    // Auto-register creator if they don't exist
-    if (!creator) {
-      creator = await prisma.creator.create({
-        data: {
+    // Atomic-ish update: read + update wrapped in a single transaction so
+    // two concurrent record-fee calls for the same creator can't both
+    // observe the same baseline and lose one of the increments. Note that
+    // the underlying columns are Strings (Prisma can't do `{ increment }`
+    // on String columns), so we read-then-write inside the txn — Postgres
+    // gives us repeatable-read inside the transaction, which closes the
+    // window for the common race. A schema migration to Decimal columns
+    // is the proper long-term fix; out of scope this pass.
+    const updatedCreator = await prisma.$transaction(async (tx) => {
+      const existing = await tx.creator.upsert({
+        where: { address: creatorAddress },
+        create: {
           address: creatorAddress,
           type: 'market',
           tier: 'bronze',
@@ -65,24 +87,17 @@ export async function POST(request: NextRequest) {
           warriorsCreated: 0,
           agentsOperated: 0,
         },
+        update: {},
       });
-    }
-
-    // Update creator stats
-    const updatedCreator = await prisma.creator.update({
-      where: { address: creatorAddress },
-      data: {
-        totalVolumeGenerated: (
-          parseFloat(creator.totalVolumeGenerated) + volume
-        ).toString(),
-        totalFeesEarned: (
-          parseFloat(creator.totalFeesEarned) + calculatedFee
-        ).toString(),
-        pendingRewards: (
-          parseFloat(creator.pendingRewards) + calculatedFee
-        ).toString(),
-        lastActiveAt: new Date(),
-      },
+      return tx.creator.update({
+        where: { address: creatorAddress },
+        data: {
+          totalVolumeGenerated: (parseFloat(existing.totalVolumeGenerated) + volume).toString(),
+          totalFeesEarned: (parseFloat(existing.totalFeesEarned) + calculatedFee).toString(),
+          pendingRewards: (parseFloat(existing.pendingRewards) + calculatedFee).toString(),
+          lastActiveAt: new Date(),
+        },
+      });
     });
 
     // Record the fee entry — 0G receipt is canonical; Prisma row is dual-write
@@ -168,7 +183,7 @@ function calculateTier(totalVolume: number): string {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'creator-record-fee-get',
       maxRequests: 60,
       windowMs: 60000,
@@ -176,7 +191,12 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const creatorAddress = searchParams.get('creator');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    // Clamp the requested limit so a single request can't pull millions of
+    // rows and OOM the function. Default 50, max 100, treats NaN as default.
+    const rawLimit = parseInt(searchParams.get('limit') || '50', 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0
+      ? Math.min(rawLimit, 100)
+      : 50;
 
     if (!creatorAddress) {
       throw ErrorResponses.badRequest('Missing creator address');

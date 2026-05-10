@@ -23,7 +23,7 @@ interface FollowRequest {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'whale-follow',
       maxRequests: 20,
       windowMs: 60000,

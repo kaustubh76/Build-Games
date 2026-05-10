@@ -39,7 +39,7 @@ interface BatchReadResult {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'contract-batch-read',
       maxRequests: 60,
       windowMs: 60000,

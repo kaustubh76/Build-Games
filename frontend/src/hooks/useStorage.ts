@@ -5,7 +5,7 @@
  * Hooks for localStorage and sessionStorage with SSR safety and type safety
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 type SetValue<T> = T | ((prevValue: T) => T);
 
@@ -58,20 +58,29 @@ export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: SetValue<T>) => void, () => void] {
+  // Stabilize initialValue across renders. Without this, callers passing
+  // an inline object/array literal (`useLocalStorage('x', { a: 0 })`)
+  // would create a new reference each render, invalidating useCallback
+  // and useEffect dependencies and causing an infinite re-render loop.
+  // The ref is updated on every render so the LATEST value is read,
+  // but its identity is stable so dependencies don't churn.
+  const initialValueRef = useRef(initialValue);
+  initialValueRef.current = initialValue;
+
   // Get initial value from localStorage or use fallback
   const readValue = useCallback((): T => {
     if (!isBrowser()) {
-      return initialValue;
+      return initialValueRef.current;
     }
 
     try {
       const item = window.localStorage.getItem(key);
-      return deserialize(item, initialValue);
+      return deserialize(item, initialValueRef.current);
     } catch (error) {
       console.warn(`[useLocalStorage] Error reading key "${key}":`, error);
-      return initialValue;
+      return initialValueRef.current;
     }
-  }, [key, initialValue]);
+  }, [key]);
 
   const [storedValue, setStoredValue] = useState<T>(initialValue);
 
@@ -85,14 +94,20 @@ export function useLocalStorage<T>(
     if (!isBrowser()) return;
 
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === key && event.newValue !== null) {
-        setStoredValue(deserialize(event.newValue, initialValue));
+      if (event.key !== key) return;
+      // newValue is null when another tab calls localStorage.removeItem.
+      // Falling through here means stale data stays visible in other tabs
+      // after a logout/clear; treat null as "reset to initialValue".
+      if (event.newValue === null) {
+        setStoredValue(initialValueRef.current);
+        return;
       }
+      setStoredValue(deserialize(event.newValue, initialValueRef.current));
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [key, initialValue]);
+  }, [key]);
 
   // Set value to localStorage
   const setValue = useCallback(
@@ -127,11 +142,15 @@ export function useLocalStorage<T>(
 
     try {
       window.localStorage.removeItem(key);
-      setStoredValue(initialValue);
+      setStoredValue(initialValueRef.current);
+      // Mirror the setValue dispatch so other components in the same
+      // tab using the same key reset to initialValue too. Real
+      // cross-tab `storage` events do this automatically.
+      window.dispatchEvent(new StorageEvent('storage', { key, newValue: null }));
     } catch (error) {
       console.warn(`[useLocalStorage] Error removing key "${key}":`, error);
     }
-  }, [key, initialValue]);
+  }, [key]);
 
   return [storedValue, setValue, removeValue];
 }
@@ -146,19 +165,23 @@ export function useSessionStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: SetValue<T>) => void, () => void] {
+  // Stabilize initialValue (see useLocalStorage above for rationale).
+  const initialValueRef = useRef(initialValue);
+  initialValueRef.current = initialValue;
+
   const readValue = useCallback((): T => {
     if (!isBrowser()) {
-      return initialValue;
+      return initialValueRef.current;
     }
 
     try {
       const item = window.sessionStorage.getItem(key);
-      return deserialize(item, initialValue);
+      return deserialize(item, initialValueRef.current);
     } catch (error) {
       console.warn(`[useSessionStorage] Error reading key "${key}":`, error);
-      return initialValue;
+      return initialValueRef.current;
     }
-  }, [key, initialValue]);
+  }, [key]);
 
   const [storedValue, setStoredValue] = useState<T>(initialValue);
 
@@ -189,11 +212,11 @@ export function useSessionStorage<T>(
 
     try {
       window.sessionStorage.removeItem(key);
-      setStoredValue(initialValue);
+      setStoredValue(initialValueRef.current);
     } catch (error) {
       console.warn(`[useSessionStorage] Error removing key "${key}":`, error);
     }
-  }, [key, initialValue]);
+  }, [key]);
 
   return [storedValue, setValue, removeValue];
 }

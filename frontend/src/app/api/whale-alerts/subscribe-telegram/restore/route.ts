@@ -28,7 +28,7 @@ const BodySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'telegram-restore',
       maxRequests: 5,
       windowMs: 60_000,

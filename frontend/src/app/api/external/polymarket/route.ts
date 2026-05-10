@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'external-polymarket',
       maxRequests: 60,
       windowMs: 60000,

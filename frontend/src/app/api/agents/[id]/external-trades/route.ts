@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { MarketSource } from '@/types/externalMarket';
-import { handleAPIError, applyRateLimit } from '@/lib/api';
+import { handleAPIError, applyRateLimit, parsePagination } from '@/lib/api';
 import { isTier2EventSourced } from '@/lib/storage/featureFlags';
 import { getResilientPublicClient } from '@/lib/viemClient';
 import { getAgentTradesForAgent } from '@/lib/eventQuery/agentTrades';
@@ -82,7 +82,7 @@ export async function GET(
 ) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agent-external-trades',
       maxRequests: 60,
       windowMs: 60000,
@@ -92,8 +92,7 @@ export async function GET(
     const agentId = id;
 
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const { limit, offset } = parsePagination(searchParams);
     const source = searchParams.get('source') as 'polymarket' | 'kalshi' | null;
 
     const { totalCount, trades } = await readAgentTrades(agentId, limit, offset);

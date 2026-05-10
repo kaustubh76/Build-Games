@@ -115,7 +115,7 @@ function checkRateLimit(agentId: string): boolean {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agent-execute-trade',
       maxRequests: 10,
       windowMs: 60000,
@@ -321,7 +321,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agent-execute-trade-get',
       maxRequests: 60,
       windowMs: 60000,

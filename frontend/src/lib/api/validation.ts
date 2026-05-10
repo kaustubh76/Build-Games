@@ -342,3 +342,30 @@ export function validateRequiredFields(
     );
   }
 }
+
+/**
+ * Parse a `?limit=` / `?offset=` pair from a URLSearchParams in the standard
+ * shape every paginated route uses. NaN-safe: `parseInt('abc')` is NaN, and
+ * `Math.min(NaN, 100)` is also NaN — passing that to Prisma's `take` removes
+ * the bound entirely (silently), so a misbehaving client could request
+ * unbounded rows and OOM the function. The helper falls back to defaults on
+ * any non-finite or non-positive input.
+ */
+export function parsePagination(
+  searchParams: URLSearchParams,
+  opts: { defaultLimit?: number; maxLimit?: number; defaultOffset?: number } = {}
+): { limit: number; offset: number } {
+  const defaultLimit = opts.defaultLimit ?? 50;
+  const maxLimit = opts.maxLimit ?? 100;
+  const defaultOffset = opts.defaultOffset ?? 0;
+
+  const rawLimit = parseInt(searchParams.get('limit') ?? String(defaultLimit), 10);
+  const limit =
+    Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, maxLimit) : defaultLimit;
+
+  const rawOffset = parseInt(searchParams.get('offset') ?? String(defaultOffset), 10);
+  const offset =
+    Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : defaultOffset;
+
+  return { limit, offset };
+}

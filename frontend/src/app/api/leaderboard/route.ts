@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Apply rate limiting (60 requests per minute)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'leaderboard-get',
       maxRequests: 60,
       windowMs: 60000,
@@ -85,9 +85,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const timeRange = (searchParams.get('timeRange') || 'all') as TimeRange;
     const sortBy = (searchParams.get('sortBy') || 'profit') as SortCategory;
-    // Parse and validate pagination with max limits
-    const rawLimit = parseInt(searchParams.get('limit') || '50');
-    const limit = Math.min(Math.max(rawLimit, 1), 100); // Clamp between 1 and 100
+    // Parse and validate pagination with max limits. NaN-safe: a garbage
+    // ?limit=abc value falls back to the default rather than producing
+    // `take: NaN` (which Prisma silently treats as unbounded).
+    const rawLimit = parseInt(searchParams.get('limit') || '50', 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0
+      ? Math.min(rawLimit, 100)
+      : 50;
     const userAddress = searchParams.get('user');
 
     const timeFilter = getTimeRangeFilter(timeRange);

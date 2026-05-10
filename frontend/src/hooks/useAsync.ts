@@ -63,6 +63,17 @@ export function useAsync<T>(
 
   const mountedRef = useRef(true);
   const asyncFnRef = useRef(asyncFn);
+  // Stabilize callback + initialData identities. Without these, consumers
+  // passing inline arrow functions (the common case) re-create the
+  // useCallback bindings each render, propagating to any consumer's
+  // useEffect that depends on `execute` or `reset` and causing
+  // re-fetch-on-every-render loops.
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const initialDataRef = useRef(initialData);
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+  initialDataRef.current = initialData;
 
   // Update ref when asyncFn changes
   useEffect(() => {
@@ -95,7 +106,7 @@ export function useAsync<T>(
           isSuccess: true,
           isError: false,
         });
-        onSuccess?.(result);
+        onSuccessRef.current?.(result);
       }
 
       return result;
@@ -110,22 +121,22 @@ export function useAsync<T>(
           isSuccess: false,
           isError: true,
         }));
-        onError?.(error);
+        onErrorRef.current?.(error);
       }
 
       return null;
     }
-  }, [onSuccess, onError]);
+  }, []);
 
   const reset = useCallback(() => {
     setState({
-      data: initialData,
+      data: initialDataRef.current,
       error: null,
       isLoading: false,
       isSuccess: false,
       isError: false,
     });
-  }, [initialData]);
+  }, []);
 
   const setData = useCallback((data: T | null) => {
     setState((prev) => ({
@@ -274,6 +285,13 @@ export function usePagination<T>(
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  // Stabilize the fetchFn identity. Consumers typically pass an inline
+  // arrow function `(page) => api.list(page)` which is recreated every
+  // render. Without the ref, fetchPage and loadMore would also rebuild
+  // every render, propagating to any consumer effect depending on them.
+  const fetchFnRef = useRef(fetchFn);
+  fetchFnRef.current = fetchFn;
+
   const fetchPage = useCallback(
     async (pageNum: number, append: boolean) => {
       try {
@@ -284,7 +302,7 @@ export function usePagination<T>(
         }
         setError(null);
 
-        const result = await fetchFn(pageNum);
+        const result = await fetchFnRef.current(pageNum);
 
         setData((prev) => (append ? [...prev, ...result.items] : result.items));
         setHasMore(result.hasMore);
@@ -296,7 +314,7 @@ export function usePagination<T>(
         setIsLoadingMore(false);
       }
     },
-    [fetchFn]
+    []
   );
 
   const loadMore = useCallback(async () => {
@@ -373,12 +391,24 @@ export function useMutation<TData, TVariables>(
     isError: false,
   });
 
+  // Stabilize callback identities so consumers can pass inline arrows
+  // (`onSuccess: () => refetch()`) without rebuilding mutateAsync each
+  // render. See useAsync above for the same rationale.
+  const mutationFnRef = useRef(mutationFn);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const onSettledRef = useRef(onSettled);
+  mutationFnRef.current = mutationFn;
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+  onSettledRef.current = onSettled;
+
   const mutateAsync = useCallback(
     async (variables: TVariables): Promise<TData> => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const result = await mutationFn(variables);
+        const result = await mutationFnRef.current(variables);
 
         setState({
           data: result,
@@ -388,8 +418,8 @@ export function useMutation<TData, TVariables>(
           isError: false,
         });
 
-        onSuccess?.(result, variables);
-        onSettled?.(result, null, variables);
+        onSuccessRef.current?.(result, variables);
+        onSettledRef.current?.(result, null, variables);
 
         return result;
       } catch (err) {
@@ -403,13 +433,13 @@ export function useMutation<TData, TVariables>(
           isError: true,
         }));
 
-        onError?.(error, variables);
-        onSettled?.(null, error, variables);
+        onErrorRef.current?.(error, variables);
+        onSettledRef.current?.(null, error, variables);
 
         throw error;
       }
     },
-    [mutationFn, onSuccess, onError, onSettled]
+    []
   );
 
   const mutate = useCallback(

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { encodePacked, keccak256 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
@@ -12,20 +13,25 @@ import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 // Maximum signature validity period (5 minutes)
 const SIGNATURE_EXPIRY_MS = 5 * 60 * 1000;
 
-interface SignTraitsRequest {
-  tokenId: number;
-  strength: number;
-  wit: number;
-  charisma: number;
-  defence: number;
-  luck: number;
-  strike: string;
-  taunt: string;
-  dodge: string;
-  special: string;
-  recover: string;
-  timestamp?: number; // Optional: client-provided timestamp for additional security
-}
+// Move strings are stored on-chain as `string` (dynamic bytes). Cap them at
+// 100 chars to prevent oversize signatures and to mirror sane UI input.
+const MoveString = z.string().min(1).max(100);
+const TraitNumber = z.number().int().min(0).max(10_000);
+
+const PostBodySchema = z.object({
+  tokenId: z.number().int().min(0).max(2 ** 16 - 1),
+  strength: TraitNumber,
+  wit: TraitNumber,
+  charisma: TraitNumber,
+  defence: TraitNumber,
+  luck: TraitNumber,
+  strike: MoveString,
+  taunt: MoveString,
+  dodge: MoveString,
+  special: MoveString,
+  recover: MoveString,
+  timestamp: z.number().int().optional(),
+});
 
 /**
  * POST /api/sign-traits
@@ -34,13 +40,19 @@ interface SignTraitsRequest {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting (20 signings per minute)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'sign-traits-post',
       maxRequests: 20,
       windowMs: 60000,
     });
 
-    const body: SignTraitsRequest = await request.json();
+    const raw = await request.json().catch(() => null);
+    const parsed = PostBodySchema.safeParse(raw);
+    if (!parsed.success) {
+      throw ErrorResponses.badRequest(
+        `Invalid body: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
+      );
+    }
     const {
       tokenId,
       strength,
@@ -53,44 +65,19 @@ export async function POST(request: NextRequest) {
       dodge,
       special,
       recover,
-      timestamp: clientTimestamp
-    } = body;
-
-    // Validate required fields
-    if (tokenId === undefined || tokenId < 0) {
-      throw ErrorResponses.badRequest('Invalid tokenId');
-    }
+      timestamp: clientTimestamp,
+    } = parsed.data;
 
     // Validate client timestamp if provided (must be recent)
     const now = Date.now();
     if (clientTimestamp !== undefined) {
-      if (typeof clientTimestamp !== 'number' || isNaN(clientTimestamp)) {
-        throw ErrorResponses.badRequest('Invalid timestamp format');
-      }
-      // Timestamp must be within 5 minutes of server time
       if (Math.abs(now - clientTimestamp) > SIGNATURE_EXPIRY_MS) {
         throw ErrorResponses.badRequest('Timestamp expired or too far in future. Please retry.');
       }
     }
 
     // Generate server timestamp for signature
-    const signatureTimestamp = Math.floor(now / 1000); // Unix timestamp in seconds
-
-    // Validate trait values (0-10000 range)
-    const traitValues = { strength, wit, charisma, defence, luck };
-    for (const [name, value] of Object.entries(traitValues)) {
-      if (typeof value !== 'number' || value < 0 || value > 10000) {
-        throw ErrorResponses.badRequest(`Invalid ${name} value: must be 0-10000`);
-      }
-    }
-
-    // Validate move strings
-    const moves = { strike, taunt, dodge, special, recover };
-    for (const [name, value] of Object.entries(moves)) {
-      if (!value || typeof value !== 'string') {
-        throw ErrorResponses.badRequest(`Invalid ${name}: must be a non-empty string`);
-      }
-    }
+    const signatureTimestamp = Math.floor(now / 1000);
 
     // Get Game Master private key
     const privateKey = process.env.GAME_MASTER_PRIVATE_KEY?.trim();
@@ -171,7 +158,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'sign-traits-get',
       maxRequests: 60,
       windowMs: 60000,

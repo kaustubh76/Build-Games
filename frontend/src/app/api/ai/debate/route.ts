@@ -12,7 +12,7 @@ import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting (AI debates are resource-intensive)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'ai-debate-post',
       maxRequests: 10,
       windowMs: 60000,
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'ai-debate-get',
       maxRequests: 60,
       windowMs: 60000,

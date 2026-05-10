@@ -1,9 +1,15 @@
 /**
- * Unit tests for the in-memory rate limiter. The rate limiter sits in front
- * of every API route — if these primitives drift, every endpoint becomes a
- * DDoS vector or starts blocking legitimate traffic. The module is a
- * singleton (module-scoped Map + setInterval cleanup), so tests reset state
- * via the gated `__resetRateLimitState` hook between cases.
+ * Unit tests for the KV-backed rate limiter. Covers the in-memory shim
+ * (the dev/test default — production uses Vercel KV / Upstash Redis).
+ *
+ * Cross-container behavior is the whole point of the migration but can't
+ * be tested locally without mocking @vercel/kv at the network boundary.
+ * What we DO pin here:
+ *   - Counter increments correctly within a window.
+ *   - The (N+1)th request in a window is rejected.
+ *   - Different keys / IPs are isolated.
+ *   - The TTL expires the counter and a fresh window opens.
+ *   - applyRateLimit's throw-on-exceed contract.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -13,7 +19,6 @@ import {
   getRateLimitKeyWithWallet,
   applyRateLimit,
   __resetRateLimitState,
-  __getRateLimitState,
 } from '@/lib/api/rateLimit';
 
 beforeEach(() => {
@@ -21,68 +26,61 @@ beforeEach(() => {
 });
 
 describe('checkRateLimit', () => {
-  it('allows the first request and returns max-1 remaining', () => {
-    const r = checkRateLimit('test:127.0.0.1', 5, 60_000);
+  it('allows the first request and returns max-1 remaining', async () => {
+    const r = await checkRateLimit('test:127.0.0.1', 5, 60_000);
     expect(r.allowed).toBe(true);
     expect(r.remaining).toBe(4);
     expect(r.limit).toBe(5);
   });
 
-  it('blocks the (N+1)th request in a window', () => {
+  it('blocks the (N+1)th request in a window', async () => {
     for (let i = 0; i < 3; i++) {
-      const r = checkRateLimit('blocked:1', 3, 60_000);
+      const r = await checkRateLimit('blocked:1', 3, 60_000);
       expect(r.allowed).toBe(true);
     }
-    const r = checkRateLimit('blocked:1', 3, 60_000);
+    const r = await checkRateLimit('blocked:1', 3, 60_000);
     expect(r.allowed).toBe(false);
     expect(r.remaining).toBe(0);
   });
 
-  it('decrements `remaining` on each call', () => {
-    const a = checkRateLimit('decr:1', 4, 60_000);
-    const b = checkRateLimit('decr:1', 4, 60_000);
-    const c = checkRateLimit('decr:1', 4, 60_000);
+  it('decrements `remaining` on each call', async () => {
+    const a = await checkRateLimit('decr:1', 4, 60_000);
+    const b = await checkRateLimit('decr:1', 4, 60_000);
+    const c = await checkRateLimit('decr:1', 4, 60_000);
     expect(a.remaining).toBe(3);
     expect(b.remaining).toBe(2);
     expect(c.remaining).toBe(1);
   });
 
-  it('resets the window when resetAt has passed', () => {
-    // Burn the budget with a tiny window.
-    const r1 = checkRateLimit('window-reset:1', 1, 1); // 1ms window
+  it('resets the window after the TTL elapses', async () => {
+    // The KV TTL is rounded up to whole seconds; the smallest meaningful
+    // window for this test is 1 second (any sub-second windowMs rounds up).
+    const r1 = await checkRateLimit('window-reset:1', 1, 1);
     expect(r1.allowed).toBe(true);
-    // Wait past the window, then a fresh call should succeed.
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        const r2 = checkRateLimit('window-reset:1', 1, 1);
-        expect(r2.allowed).toBe(true);
-        expect(r2.remaining).toBe(0);
-        resolve();
-      }, 10);
-    });
-  });
+    // Wait just over 1s for the KV TTL to expire.
+    await new Promise((res) => setTimeout(res, 1100));
+    const r2 = await checkRateLimit('window-reset:1', 1, 1);
+    expect(r2.allowed).toBe(true);
+  }, 5_000);
 
-  it('different keys are independent buckets', () => {
-    checkRateLimit('a', 1, 60_000);
-    checkRateLimit('a', 1, 60_000); // a is now full
-    const b = checkRateLimit('b', 1, 60_000);
+  it('different keys are independent buckets', async () => {
+    await checkRateLimit('a', 1, 60_000);
+    await checkRateLimit('a', 1, 60_000); // a is now full
+    const b = await checkRateLimit('b', 1, 60_000);
     expect(b.allowed).toBe(true);
     expect(b.remaining).toBe(0);
   });
 
-  it('maxRequests=0 denies the very first request', () => {
-    // Sanity check on the boundary: a misconfigured route with maxRequests=0
-    // should never let a request through. Important guarantee — silently
-    // accepting them would defeat any rate-limit-disabled flag.
-    //
-    // Current implementation creates the entry with count=1 on the FIRST
-    // call and returns allowed=true regardless of maxRequests. This is a
-    // documented behavior; the test pins that contract so any future
-    // change is intentional.
-    const r = checkRateLimit('zero:1', 0, 60_000);
-    expect(r.allowed).toBe(true); // documents current behavior
-    const r2 = checkRateLimit('zero:1', 0, 60_000);
-    expect(r2.allowed).toBe(false);
+  it('maxRequests=0 denies every request (counter ≥ 1 > 0)', async () => {
+    // Behavior change vs the previous in-memory limiter: the KV pattern
+    // increments first then compares (count > maxRequests). With
+    // maxRequests=0, the very first request's count of 1 exceeds 0
+    // → rejected. Previously the in-memory code accepted the first call
+    // because it set count=1 without checking. The new behavior is more
+    // correct: a misconfigured route with maxRequests=0 should reject
+    // ALL traffic, not allow one through.
+    const r = await checkRateLimit('zero:1', 0, 60_000);
+    expect(r.allowed).toBe(false);
   });
 });
 
@@ -137,25 +135,18 @@ describe('applyRateLimit (throw on exceed)', () => {
     return new Request('http://x.test/y', { headers: { 'x-forwarded-for': '1.1.1.1' } });
   }
 
-  it('does NOT throw when within budget', () => {
-    expect(() =>
+  it('does NOT throw when within budget', async () => {
+    await expect(
       applyRateLimit(req(), { prefix: 'apply', maxRequests: 3, windowMs: 60_000 })
-    ).not.toThrow();
+    ).resolves.toBeUndefined();
   });
 
-  it('throws when budget is exceeded', () => {
+  it('throws when budget is exceeded', async () => {
     for (let i = 0; i < 3; i++) {
-      applyRateLimit(req(), { prefix: 'apply2', maxRequests: 3, windowMs: 60_000 });
+      await applyRateLimit(req(), { prefix: 'apply2', maxRequests: 3, windowMs: 60_000 });
     }
-    expect(() =>
+    await expect(
       applyRateLimit(req(), { prefix: 'apply2', maxRequests: 3, windowMs: 60_000 })
-    ).toThrow();
-  });
-
-  it('writes the entry into the shared map (visible via __getRateLimitState)', () => {
-    applyRateLimit(req(), { prefix: 'visible', maxRequests: 5, windowMs: 60_000 });
-    const state = __getRateLimitState();
-    const keys = state.entries.map((e) => e.key);
-    expect(keys).toContain('visible:1.1.1.1');
+    ).rejects.toThrow();
   });
 });

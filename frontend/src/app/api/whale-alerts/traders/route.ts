@@ -13,7 +13,7 @@ import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'whale-traders-get',
       maxRequests: 60,
       windowMs: 60000,
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'whale-traders-post',
       maxRequests: 20,
       windowMs: 60000,
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'whale-traders-delete',
       maxRequests: 20,
       windowMs: 60000,

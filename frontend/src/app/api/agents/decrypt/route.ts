@@ -98,7 +98,7 @@ async function fetchFromStorage(rootHash: string): Promise<Uint8Array | null> {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agents-decrypt',
       maxRequests: 30,
       windowMs: 60000,
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agents-decrypt-check',
       maxRequests: 60,
       windowMs: 60000,

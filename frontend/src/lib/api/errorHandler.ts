@@ -113,9 +113,17 @@ export function handleAPIError(error: unknown, context: string): NextResponse {
       const isDev = process.env.NODE_ENV === 'development';
       const errMsg = (error as { message?: string }).message ?? 'Chain call failed';
       const shortMsg = (error as { shortMessage?: string }).shortMessage;
+      // Production: surface only the chain-side error code so clients can
+      // discriminate (e.g. INSUFFICIENT_FUNDS triggers a top-up CTA) without
+      // leaking specific account state. The full revert reason often
+      // contains balances, addresses, or internal contract paths an attacker
+      // could use to fingerprint a target.
+      const clientMsg = isDev
+        ? (shortMsg ?? errMsg.slice(0, 240))
+        : `Chain call failed (${chainCode})`;
       return NextResponse.json(
         {
-          error: shortMsg ?? errMsg.slice(0, 240),
+          error: clientMsg,
           code: 'CHAIN_CALL_FAILED',
           details: { chainCode, fullMessage: isDev ? errMsg : undefined },
         },

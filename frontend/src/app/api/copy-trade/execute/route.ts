@@ -77,7 +77,7 @@ interface ExecutionResult {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting for copy trade execution (5/min - critical operation)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'copy-trade-execute',
       maxRequests: 5,
       windowMs: 60000,
@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting for status checks
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'copy-trade-status',
       maxRequests: 60,
       windowMs: 60000,

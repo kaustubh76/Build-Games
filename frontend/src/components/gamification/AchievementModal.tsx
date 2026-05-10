@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { Achievement, RARITY_COLORS } from '../../utils/achievements';
 import { AchievementBadge } from './AchievementBadge';
 import { AnimatedCounter } from './AnimatedCounter';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface AchievementModalProps {
   achievement: Achievement | null;
@@ -56,6 +57,22 @@ export function AchievementModal({
     }
   }, [isOpen, achievement, autoCloseDelay, onClose]);
 
+  // Escape-to-close. Keyboard users can't reach the backdrop click
+  // handler, so without this they'd be trapped until autoCloseDelay
+  // fires. The listener is only attached while the modal is open.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
+  // Focus trap — keep keyboard inside the dialog while it's open. Hook
+  // is called unconditionally; the boolean controls activation.
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen && Boolean(achievement));
+
   if (!isOpen || !achievement) return null;
 
   const colors = RARITY_COLORS[achievement.rarity];
@@ -64,12 +81,16 @@ export function AchievementModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="achievement-modal-title"
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" aria-hidden="true" />
 
       {/* Modal */}
       <div
+        ref={trapRef}
         className={`
           relative
           bg-gradient-to-b from-gray-900 to-gray-950
@@ -86,9 +107,11 @@ export function AchievementModal({
         {/* Close button */}
         <button
           onClick={onClose}
+          type="button"
+          aria-label="Close achievement"
           className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
         >
-          ✕
+          <span aria-hidden="true">✕</span>
         </button>
 
         {/* Header */}
@@ -110,7 +133,10 @@ export function AchievementModal({
         </div>
 
         {/* Name */}
-        <h2 className={`text-2xl font-bold ${colors.text} mb-2 font-['Press_Start_2P']`}>
+        <h2
+          id="achievement-modal-title"
+          className={`text-2xl font-bold ${colors.text} mb-2 font-['Press_Start_2P']`}
+        >
           {achievement.name}
         </h2>
 

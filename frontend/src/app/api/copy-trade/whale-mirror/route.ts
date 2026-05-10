@@ -15,6 +15,11 @@ import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 import { chainMetrics } from '@/lib/metrics';
 import { requireSessionForAddress } from '@/lib/auth/requireSession';
 import {
+  getJSON as kvGetJSON,
+  setJSONWithTtl as kvSetJSON,
+  setIfNotExists as kvSetIfNotExists,
+} from '@/lib/kv';
+import {
   reserveAndSpend,
   releaseReservation,
   computeMinSharesOut,
@@ -64,39 +69,39 @@ const AUTO_CREATE_LIQUIDITY_CRWN =
 // without external metadata (whale-trade snapshot doesn't carry this).
 const AUTO_CREATE_DEFAULT_END_YEARS = 1;
 
-const idempotencyCache = new Map<string, { timestamp: number; result: unknown }>();
-const IDEM_WINDOW_MS = 5 * 60_000;
-const IDEM_MAX_SIZE = 5_000;
-const IDEM_TRIM_TARGET = 2_500;
+// KV-backed idempotency cache. Keys auto-expire via the KV TTL; we don't
+// need a manual cleanup loop. The KV-backed `setIfNotExists` is also our
+// race fix: two concurrent requests with the same idemKey both call
+// `setIfNotExists` — exactly one returns true (the acquirer who should
+// run the heavy work), the rest return false (and read the cached result
+// once the acquirer writes it).
+const IDEM_WINDOW_SECONDS = 5 * 60;
+const IDEM_KEY_PREFIX = 'whale-mirror-idem:';
 
-function cleanupIdem() {
-  const now = Date.now();
-  for (const [k, v] of idempotencyCache.entries()) {
-    if (now - v.timestamp > IDEM_WINDOW_MS * 2) idempotencyCache.delete(k);
-  }
-  if (idempotencyCache.size > IDEM_MAX_SIZE) {
-    trimIdem();
-  }
+async function idemGet(key: string): Promise<unknown | null> {
+  return await kvGetJSON(`${IDEM_KEY_PREFIX}${key}`);
+}
+
+async function idemSet(key: string, value: unknown): Promise<void> {
+  await kvSetJSON(`${IDEM_KEY_PREFIX}${key}`, value, IDEM_WINDOW_SECONDS);
 }
 
 /**
- * Bug #4 fix: trim BEFORE inserting so the cache never transiently exceeds
- * the cap. JS is single-threaded, so calling `idemSet()` instead of
- * `idempotencyCache.set()` guarantees no concurrent request observes
- * size > IDEM_MAX_SIZE.
+ * Atomic-ish acquire: returns true if the caller is the first request
+ * for this idemKey (and should proceed with the heavy work), false if
+ * another request is already in flight (caller should poll or return a
+ * 'duplicate request' response).
+ *
+ * The acquired marker is overwritten by `idemSet` once the work
+ * completes, so subsequent requests get the cached result instead of
+ * the in-flight marker.
  */
-function trimIdem() {
-  if (idempotencyCache.size < IDEM_MAX_SIZE) return;
-  const entries = Array.from(idempotencyCache.entries())
-    .sort((a, b) => a[1].timestamp - b[1].timestamp)
-    .slice(idempotencyCache.size - IDEM_TRIM_TARGET);
-  idempotencyCache.clear();
-  for (const [k, v] of entries) idempotencyCache.set(k, v);
-}
-
-function idemSet(key: string, value: { timestamp: number; result: unknown }) {
-  if (idempotencyCache.size >= IDEM_MAX_SIZE) trimIdem();
-  idempotencyCache.set(key, value);
+async function idemAcquire(key: string): Promise<boolean> {
+  return await kvSetIfNotExists(
+    `${IDEM_KEY_PREFIX}${key}`,
+    { inFlight: true, since: Date.now() },
+    IDEM_WINDOW_SECONDS
+  );
 }
 
 function sourceToUint8(source: string): number {
@@ -167,9 +172,9 @@ export async function POST(request: NextRequest) {
   // the try. Set when reserveAndSpend succeeds; cleared once the on-chain trade
   // settles (turning the reservation into a real spend) or once we've refunded.
   let reservation: { addr: string; amountWei: bigint } | null = null;
-  const releaseIfPending = () => {
+  const releaseIfPending = async () => {
     if (reservation) {
-      releaseReservation(reservation.addr, reservation.amountWei);
+      await releaseReservation(reservation.addr, reservation.amountWei);
       reservation = null;
     }
   };
@@ -179,7 +184,7 @@ export async function POST(request: NextRequest) {
     // Wallet-based rate limit applies BEFORE the heavy on-chain work. We need
     // the parsed body to extract userAddress, so do an early validation pass
     // and rate-limit by wallet too — strictWalletLimit halves IP limit.
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'whale-mirror',
       maxRequests: 5,
       windowMs: 60_000,
@@ -199,13 +204,35 @@ export async function POST(request: NextRequest) {
     requireSessionForAddress(request, userAddress);
 
     const idemKey = keccak256(toBytes(`${userAddress.toLowerCase()}|${whaleTradeId}`));
-    cleanupIdem();
-    const cached = idempotencyCache.get(idemKey);
-    if (cached && Date.now() - cached.timestamp < IDEM_WINDOW_MS) {
+    // KV-backed cache: read first to fast-path duplicate requests with
+    // the same idemKey. If the existing entry has `result`, return it.
+    // If the entry is the `inFlight` marker, treat as duplicate but
+    // return a generic "in flight" message (the acquirer will write the
+    // real result once it completes).
+    const existing = (await idemGet(idemKey)) as
+      | { result?: unknown; inFlight?: boolean }
+      | null;
+    if (existing) {
+      if (existing.result) {
+        return NextResponse.json({
+          ...(existing.result as object),
+          cached: true,
+          message: 'Duplicate request — returning prior result',
+        });
+      }
+      // Another request is in flight. Don't run the heavy work twice.
       return NextResponse.json({
-        ...(cached.result as object),
         cached: true,
-        message: 'Duplicate request — returning prior result',
+        message: 'Duplicate request currently in flight — retry shortly',
+      });
+    }
+    // Atomically acquire the in-flight marker. If another request beats
+    // us to it, treat as duplicate.
+    const acquired = await idemAcquire(idemKey);
+    if (!acquired) {
+      return NextResponse.json({
+        cached: true,
+        message: 'Duplicate request currently in flight — retry shortly',
       });
     }
 
@@ -237,7 +264,7 @@ export async function POST(request: NextRequest) {
     let limitCapped = false;
     let limitReason: string | undefined;
     try {
-      const limited = reserveAndSpend(userAddress, candidateWei);
+      const limited = await reserveAndSpend(userAddress, candidateWei);
       amountWei = limited.allowedWei;
       limitCapped = limited.capped;
       limitReason = limited.reason;
@@ -251,7 +278,7 @@ export async function POST(request: NextRequest) {
         );
       }
       if (/Daily mirror-trade cap/i.test(msg)) {
-        const info = getUserSpendInfo(userAddress);
+        const info = await getUserSpendInfo(userAddress);
         throw ErrorResponses.dailyCapReached(
           ethers.formatEther(PER_USER_DAILY_CAP_WEI),
           ethers.formatEther(BigInt(info.spentWei))
@@ -421,13 +448,13 @@ export async function POST(request: NextRequest) {
         whaleTradeId: whaleTrade.id,
         retryAfterSeconds: 45,
       };
-      idemSet(idemKey, { timestamp: Date.now(), result: pendingResult });
+      await idemSet(idemKey, { result: pendingResult });
       chainMetrics.incrementCounter('whale_mirror_attempts_total', 1, {
         outcome: 'pending_activation',
       });
       // No on-chain trade happened — refund the reserved daily-spend budget so
       // the user isn't debited for a market that's still bootstrapping.
-      releaseIfPending();
+      await releaseIfPending();
       return NextResponse.json(pendingResult, { status: 202 });
     }
 
@@ -571,7 +598,7 @@ export async function POST(request: NextRequest) {
         cappedReason: limitReason,
       },
     };
-    idemSet(idemKey, { timestamp: Date.now(), result });
+    await idemSet(idemKey, { result });
     chainMetrics.incrementCounter('whale_mirror_attempts_total', 1, {
       outcome: 'success',
     });
@@ -580,7 +607,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     // Refund the daily-spend reservation if the trade never settled. This is a
     // no-op once `reservationReleased = true` is set after tx.wait() succeeds.
-    releaseIfPending();
+    await releaseIfPending();
     const errorCode =
       error && typeof error === 'object' && 'code' in error
         ? String((error as { code: unknown }).code)

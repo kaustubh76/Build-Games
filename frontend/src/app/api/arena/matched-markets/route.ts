@@ -263,7 +263,7 @@ async function findMatchedMarkets(
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting (30/min due to heavy computation)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'matched-markets',
       maxRequests: 30,
       windowMs: 60000,

@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAccount, useWriteContract, useReadContract } from 'wagmi';
 import { parseEther, erc20Abi } from 'viem';
 import { getContracts, getChainId } from '../../constants';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 // ============================================
 // TYPES
@@ -115,6 +116,11 @@ export function useBattleBetting(
 ): UseBattleBettingReturn {
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
+  // Toast errors so consumers don't have to remember to surface
+  // hook.error themselves. Both placeBet and claimWinnings emit on
+  // failure; the existing per-hook `error` state stays for components
+  // that want inline rendering.
+  const notifications = useNotifications();
 
   const [pool, setPool] = useState<BettingPool | null>(null);
   const [userBet, setUserBet] = useState<UserBet | null>(null);
@@ -257,13 +263,15 @@ export function useBattleBetting(
       await fetchBettingInfo();
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to place bet');
+      const msg = err instanceof Error ? err.message : 'Failed to place bet';
+      setError(msg);
+      notifications.error('Bet failed', msg);
       return false;
     } finally {
       setIsPlacingBet(false);
     }
   }, [battleId, address, contractAddress, writeContractAsync, fetchBettingInfo,
-      crwnBalance, crwnAllowance, crwnToken, chainId, refetchAllowance]);
+      crwnBalance, crwnAllowance, crwnToken, chainId, refetchAllowance, notifications]);
 
   /**
    * Claim winnings from completed battle
@@ -313,12 +321,14 @@ export function useBattleBetting(
         payout: data.payout,
       };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to claim');
+      const msg = err instanceof Error ? err.message : 'Failed to claim';
+      setError(msg);
+      notifications.error('Claim failed', msg);
       return null;
     } finally {
       setIsClaiming(false);
     }
-  }, [battleId, address, contractAddress, writeContractAsync, fetchBettingInfo]);
+  }, [battleId, address, contractAddress, writeContractAsync, fetchBettingInfo, notifications]);
 
   // Initial fetch
   useEffect(() => {

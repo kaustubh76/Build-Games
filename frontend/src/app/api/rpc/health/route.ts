@@ -111,7 +111,7 @@ async function testRPCEndpoint(url: string): Promise<RPCHealthResult> {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'rpc-health',
       maxRequests: 30,
       windowMs: 60000,

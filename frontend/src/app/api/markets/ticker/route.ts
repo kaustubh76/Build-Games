@@ -45,7 +45,7 @@ let cache: { ts: number; version: number; rows: TickerRow[] } | null = null;
 
 export async function GET(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'markets-ticker',
       maxRequests: 120,
       windowMs: 60_000,

@@ -35,7 +35,7 @@ const BodySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'internal-errors',
       maxRequests: 60,
       windowMs: 60_000,

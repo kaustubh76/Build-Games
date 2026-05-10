@@ -23,7 +23,7 @@ import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting for transfer operations (5/min)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agents-transfer',
       maxRequests: 5,
       windowMs: 60000,
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting for status checks
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agents-transfer-status',
       maxRequests: 60,
       windowMs: 60000,

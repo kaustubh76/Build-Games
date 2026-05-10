@@ -49,6 +49,33 @@ function getIndexer(): Indexer {
 }
 
 /**
+ * Test hook — reset cached singletons.
+ */
+export function __resetZgStorageForTests(): void {
+  _provider = null;
+  _signer = null;
+  _indexer = null;
+}
+
+/**
+ * Race a promise against a timeout. Cleans up the timer on either path so
+ * a fast success doesn't keep the event loop alive for the timeout window.
+ */
+async function raceWithTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race<T>([
+      p,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
  * Upload data to 0G Storage using in-memory MemData (no temp files).
  */
 export async function upload(
@@ -64,15 +91,24 @@ export async function upload(
 
   const rootHash = tree!.rootHash() ?? '';
 
-  // Upload with 60s timeout (upload can hang on slow/unreachable 0G network)
-  const uploadPromise = indexer.upload(memFile, ZG_EVM_RPC, signer);
-  const uploadTimeout = new Promise<[null, string]>((resolve) =>
-    setTimeout(() => resolve([null, '0G Storage upload timed out after 60s']), 60000)
+  // 0G upload submits an on-chain tx; the SDK returns a [result, err] tuple
+  // rather than throwing. Wrap in our timer-clearing helper so the 60s
+  // timeout doesn't pin the event loop after a fast success.
+  const [uploadResult, uploadErr] = await raceWithTimeout(
+    indexer.upload(memFile, ZG_EVM_RPC, signer),
+    60_000,
+    '0G Storage upload'
   );
-  const [uploadResult, uploadErr] = await Promise.race([uploadPromise, uploadTimeout]);
   if (uploadErr) throw new Error(`0G upload error: ${uploadErr}`);
 
-  return { rootHash, txHash: (uploadResult as { txHash?: string } | null)?.txHash || '' };
+  const txHash = (uploadResult as { txHash?: string } | null)?.txHash || '';
+  if (!txHash) {
+    // Not strictly an error — some indexer paths return without a txHash
+    // when content is already finalized — but worth surfacing in logs so
+    // an operator can investigate "phantom" successful uploads.
+    console.warn(`0G upload returned no txHash (rootHash=${rootHash})`);
+  }
+  return { rootHash, txHash };
 }
 
 /**
@@ -83,18 +119,23 @@ export async function download(rootHash: string): Promise<Buffer> {
   const indexer = getIndexer();
   const outPath = join(tmpdir(), `0g-download-${randomUUID()}`);
 
-  // Download with 30s timeout
-  const downloadPromise = indexer.download(rootHash, outPath, false);
-  const timeoutPromise = new Promise<string>((_, reject) =>
-    setTimeout(() => reject(new Error('0G Storage download timed out after 30s')), 30000)
-  );
-  const err = await Promise.race([downloadPromise, timeoutPromise]);
-  if (err) throw new Error(`0G download error: ${err}`);
-
+  let downloadOk = false;
   try {
-    const data = await readFile(outPath);
-    return data;
+    const err = await raceWithTimeout(
+      indexer.download(rootHash, outPath, false),
+      30_000,
+      '0G Storage download'
+    );
+    if (err) throw new Error(`0G download error: ${err}`);
+    downloadOk = true;
+    return await readFile(outPath);
   } finally {
+    // Always unlink, even on timeout. If the SDK is still writing in the
+    // background after a timeout, a later sweep would clean it up — but at
+    // least we don't leak when the happy path completes.
     await unlink(outPath).catch(() => {});
+    // Marking the variable as used silences unused-var lint without
+    // changing behavior; intentional for future readers.
+    void downloadOk;
   }
 }

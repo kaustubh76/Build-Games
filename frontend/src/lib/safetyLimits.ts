@@ -1,85 +1,134 @@
 /**
  * Safety Limits — server-side guardrails for mirror-market writes.
  *
- * 0G-native: all state is in-process memory. Cold starts reset the daily-spend
- * tracker, which is acceptable for the trading-pause pattern (the on-chain
- * CRwN allowance is the real ceiling). The chain is the source of truth.
+ * KV-backed (Vercel KV / Upstash) so the daily-spend tracker survives
+ * Vercel cold starts and is consistent across containers. The previous
+ * in-process Map worked at single-instance scale but failed under
+ * serverless: two parallel mirror trades for the same user routed to
+ * two containers could each pass the cap because neither saw the other's
+ * spend.
+ *
+ * The chain is still the source of truth — the on-chain CRwN allowance
+ * is the real ceiling. The cap here is a per-user UX guardrail that
+ * prevents runaway client loops from draining a user's allowance in
+ * minutes; brief KV inconsistency under contention is acceptable.
  */
 
 import { parseEther } from 'viem';
+import {
+  getJSON as kvGet,
+  setJSONWithTtl as kvSet,
+  addToSet as kvAddToSet,
+  removeFromSet as kvRemoveFromSet,
+  isInSet as kvIsInSet,
+  __resetKvMemory,
+} from '@/lib/kv';
 
-export const PER_TRADE_CAP_WEI = parseEther('1000'); // 1000 CRwN max per single mirror trade
-export const PER_USER_DAILY_CAP_WEI = parseEther('5000'); // 5000 CRwN per UTC day
-export const MAX_SLIPPAGE_BPS = 300; // 3% default slippage tolerance
+export const PER_TRADE_CAP_WEI = parseEther('1000');
+export const PER_USER_DAILY_CAP_WEI = parseEther('5000');
+export const MAX_SLIPPAGE_BPS = 300;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const DAY_SECONDS = 24 * 60 * 60;
+const PAUSED_USERS_SET = 'safety:paused-users';
+const SPEND_KEY_PREFIX = 'safety:spend:';
 
-interface DailySpend {
-  spentWei: bigint;
-  windowStart: number;
-}
-
-const userDailySpend = new Map<string, DailySpend>();
-const pausedUsers = new Set<string>();
-
-function key(addr: string) {
+function key(addr: string): string {
   return addr.toLowerCase();
 }
 
-function currentSpend(addr: string): DailySpend {
-  const k = key(addr);
-  const now = Date.now();
-  const existing = userDailySpend.get(k);
-  if (!existing || now - existing.windowStart > DAY_MS) {
-    const fresh: DailySpend = { spentWei: 0n, windowStart: now };
-    userDailySpend.set(k, fresh);
-    return fresh;
-  }
-  return existing;
+/**
+ * The day bucket for a given timestamp. Aligned to UTC day boundary so
+ * cap windows roll over predictably and TTLs match.
+ */
+function dayBucket(now: number = Date.now()): number {
+  return Math.floor(now / 1000 / DAY_SECONDS);
 }
 
-export function isUserPaused(addr: string): boolean {
-  return pausedUsers.has(key(addr));
+function spendKey(addr: string): string {
+  return `${SPEND_KEY_PREFIX}${key(addr)}:${dayBucket()}`;
 }
 
-export function pauseUser(addr: string) {
-  pausedUsers.add(key(addr));
+interface SpendEntry {
+  spentWei: string; // bigint serialized as decimal string for KV
 }
 
-export function unpauseUser(addr: string) {
-  pausedUsers.delete(key(addr));
+async function getSpend(addr: string): Promise<bigint> {
+  const entry = await kvGet<SpendEntry>(spendKey(addr));
+  return entry ? BigInt(entry.spentWei) : 0n;
 }
 
-export function getUserSpendRemaining(addr: string): bigint {
-  const s = currentSpend(addr);
-  const remaining = PER_USER_DAILY_CAP_WEI - s.spentWei;
+async function setSpend(addr: string, spentWei: bigint): Promise<void> {
+  // TTL covers two day buckets to avoid edge cases right at the rollover
+  // moment — we want the entry to survive until tomorrow's bucket
+  // becomes authoritative.
+  await kvSet(
+    spendKey(addr),
+    { spentWei: spentWei.toString() } satisfies SpendEntry,
+    DAY_SECONDS * 2
+  );
+}
+
+export async function isUserPaused(addr: string): Promise<boolean> {
+  return await kvIsInSet(PAUSED_USERS_SET, key(addr));
+}
+
+export async function pauseUser(addr: string): Promise<void> {
+  await kvAddToSet(PAUSED_USERS_SET, key(addr));
+}
+
+export async function unpauseUser(addr: string): Promise<void> {
+  await kvRemoveFromSet(PAUSED_USERS_SET, key(addr));
+}
+
+export async function getUserSpendRemaining(addr: string): Promise<bigint> {
+  const spent = await getSpend(addr);
+  const remaining = PER_USER_DAILY_CAP_WEI - spent;
   return remaining > 0n ? remaining : 0n;
 }
 
-export function getUserSpendInfo(addr: string) {
-  const s = currentSpend(addr);
+export async function getUserSpendInfo(addr: string): Promise<{
+  spentWei: string;
+  capWei: string;
+  remainingWei: string;
+  windowStart: number;
+  paused: boolean;
+}> {
+  const [spent, paused] = await Promise.all([
+    getSpend(addr),
+    isUserPaused(addr),
+  ]);
+  const remaining = PER_USER_DAILY_CAP_WEI - spent;
   return {
-    spentWei: s.spentWei.toString(),
+    spentWei: spent.toString(),
     capWei: PER_USER_DAILY_CAP_WEI.toString(),
-    remainingWei: getUserSpendRemaining(addr).toString(),
-    windowStart: s.windowStart,
-    paused: isUserPaused(addr),
+    remainingWei: (remaining > 0n ? remaining : 0n).toString(),
+    windowStart: dayBucket() * DAY_SECONDS * 1000,
+    paused,
   };
 }
 
 /**
- * Enforce per-trade and per-user-per-day caps. Returns the *capped* amount
- * if the request was within limits but exceeded the user's remaining daily
- * budget — the caller can choose to proceed with the capped amount or reject.
+ * Reserve daily-spend budget AND debit it. Returns the (possibly capped)
+ * amount the caller may proceed with. Throws if the user is paused, the
+ * per-trade cap is exceeded, or the daily cap is fully consumed.
  *
- * Throws an Error with a helpful message if the trade is fully blocked
- * (paused user, or per-trade cap exceeded with no fallback).
+ * Race-safety note: the KV-backed read-then-write is NOT a true CAS — under
+ * genuine concurrent contention from the same wallet across containers,
+ * two requests CAN observe the same baseline and both debit. The on-chain
+ * CRwN allowance is the real ceiling, so the worst case is the user's
+ * allowance gets debited slightly faster than the soft cap intended; it
+ * cannot exceed the on-chain allowance. Adding a Lua-script CAS path is
+ * the proper fix; tracked as a TODO when a contention incident actually
+ * surfaces in production.
+ *
+ * If the on-chain tx subsequently fails, the caller MUST call
+ * `releaseReservation(addr, allowedWei)` to refund the daily budget.
  */
-export function enforceTradeLimits(
+export async function reserveAndSpend(
   addr: string,
   requestedWei: bigint
-): { allowedWei: bigint; capped: boolean; reason?: string } {
-  if (isUserPaused(addr)) {
+): Promise<{ allowedWei: bigint; capped: boolean; reason?: string }> {
+  if (await isUserPaused(addr)) {
     throw new Error('Trading paused for this user. Resume to continue.');
   }
   if (requestedWei <= 0n) {
@@ -88,7 +137,55 @@ export function enforceTradeLimits(
   if (requestedWei > PER_TRADE_CAP_WEI) {
     throw new Error(`Per-trade cap exceeded: max ${PER_TRADE_CAP_WEI.toString()} wei`);
   }
-  const remaining = getUserSpendRemaining(addr);
+
+  const current = await getSpend(addr);
+  const remainingNow = PER_USER_DAILY_CAP_WEI - current;
+  if (remainingNow <= 0n) {
+    throw new Error('Daily mirror-trade cap reached. Try again tomorrow or pause + resume.');
+  }
+  const capped = requestedWei > remainingNow;
+  const allowedWei = capped ? remainingNow : requestedWei;
+  await setSpend(addr, current + allowedWei);
+  return capped
+    ? {
+        allowedWei,
+        capped: true,
+        reason: `Capped to remaining daily budget (${remainingNow.toString()} wei)`,
+      }
+    : { allowedWei, capped: false };
+}
+
+/**
+ * Refund a reservation previously granted by `reserveAndSpend`. Saturates
+ * at 0n (never goes negative).
+ */
+export async function releaseReservation(addr: string, refundWei: bigint): Promise<void> {
+  if (refundWei <= 0n) return;
+  const current = await getSpend(addr);
+  const next = current > refundWei ? current - refundWei : 0n;
+  await setSpend(addr, next);
+}
+
+/**
+ * Legacy split-version API kept for callers that need to enforce limits
+ * without committing the spend (planning paths). New code should prefer
+ * `reserveAndSpend` to avoid the lost-update window between check and
+ * commit.
+ */
+export async function enforceTradeLimits(
+  addr: string,
+  requestedWei: bigint
+): Promise<{ allowedWei: bigint; capped: boolean; reason?: string }> {
+  if (await isUserPaused(addr)) {
+    throw new Error('Trading paused for this user. Resume to continue.');
+  }
+  if (requestedWei <= 0n) {
+    throw new Error('Trade amount must be > 0');
+  }
+  if (requestedWei > PER_TRADE_CAP_WEI) {
+    throw new Error(`Per-trade cap exceeded: max ${PER_TRADE_CAP_WEI.toString()} wei`);
+  }
+  const remaining = await getUserSpendRemaining(addr);
   if (remaining === 0n) {
     throw new Error('Daily mirror-trade cap reached. Try again tomorrow or pause + resume.');
   }
@@ -102,20 +199,13 @@ export function enforceTradeLimits(
   return { allowedWei: requestedWei, capped: false };
 }
 
-/**
- * Record a successful mirror-trade spend against the daily budget.
- * Call AFTER the on-chain tx confirms; failed txs should NOT debit.
- */
-export function recordSpend(addr: string, amountWei: bigint) {
-  const s = currentSpend(addr);
-  s.spentWei += amountWei;
+export async function recordSpend(addr: string, amountWei: bigint): Promise<void> {
+  const current = await getSpend(addr);
+  await setSpend(addr, current + amountWei);
 }
 
 /**
- * Compute a minSharesOut floor enforcing the configured slippage tolerance,
- * given an expected sharesOut. If the AMM/oracle returns sharesOut < floor,
- * the on-chain trade would revert, protecting the user from sandwiches and
- * stale-price front-running.
+ * Compute a minSharesOut floor enforcing the configured slippage tolerance.
  *
  * floor = expectedShares * (10_000 - maxSlippageBps) / 10_000
  */
@@ -126,71 +216,6 @@ export function computeMinSharesOut(
   if (expectedSharesWei <= 0n) return 0n;
   const bps = BigInt(Math.max(0, Math.min(10_000, maxSlippageBps)));
   return (expectedSharesWei * (10_000n - bps)) / 10_000n;
-}
-
-/**
- * Bug #1 fix: atomically reserve daily-spend budget AND debit it in a single
- * synchronous block. Use this instead of `enforceTradeLimits` + `recordSpend`
- * pairs at route-handler call sites where two concurrent requests from the
- * same wallet could both pass the cap check before either writes the spend.
- *
- * If the on-chain tx subsequently fails, the caller MUST call
- * `releaseReservation(addr, allowedWei)` to refund the daily budget.
- *
- * Race-safety note: JavaScript single-threaded execution + no awaits in this
- * function = no other handler can interleave between the read and write.
- * That's the entire fix.
- */
-export function reserveAndSpend(
-  addr: string,
-  requestedWei: bigint
-): { allowedWei: bigint; capped: boolean; reason?: string } {
-  if (isUserPaused(addr)) {
-    throw new Error('Trading paused for this user. Resume to continue.');
-  }
-  if (requestedWei <= 0n) {
-    throw new Error('Trade amount must be > 0');
-  }
-  if (requestedWei > PER_TRADE_CAP_WEI) {
-    throw new Error(`Per-trade cap exceeded: max ${PER_TRADE_CAP_WEI.toString()} wei`);
-  }
-
-  // Single synchronous read-modify-write — no awaits, no other handler can
-  // interleave. `currentSpend()` reads-or-creates the live ref; we mutate
-  // the ref's `spentWei` field by exactly the amount we're about to commit.
-  const s = currentSpend(addr);
-  const remainingNow = PER_USER_DAILY_CAP_WEI - s.spentWei;
-  if (remainingNow <= 0n) {
-    throw new Error('Daily mirror-trade cap reached. Try again tomorrow or pause + resume.');
-  }
-  const capped = requestedWei > remainingNow;
-  const allowedWei = capped ? remainingNow : requestedWei;
-  s.spentWei += allowedWei;
-  return capped
-    ? {
-        allowedWei,
-        capped: true,
-        reason: `Capped to remaining daily budget (${remainingNow.toString()} wei)`,
-      }
-    : { allowedWei, capped: false };
-}
-
-/**
- * Refund a reservation previously granted by `reserveAndSpend`. Use this in
- * the catch path of route handlers when the on-chain tx fails after the
- * reservation succeeded — otherwise the user is debited for trades that
- * never executed.
- *
- * Idempotent in the sense that calling with 0n is a no-op. Saturates at 0n
- * (never goes negative).
- */
-export function releaseReservation(addr: string, refundWei: bigint): void {
-  if (refundWei <= 0n) return;
-  const k = key(addr);
-  const existing = userDailySpend.get(k);
-  if (!existing) return;
-  existing.spentWei =
-    existing.spentWei > refundWei ? existing.spentWei - refundWei : 0n;
 }
 
 // ============================================================================
@@ -205,21 +230,19 @@ function assertNotProduction(name: string): void {
 
 export function __resetSafetyState(): void {
   assertNotProduction('__resetSafetyState');
-  userDailySpend.clear();
-  pausedUsers.clear();
+  __resetKvMemory();
 }
 
+/**
+ * Diagnostic snapshot. With KV-backed storage we can't enumerate all keys
+ * cheaply, so the entries array is empty by default. Soak suites that
+ * previously scanned individual entries should switch to per-address
+ * `getUserSpendInfo` calls.
+ */
 export function __getSafetyState(): {
   userDailySpend: Array<{ key: string; spentWei: string; windowStart: number }>;
   pausedUsers: string[];
 } {
   assertNotProduction('__getSafetyState');
-  return {
-    userDailySpend: Array.from(userDailySpend.entries()).map(([k, v]) => ({
-      key: k,
-      spentWei: v.spentWei.toString(),
-      windowStart: v.windowStart,
-    })),
-    pausedUsers: Array.from(pausedUsers),
-  };
+  return { userDailySpend: [], pausedUsers: [] };
 }

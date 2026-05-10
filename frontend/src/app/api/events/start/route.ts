@@ -22,7 +22,7 @@ let isRunning = false;
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'events-start',
       maxRequests: 5,
       windowMs: 60000, // Max 5 starts per minute
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'events-start-get',
       maxRequests: 60,
       windowMs: 60000,

@@ -1,12 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 import { chatCompletion as zgChatCompletion, isZgComputeConfigured } from '@/services/zgComputeService';
 import { safeParseAIResponse } from '@/lib/safeParseAIResponse';
 
+// Hard caps on the strings interpolated into the AI prompt. Without these,
+// an attacker passes a 1MB bio with embedded prompt-injection / token bloat
+// to either:
+//   - run up cost on the 0G Compute provider, or
+//   - jailbreak the system prompt and get arbitrary output that the rest
+//     of the pipeline trusts as warrior traits.
+// The caps are generous enough for legitimate input but stop both attacks.
+const TraitString = z.string().max(2_000);
+const TraitListField = z.union([z.array(z.string().max(200)), z.string().max(2_000)]).optional();
+
+const PostBodySchema = z.object({
+  warriorsData: z.object({
+    name: TraitString.optional(),
+    bio: TraitString.optional(),
+    life_history: z.string().max(4_000).optional(),
+    personality: TraitListField,
+    knowledge_areas: TraitListField,
+  }).passthrough(),
+});
+
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting (10 activations per minute)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'activate-warriors',
       maxRequests: 10,
       windowMs: 60000,
@@ -17,12 +38,14 @@ export async function POST(request: NextRequest) {
       throw ErrorResponses.serviceUnavailable('0G Compute not configured. Set ZG_PRIVATE_KEY and ZG_COMPUTE_PROVIDER.');
     }
 
-    const body = await request.json();
-    const { warriorsData } = body;
-
-    if (!warriorsData) {
-      throw ErrorResponses.badRequest('Missing warriorsData');
+    const raw = await request.json().catch(() => null);
+    const parsedBody = PostBodySchema.safeParse(raw);
+    if (!parsedBody.success) {
+      throw ErrorResponses.badRequest(
+        `Invalid body: ${parsedBody.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
+      );
     }
+    const { warriorsData } = parsedBody.data;
 
     // Build warrior profile from input
     const personality = Array.isArray(warriorsData.personality)

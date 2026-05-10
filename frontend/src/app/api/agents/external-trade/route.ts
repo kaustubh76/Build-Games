@@ -22,7 +22,7 @@ import { avalancheFuji } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { chainsToContracts, getChainId, getAvalancheRpcUrl, getAvalancheFallbackRpcUrl } from '@/constants';
 import { AIAgentINFTAbi } from '@/constants/aiAgentINFTAbi';
-import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { handleAPIError, applyRateLimit, ErrorResponses, parsePagination } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 
 // RPC timeout configuration
@@ -159,7 +159,7 @@ async function executeWithFallback<T>(
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agent-external-trade',
       maxRequests: 10,
       windowMs: 60000,
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agent-external-trade-get',
       maxRequests: 60,
       windowMs: 60000,
@@ -331,8 +331,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse optional query parameters
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const { limit, offset } = parsePagination(searchParams);
 
     // Query the database for agent trades
     const [trades, total] = await Promise.all([

@@ -27,20 +27,58 @@ const BodySchema = z.object({
   signature: z.string().regex(/^0x[0-9a-fA-F]+$/),
 });
 
+/**
+ * Resolve the SIWE domain we'll accept on this deployment. Production MUST
+ * set `AUTH_ALLOWED_DOMAINS` (comma-separated list) — we then accept the
+ * first match and ignore client-controllable headers like `x-forwarded-host`.
+ *
+ * Trusting `x-forwarded-host` in production is a known SIWE replay surface:
+ * an attacker spoofs the header at the edge and gets the server to accept a
+ * message signed against `attacker.com`. The allowlist closes that window.
+ *
+ * Dev/test fall back to the request's host header so the local handshake
+ * still works on `localhost:3000` without env wiring.
+ */
 function getExpectedDomain(request: NextRequest): string {
-  // Production: derive from Host / x-forwarded-host. Dev: localhost:port.
-  const host =
+  const isProd = process.env.NODE_ENV === 'production';
+  const allowed = (process.env.AUTH_ALLOWED_DOMAINS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // Compute the candidate host the request CLAIMS to be on. In dev we trust
+  // it; in prod we use it only to pick a match from the allowlist.
+  const candidate =
     request.headers.get('x-forwarded-host') ||
     request.headers.get('host') ||
     new URL(request.url).host;
-  return host;
+
+  if (isProd) {
+    if (allowed.length === 0) {
+      // Misconfigured prod deployment. Fail closed rather than fall back to
+      // a header an attacker controls.
+      throw new Error('AUTH_ALLOWED_DOMAINS not configured for production');
+    }
+    const match = allowed.find((d) => d === candidate);
+    if (!match) {
+      // Force a domain mismatch downstream — the SIWE assert step will
+      // reject the message because its `domain` won't equal this value.
+      // Returning the first allowlisted entry would let an attacker craft
+      // a message against that domain and get it accepted, so we instead
+      // return a sentinel that no SIWE message will ever match.
+      return '__domain_not_allowlisted__';
+    }
+    return match;
+  }
+
+  return candidate;
 }
 
 export async function POST(request: NextRequest) {
   const logger = createAPILogger(request);
   logger.start();
   try {
-    applyRateLimit(request, { prefix: 'auth-verify', maxRequests: 20, windowMs: 60_000 });
+    await applyRateLimit(request, { prefix: 'auth-verify', maxRequests: 20, windowMs: 60_000 });
 
     const raw = await request.json().catch(() => null);
     const parsed = BodySchema.safeParse(raw);
@@ -66,7 +104,7 @@ export async function POST(request: NextRequest) {
     // Consume the nonce ONCE — even if the signature check below fails. This
     // prevents a brute-forcer from grinding signatures against a long-lived
     // server nonce. The user retries the whole handshake (cheap).
-    const nonceWasFresh = consumeNonce(siwe.nonce);
+    const nonceWasFresh = await consumeNonce(siwe.nonce);
     if (!nonceWasFresh) {
       logger.warn('SIWE nonce already consumed or expired');
       throw ErrorResponses.unauthorized('Invalid or expired sign-in nonce');

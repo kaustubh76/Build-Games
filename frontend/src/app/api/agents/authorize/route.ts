@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { type Address, isAddress } from 'viem';
 import { agentINFTService } from '@/services/agentINFTService';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
@@ -16,6 +17,14 @@ import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 const MIN_DURATION_DAYS = 1;
 const MAX_DURATION_DAYS = 365;
 const SECONDS_PER_DAY = 24 * 60 * 60;
+
+// uint256 token id as a non-negative decimal string. 78 digits covers
+// uint256 max; longer values are rejected before BigInt() is called.
+const PostBodySchema = z.object({
+  tokenId: z.string().regex(/^\d+$/, 'tokenId must be a non-negative decimal').max(78),
+  executorAddress: z.string(),
+  durationDays: z.number().int().min(MIN_DURATION_DAYS).max(MAX_DURATION_DAYS),
+});
 
 /**
  * POST - Prepare authorization transaction
@@ -30,34 +39,23 @@ const SECONDS_PER_DAY = 24 * 60 * 60;
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting for authorization operations
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agents-authorize',
       maxRequests: 10,
       windowMs: 60000,
     });
 
-    const body = await request.json();
-    const { tokenId, executorAddress, durationDays } = body;
-
-    // Validation
-    if (!tokenId) {
-      throw ErrorResponses.badRequest('tokenId is required');
+    const raw = await request.json().catch(() => null);
+    const parsed = PostBodySchema.safeParse(raw);
+    if (!parsed.success) {
+      throw ErrorResponses.badRequest(
+        `Invalid body: ${parsed.error.issues.map((i) => i.message).join('; ')}`
+      );
     }
-
-    if (!executorAddress) {
-      throw ErrorResponses.badRequest('executorAddress is required');
-    }
+    const { tokenId, executorAddress, durationDays } = parsed.data;
 
     if (!isAddress(executorAddress)) {
       throw ErrorResponses.badRequest('Invalid executorAddress format');
-    }
-
-    if (!durationDays || typeof durationDays !== 'number') {
-      throw ErrorResponses.badRequest('durationDays is required and must be a number');
-    }
-
-    if (durationDays < MIN_DURATION_DAYS || durationDays > MAX_DURATION_DAYS) {
-      throw ErrorResponses.badRequest(`durationDays must be between ${MIN_DURATION_DAYS} and ${MAX_DURATION_DAYS}`);
     }
 
     // Check if contract is deployed
@@ -118,7 +116,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting for authorization status checks
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agents-authorize-status',
       maxRequests: 60,
       windowMs: 60000,
@@ -191,7 +189,7 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Apply rate limiting for revoke operations
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agents-authorize-revoke',
       maxRequests: 10,
       windowMs: 60000,

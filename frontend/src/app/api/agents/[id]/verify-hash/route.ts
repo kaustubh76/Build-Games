@@ -34,7 +34,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agent-verify-hash',
       maxRequests: 30,
       windowMs: 60_000,

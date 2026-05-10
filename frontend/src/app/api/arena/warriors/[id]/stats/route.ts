@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'arena-warrior-stats',
       ...RateLimitPresets.readOperations,
     });

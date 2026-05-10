@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { prisma } from '@/lib/prisma';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 import { AVALANCHE_RPC, AVALANCHE_CONTRACTS } from '@/lib/apiConfig';
+import { requireCronSecret } from '@/lib/auth/requireCronSecret';
 
 // Use Avalanche configuration
 const PREDICTION_MARKET = AVALANCHE_CONTRACTS.predictionMarketAMM;
@@ -162,8 +163,13 @@ async function updateAgentPerformance(marketId: number, outcome: Outcome, privat
  */
 export async function POST(request: NextRequest) {
   try {
+    // Privileged route: holds AI_SIGNER_PRIVATE_KEY and submits resolution
+    // transactions on behalf of the protocol. Must NOT be reachable by
+    // anonymous clients in production.
+    requireCronSecret(request);
+
     // Apply rate limiting (5 settlements per minute)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'markets-settle-post',
       maxRequests: 5,
       windowMs: 60000,
@@ -332,7 +338,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'markets-settle-get',
       maxRequests: 30,
       windowMs: 60000,

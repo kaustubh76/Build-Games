@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import { type NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ethers } from 'ethers';
-import { handleAPIError, applyRateLimit } from '@/lib/api';
+import { handleAPIError, applyRateLimit, parsePagination } from '@/lib/api';
 
 interface TradeWithPnL {
   id: string;
@@ -36,7 +36,7 @@ export async function GET(
 ) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agent-trades',
       maxRequests: 60,
       windowMs: 60000,
@@ -46,8 +46,7 @@ export async function GET(
     const agentId = id;
 
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const { limit, offset } = parsePagination(searchParams);
     const status = searchParams.get('status') as 'pending' | 'resolved' | 'all' | null;
 
     // Build where clause

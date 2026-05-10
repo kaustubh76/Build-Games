@@ -7,6 +7,7 @@ import { useAccount } from 'wagmi';
 import { LiveBattleView } from '../../../../components/arena/LiveBattleView';
 import { useBattleExecution, useBattleBetting } from '../../../../hooks/arena';
 import { PredictionBattle } from '../../../../types/predictionArena';
+import { ErrorBoundary } from '../../../../components/ErrorBoundary';
 
 export default function BattleDetailPage() {
   const params = useParams();
@@ -134,12 +135,15 @@ export default function BattleDetailPage() {
           </Link>
         </div>
 
-        {/* Main Battle View */}
-        <LiveBattleView
-          battle={battle}
-          onExecuteRound={handleExecuteRound}
-          isExecuting={isExecuting}
-        />
+        {/* Main Battle View — wrapped so an on-chain read failure inside
+            LiveBattleView doesn't blank the page chrome. */}
+        <ErrorBoundary context="battle-live-view">
+          <LiveBattleView
+            battle={battle}
+            onExecuteRound={handleExecuteRound}
+            isExecuting={isExecuting}
+          />
+        </ErrorBoundary>
 
         {/* Action Buttons */}
         <div className="mt-6 flex flex-wrap gap-4 justify-center">

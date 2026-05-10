@@ -30,9 +30,9 @@ import { requireSessionForAddress } from '@/lib/auth/requireSession';
  * is a single synchronous read-modify-write — concurrent calls cannot both pass
  * the cap before either records. The caller MUST releaseReservation on tx failure.
  */
-function applyTradeLimits(addr: string, requestedWei: bigint) {
+async function applyTradeLimits(addr: string, requestedWei: bigint) {
   try {
-    return reserveAndSpend(addr, requestedWei);
+    return await reserveAndSpend(addr, requestedWei);
   } catch (limitErr) {
     const msg = limitErr instanceof Error ? limitErr.message : 'Safety limit hit';
     if (/Trading paused/i.test(msg)) throw ErrorResponses.tradingPaused();
@@ -43,7 +43,7 @@ function applyTradeLimits(addr: string, requestedWei: bigint) {
       );
     }
     if (/Daily mirror-trade cap/i.test(msg)) {
-      const info = getUserSpendInfo(addr);
+      const info = await getUserSpendInfo(addr);
       throw ErrorResponses.dailyCapReached(
         ethers.formatEther(PER_USER_DAILY_CAP_WEI),
         ethers.formatEther(BigInt(info.spentWei))
@@ -285,7 +285,7 @@ async function handleMirrorAction(action: MirrorAction): Promise<unknown> {
       const wallet = getSignerWallet(provider);
       const writer = writeContract(wallet);
       const requestedWei = ethers.parseEther(action.amount);
-      const { allowedWei, capped, reason } = applyTradeLimits(
+      const { allowedWei, capped, reason } = await applyTradeLimits(
         action.walletAddress,
         requestedWei
       );
@@ -324,7 +324,7 @@ async function handleMirrorAction(action: MirrorAction): Promise<unknown> {
           slippageBps: MAX_SLIPPAGE_BPS,
         };
       } catch (txErr) {
-        releaseReservation(action.walletAddress, allowedWei);
+        await releaseReservation(action.walletAddress, allowedWei);
         throw txErr;
       }
     }
@@ -333,7 +333,7 @@ async function handleMirrorAction(action: MirrorAction): Promise<unknown> {
       const wallet = getSignerWallet(provider);
       const writer = writeContract(wallet);
       const requestedWei = BigInt(action.amount);
-      const { allowedWei, capped, reason } = applyTradeLimits(
+      const { allowedWei, capped, reason } = await applyTradeLimits(
         action.userAddress,
         requestedWei
       );
@@ -352,7 +352,7 @@ async function handleMirrorAction(action: MirrorAction): Promise<unknown> {
           cappedReason: reason,
         };
       } catch (txErr) {
-        releaseReservation(action.userAddress, allowedWei);
+        await releaseReservation(action.userAddress, allowedWei);
         throw txErr;
       }
     }
@@ -400,7 +400,7 @@ export async function POST(request: NextRequest) {
         ? action.walletAddress
         : undefined);
 
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: `mirror-execute-${isWrite ? 'write' : 'read'}`,
       maxRequests: isWrite ? 5 : 60,
       windowMs: 60_000,

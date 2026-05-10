@@ -38,7 +38,7 @@ const DEFAULT_THRESHOLD_USD = 10_000;
 
 export async function POST(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'telegram-subscribe',
       maxRequests: 10,
       windowMs: 60_000,
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'telegram-subscribe-get',
       maxRequests: 60,
       windowMs: 60_000,
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'telegram-subscribe-delete',
       maxRequests: 10,
       windowMs: 60_000,

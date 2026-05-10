@@ -67,6 +67,30 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Baseline security headers. Applied to ALL routes; API routes get the
+  // same set (header injection from a misbehaving handler is the same risk
+  // as from a page).
+  //
+  // Notes:
+  //   - We DON'T set CSP here. Tailwind / RainbowKit / wagmi generate inline
+  //     styles + eval-style worker code that a strict CSP breaks. A CSP
+  //     compatible with the wallet libs is its own hardening pass; setting
+  //     a permissive one here would be theatre.
+  //   - X-Frame-Options DENY blocks all framing; if we ever want a wallet
+  //     widget embed, swap to SAMEORIGIN.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

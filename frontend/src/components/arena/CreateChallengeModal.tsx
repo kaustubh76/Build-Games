@@ -7,6 +7,7 @@ import { useUserNFTs } from '@/hooks/useUserNFTs';
 import { fetchWithTimeout, isTimeoutError, TimeoutDefaults } from '@/lib/fetchWithTimeout';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useAmountInput } from '@/hooks/useAmountInput';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface CreateChallengeModalProps {
   isOpen: boolean;
@@ -146,6 +147,10 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
     }
   }
 
+  // Hook MUST be called unconditionally — Rules of Hooks. The trap
+  // activates only when the modal is actually visible.
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
+
   if (!isOpen) return null;
 
   return (
@@ -164,7 +169,7 @@ export function CreateChallengeModal({ isOpen, onClose, onSuccess }: CreateChall
       />
 
       {/* Modal */}
-      <div className="relative bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div ref={trapRef} className="relative bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-gray-700 bg-gradient-to-r from-red-900/30 to-pink-900/30">
           <h2 id="create-challenge-title" className="text-2xl font-bold text-white">Create Challenge</h2>

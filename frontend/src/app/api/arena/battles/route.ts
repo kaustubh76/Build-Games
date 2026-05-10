@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { keccak256, toBytes } from 'viem';
 import { prisma } from '@/lib/prisma';
 import { handleAPIError, ErrorResponses } from '@/lib/api/errorHandler';
-import { validateInteger, validateAddress, validateBigIntString, validateEnum } from '@/lib/api/validation';
+import { validateInteger, validateAddress, validateBigIntString, validateEnum, parsePagination } from '@/lib/api/validation';
 import { applyRateLimit, RateLimitPresets } from '@/lib/api/rateLimit';
 
 // Helper to determine round winner
@@ -42,11 +42,10 @@ export async function GET(request: NextRequest) {
     const warriorId = searchParams.get('warriorId');
     const marketId = searchParams.get('marketId');
     const source = searchParams.get('source');
-    // Parse and validate pagination with max limits to prevent DoS
-    const rawLimit = parseInt(searchParams.get('limit') || '20');
-    const rawOffset = parseInt(searchParams.get('offset') || '0');
-    const limit = Math.min(Math.max(rawLimit, 1), 100); // Clamp between 1 and 100
-    const offset = Math.max(rawOffset, 0); // Ensure non-negative
+    // Parse and validate pagination with max limits. NaN-safe via the
+    // shared helper (Math.min(NaN, 100) = NaN, which would silently
+    // remove the bound).
+    const { limit, offset } = parsePagination(searchParams, { defaultLimit: 20, maxLimit: 100 });
 
     const where: Record<string, unknown> = {};
 
@@ -101,7 +100,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'battle-create',
       ...RateLimitPresets.battleCreation,
     });

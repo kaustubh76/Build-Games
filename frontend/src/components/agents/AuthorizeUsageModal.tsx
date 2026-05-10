@@ -11,6 +11,7 @@ import type { Address } from 'viem';
 import { isAddress } from 'viem';
 import { useAuthorizeUsage, useAgentINFT, useAgentAuthorization } from '@/hooks/useAgentINFT';
 import { INFTBadge } from './INFTBadge';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface AuthorizeUsageModalProps {
   tokenId: bigint;
@@ -93,6 +94,9 @@ export function AuthorizeUsageModal({
     }
   }, [hasExistingAuth]);
 
+  // Hook before conditional return — Rules of Hooks.
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
+
   if (!isOpen) return null;
 
   const formatExpiry = (timestamp: bigint) => {
@@ -107,28 +111,36 @@ export function AuthorizeUsageModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="authorize-usage-title"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={handleClose}
+        aria-hidden="true"
       />
 
       {/* Modal */}
-      <div className="relative bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+      <div ref={trapRef} className="relative bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
           <div className="flex items-center gap-3">
             <INFTBadge size="md" />
-            <h2 className="text-lg font-semibold text-white">
+            <h2 id="authorize-usage-title" className="text-lg font-semibold text-white">
               {mode === 'grant' ? 'Authorize Usage' : 'Revoke Authorization'}
             </h2>
           </div>
           <button
             onClick={handleClose}
+            type="button"
+            aria-label="Close dialog"
             className="text-gray-400 hover:text-white transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

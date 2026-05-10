@@ -3,18 +3,24 @@
  * state-changing routes — middleware is defense-in-depth, but each route
  * MUST also call one of these helpers before mutating state.
  *
- * Behavior is gated by AUTH_ENFORCE so we can ship the auth flow without
- * breaking existing clients during rollout:
+ * Enforcement matrix:
  *
- *   AUTH_ENFORCE=1                 → fully enforced; missing/mismatched
- *                                    session throws 401/403.
- *   AUTH_ENFORCE unset (default)   → "warn" mode; mismatch is logged but the
- *                                    route still runs. The /api/auth/session
- *                                    flow works either way; this flag just
- *                                    controls whether the GUARD is hard.
+ *   process.env.NODE_ENV === 'production'   → ALWAYS enforced; missing or
+ *                                             mismatched session throws 401/403.
+ *                                             Production NEVER opens the warn
+ *                                             window — it would silently
+ *                                             accept unauthenticated
+ *                                             money-touching requests.
  *
- * Once we've shipped client-side sign-in for ~1 week and confirmed the bulk
- * of traffic carries cookies, flip AUTH_ENFORCE=1 and the guard rejects.
+ *   AUTH_ENFORCE=1                          → enforced regardless of NODE_ENV.
+ *                                             Useful for staging that runs
+ *                                             with NODE_ENV=development.
+ *
+ *   Otherwise (dev/test, AUTH_ENFORCE unset) → "warn" mode; mismatch is
+ *                                             logged but the route still
+ *                                             runs. The integration test
+ *                                             suite relies on this default
+ *                                             so it can sign in optionally.
  */
 
 import type { NextRequest } from 'next/server';
@@ -27,6 +33,9 @@ import {
 } from './session';
 
 function isEnforceMode(): boolean {
+  // Production is always enforced — there's no scenario where a prod
+  // deployment should silently accept unauthenticated requests.
+  if (process.env.NODE_ENV === 'production') return true;
   return process.env.AUTH_ENFORCE === '1';
 }
 

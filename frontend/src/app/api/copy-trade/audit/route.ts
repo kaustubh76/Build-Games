@@ -44,7 +44,7 @@ const cache = new Map<string, { ts: number; entries: AuditEntry[] }>();
 
 export async function GET(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'copy-trade-audit',
       maxRequests: 60,
       windowMs: 60_000,

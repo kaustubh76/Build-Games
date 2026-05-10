@@ -4,11 +4,25 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createPublicClient, createWalletClient, http, encodePacked, keccak256, type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { avalancheFuji } from 'viem/chains';
 import { getAvalancheRpcUrl, getAvalancheFallbackRpcUrl, getContracts } from '@/constants';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { requireCronSecret } from '@/lib/auth/requireCronSecret';
+
+// Bounded uint256 strings: positive decimal numerals up to 78 digits
+// (uint256 max is ~1.16e77). Caps prevent BigInt() pathological inputs and
+// nudge the contract layer toward the same validation.
+const Uint256String = z.string().regex(/^\d+$/, 'must be a non-negative decimal').max(78);
+
+const BodySchema = z.object({
+  battleId: Uint256String,
+  marketId: Uint256String,
+  warrior1Damage: Uint256String,
+  warrior2Damage: Uint256String,
+});
 
 // RPC timeout configuration
 const RPC_TIMEOUT = 60000;
@@ -52,20 +66,26 @@ const OracleABI = [
 
 export async function POST(request: NextRequest) {
   try {
+    // Privileged route: holds ORACLE_SIGNER_PRIVATE_KEY and submits the
+    // signed resolution to the oracle contract. Must NOT be reachable by
+    // anonymous clients in production.
+    requireCronSecret(request);
+
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'oracle-resolve',
       maxRequests: 10,
       windowMs: 60000,
     });
 
-    const body: ResolutionRequest = await request.json();
-    const { battleId, marketId, warrior1Damage, warrior2Damage } = body;
-
-    // Validate input
-    if (!battleId || !marketId || !warrior1Damage || !warrior2Damage) {
-      throw ErrorResponses.badRequest('Missing required fields');
+    const raw = await request.json().catch(() => null);
+    const parsed = BodySchema.safeParse(raw);
+    if (!parsed.success) {
+      throw ErrorResponses.badRequest(
+        'Body must be { battleId, marketId, warrior1Damage, warrior2Damage } — each a non-negative decimal string'
+      );
     }
+    const { battleId, marketId, warrior1Damage, warrior2Damage } = parsed.data;
 
     // Determine outcome based on damage
     const damage1 = BigInt(warrior1Damage);
@@ -258,7 +278,7 @@ async function submitToContract(
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'oracle-resolve-get',
       maxRequests: 60,
       windowMs: 60000,

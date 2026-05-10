@@ -11,12 +11,15 @@
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ci": "vitest run --reporter=verbose --coverage",
     "test:soak": "vitest run --config vitest.soak.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
+    "test:e2e:seed": "tsx scripts/e2e/run-all.ts",
+    "test:e2e:verify": "tsx scripts/e2e/08-verify-ui-endpoints.ts",
     "env:check": "node scripts/env-check.mjs"
   },
   "dependencies": {
@@ -26,6 +29,7 @@
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@types/crypto-js": "^4.2.2",
     "@types/react-image-crop": "^8.1.6",
+    "@vercel/kv": "^3.0.0",
     "crypto-js": "^4.2.0",
     "dotenv": "^17.0.1",
     "ethers": "^6.13.1",

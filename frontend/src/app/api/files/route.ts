@@ -4,7 +4,7 @@ import { upload as zgUpload, isZgConfigured } from '@/services/zgStorageService'
 
 export async function POST(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'files-upload',
       maxRequests: 10,
       windowMs: 60000,

@@ -16,7 +16,7 @@ import { applyRateLimit, RateLimitPresets } from '@/lib/api/rateLimit';
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'external-markets',
       ...RateLimitPresets.apiQueries,
     });

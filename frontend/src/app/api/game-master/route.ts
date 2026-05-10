@@ -537,7 +537,7 @@ async function executeNextRound(arenaAddress: string): Promise<{ success: boolea
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'game-master',
       maxRequests: 20,
       windowMs: 60000,

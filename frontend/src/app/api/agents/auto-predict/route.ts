@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agent-auto-predict',
       maxRequests: 20,
       windowMs: 60000,
@@ -381,7 +381,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'agent-auto-predict-get',
       maxRequests: 60,
       windowMs: 60000,

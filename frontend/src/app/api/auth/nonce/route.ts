@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
   const logger = createAPILogger(request);
   logger.start();
   try {
-    applyRateLimit(request, { prefix: 'auth-nonce', maxRequests: 30, windowMs: 60_000 });
-    const { nonce, expiresAt } = issueNonce();
+    await applyRateLimit(request, { prefix: 'auth-nonce', maxRequests: 30, windowMs: 60_000 });
+    const { nonce, expiresAt } = await issueNonce();
     logger.complete(200);
     return NextResponse.json(
       { nonce, expiresAt },

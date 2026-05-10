@@ -77,7 +77,7 @@ async function fetchKalshiData(search?: string): Promise<{ markets: UnifiedMarke
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'arena-markets',
       ...RateLimitPresets.apiQueries,
     });

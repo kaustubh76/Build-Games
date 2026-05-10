@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'arena-battles-id',
       maxRequests: 60,
       windowMs: 60000,

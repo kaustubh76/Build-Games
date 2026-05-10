@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 
 interface WarriorStats {
@@ -14,12 +15,25 @@ interface WarriorStats {
   luck: number;
 }
 
-interface PredictionRequest {
-  warrior1Id: string;
-  warrior2Id: string;
-  warrior1Stats: WarriorStats;
-  warrior2Stats: WarriorStats;
-}
+// Stats are uint16 on-chain. Bound at 0-10000 (the same range sign-traits
+// enforces). Without bounds an attacker passes `1e308` → power calc returns
+// Infinity → division returns NaN → response shape breaks.
+const StatNumber = z.number().finite().min(0).max(10_000);
+const WarriorStatsSchema = z.object({
+  strength: StatNumber,
+  wit: StatNumber,
+  charisma: StatNumber,
+  defence: StatNumber,
+  luck: StatNumber,
+});
+const WarriorIdString = z.string().min(1).max(100);
+
+const PostBodySchema = z.object({
+  warrior1Id: WarriorIdString,
+  warrior2Id: WarriorIdString,
+  warrior1Stats: WarriorStatsSchema,
+  warrior2Stats: WarriorStatsSchema,
+});
 
 interface PredictionResponse {
   success: boolean;
@@ -44,19 +58,20 @@ interface PredictionResponse {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting (30 predictions per minute)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'predict-battle-post',
       maxRequests: 30,
       windowMs: 60000,
     });
 
-    const body: PredictionRequest = await request.json();
-    const { warrior1Id, warrior2Id, warrior1Stats, warrior2Stats } = body;
-
-    // Validate input
-    if (!warrior1Id || !warrior2Id || !warrior1Stats || !warrior2Stats) {
-      throw ErrorResponses.badRequest('Missing required fields');
+    const raw = await request.json().catch(() => null);
+    const parsed = PostBodySchema.safeParse(raw);
+    if (!parsed.success) {
+      throw ErrorResponses.badRequest(
+        `Invalid body: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
+      );
     }
+    const { warrior1Id, warrior2Id, warrior1Stats, warrior2Stats } = parsed.data;
 
     // Calculate power scores
     const power1 = calculatePowerScore(warrior1Stats);
@@ -206,7 +221,7 @@ function generateAnalysis(
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'predict-battle-get',
       maxRequests: 60,
       windowMs: 60000,

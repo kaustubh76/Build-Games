@@ -72,7 +72,7 @@ interface FollowedAgentSummary {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'copy-trade-pnl',
       maxRequests: 30,
       windowMs: 60000,

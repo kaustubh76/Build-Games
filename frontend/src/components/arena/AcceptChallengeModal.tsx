@@ -7,6 +7,7 @@ import { formatTokenAmount } from '@/lib/format/blockchain';
 import { useUserNFTs } from '@/hooks/useUserNFTs';
 import { fetchWithTimeout, isTimeoutError, TimeoutDefaults } from '@/lib/fetchWithTimeout';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface Battle {
   id: string;
@@ -120,6 +121,11 @@ export function AcceptChallengeModal({
     }
   }
 
+  // Hook order is fixed at render time; isOpen-conditional return happens
+  // BELOW the hook calls. The trap activates only when both isOpen AND
+  // a battle is loaded.
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen && Boolean(battle));
+
   if (!isOpen || !battle) return null;
 
   return (
@@ -138,7 +144,7 @@ export function AcceptChallengeModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div ref={trapRef} className="relative bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-gray-700 bg-gradient-to-r from-green-900/30 to-emerald-900/30">
           <h2 id="accept-challenge-title" className="text-2xl font-bold text-white">Accept Challenge</h2>

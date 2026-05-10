@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { handleAPIError, applyRateLimit } from '@/lib/api';
+import { handleAPIError, applyRateLimit, parsePagination } from '@/lib/api';
 
 /**
  * GET /api/arena/leaderboard
@@ -9,7 +9,7 @@ import { handleAPIError, applyRateLimit } from '@/lib/api';
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'arena-leaderboard',
       maxRequests: 60,
       windowMs: 60000,
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const sortBy = searchParams.get('sortBy') || 'rating';
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const { limit } = parsePagination(searchParams, { defaultLimit: 20, maxLimit: 100 });
 
     // Determine sort order
     let orderBy: Record<string, 'asc' | 'desc'>;

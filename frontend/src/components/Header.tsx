@@ -296,9 +296,10 @@ const Header: React.FC = () => {
                                 onClick={openConnectModal}
                                 type="button"
                                 className="btn btn-primary btn-sm md:btn-md"
+                                aria-label="Connect wallet"
                               >
                                 <span className="hidden sm:inline">Connect</span>
-                                <span className="sm:hidden">🔗</span>
+                                <span className="sm:hidden" aria-hidden="true">🔗</span>
                               </button>
                             );
                           }
@@ -336,6 +337,7 @@ const Header: React.FC = () => {
                                 onClick={openChainModal}
                                 type="button"
                                 className="btn btn-secondary btn-sm"
+                                aria-label={`Switch network (current: ${chain.name ?? 'unknown'})`}
                               >
                                 {chain.hasIcon && chain.iconUrl && (
                                   <div
@@ -343,7 +345,7 @@ const Header: React.FC = () => {
                                     style={{ background: chain.iconBackground }}
                                   >
                                     <img
-                                      alt={chain.name ?? 'Chain icon'}
+                                      alt=""
                                       src={chain.iconUrl}
                                       className="w-4 h-4"
                                     />
@@ -357,6 +359,7 @@ const Header: React.FC = () => {
                                 onClick={openAccountModal}
                                 type="button"
                                 className="btn btn-secondary btn-sm"
+                                aria-label={`Account menu for ${formatDisplayName(account)}`}
                               >
                                 {formatDisplayName(account)}
                               </button>

@@ -123,7 +123,7 @@ async function readMirrorTrades(traderAddress: `0x${string}`) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'portfolio-mirror',
       maxRequests: 30,
       windowMs: 60000,

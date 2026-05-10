@@ -13,7 +13,7 @@ export async function GET(
 ) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'external-markets-id',
       maxRequests: 60,
       windowMs: 60000,

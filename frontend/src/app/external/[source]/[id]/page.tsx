@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useExternalMarket } from '@/hooks/useExternalMarkets';
 import { useMirrorMarketQuery, useMirrorMarketCreation } from '@/hooks/useMirrorMarket';
+import { useHasMounted } from '@/hooks/useHasMounted';
 import { CreateMirrorMarketModal } from '@/components/markets/CreateMirrorMarketModal';
 import { MirrorMarketTradePanel } from '@/components/markets/MirrorMarketTradePanel';
 import { MarketSource } from '@/types/externalMarket';
@@ -93,9 +94,14 @@ export default function ExternalMarketDetailPage() {
     );
   }
 
-  const timeUntilEnd = market.endTime * 1000 - Date.now();
-  const daysUntilEnd = Math.max(0, Math.floor(timeUntilEnd / (1000 * 60 * 60 * 24)));
-  const isExpired = timeUntilEnd <= 0;
+  // Gate Date.now() reads behind useHasMounted so SSR and the first client
+  // render produce identical output — otherwise any second of clock drift
+  // between server and client flips `isExpired` and triggers a hydration
+  // mismatch warning + UI flash.
+  const mounted = useHasMounted();
+  const timeUntilEnd = mounted ? market.endTime * 1000 - Date.now() : 0;
+  const daysUntilEnd = mounted ? Math.max(0, Math.floor(timeUntilEnd / (1000 * 60 * 60 * 24))) : null;
+  const isExpired = mounted ? timeUntilEnd <= 0 : false;
 
   return (
     <div className="min-h-screen">
@@ -167,7 +173,9 @@ export default function ExternalMarketDetailPage() {
                 <div>
                   <div className="text-sm text-gray-500">Time Left</div>
                   <div className={`text-lg font-semibold ${isExpired ? 'text-red-400' : ''}`}>
-                    {isExpired ? 'Expired' : `${daysUntilEnd}d`}
+                    {/* `daysUntilEnd === null` until hydration completes; render an em-dash
+                        rather than "0d" so the SSR + first-client render are identical. */}
+                    {daysUntilEnd === null ? '—' : isExpired ? 'Expired' : `${daysUntilEnd}d`}
                   </div>
                 </div>
               </div>

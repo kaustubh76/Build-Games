@@ -34,7 +34,7 @@ let cache: { ts: number; entries: ReplayEntry[] } | null = null;
 
 export async function GET(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'arena-replays',
       maxRequests: 60,
       windowMs: 60_000,

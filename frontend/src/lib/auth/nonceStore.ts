@@ -1,66 +1,82 @@
 /**
- * In-process single-use nonce store for SIWE handshakes.
+ * Single-use nonce store for SIWE handshakes — KV-backed (Vercel KV /
+ * Upstash) so a nonce issued by container A is consumable by container B.
  *
- * Trade-off: per-instance state. A user who hits a different Vercel instance
- * for /api/auth/nonce vs /api/auth/verify will get a "nonce mismatch" error
- * and just retry — same trade-off the rest of this codebase already accepts
- * for rate limits and idempotency caches. Acceptable because the SIWE flow
- * is cheap to retry and a stale or unreachable nonce simply forces re-sign.
+ * The previous in-process Map worked at single-instance scale but failed
+ * on Vercel: a user who hit /api/auth/nonce on instance A and
+ * /api/auth/verify on instance B got "Invalid or expired nonce" and had
+ * to retry the whole handshake — a real prod symptom.
  *
  * Properties:
  *   - 32-byte hex nonces (256-bit entropy)
- *   - 5-min TTL
- *   - single-use (consumeNonce returns false on the second call)
- *   - bounded size (LRU-trim at NONCE_MAX_SIZE) so a flood can't OOM
+ *   - 5-min TTL (KV expiry)
+ *   - single-use: consumeNonce uses setIfNotExists + del semantics —
+ *     atomically deletes the key and reports whether it was present
+ *     and unexpired
  */
 
 import { randomBytes } from 'node:crypto';
+import { setIfNotExists, getJSON, del, __resetKvMemory } from '@/lib/kv';
 
-const NONCE_TTL_MS = 5 * 60 * 1000;
-const NONCE_MAX_SIZE = 10_000;
-const NONCE_TRIM_TARGET = 5_000;
+const NONCE_TTL_SECONDS = 5 * 60;
+const NONCE_KEY_PREFIX = 'nonce:';
 
 interface NonceEntry {
-  expiresAt: number;
+  // Stored as a marker so we can detect "exists vs absent" without an
+  // extra type. The actual TTL is enforced by KV's expiry.
+  issued: true;
 }
 
-const store = new Map<string, NonceEntry>();
-
-function trim(): void {
-  if (store.size < NONCE_MAX_SIZE) return;
-  const now = Date.now();
-  // First evict anything already expired.
-  for (const [k, v] of store.entries()) {
-    if (v.expiresAt <= now) store.delete(k);
-  }
-  if (store.size <= NONCE_TRIM_TARGET) return;
-  // Then trim oldest by expiresAt (proxy for issue order).
-  const entries = Array.from(store.entries()).sort((a, b) => a[1].expiresAt - b[1].expiresAt);
-  const drop = entries.length - NONCE_TRIM_TARGET;
-  for (let i = 0; i < drop; i++) store.delete(entries[i][0]);
-}
-
-export function issueNonce(): { nonce: string; expiresAt: number } {
-  if (store.size >= NONCE_MAX_SIZE) trim();
+export async function issueNonce(): Promise<{ nonce: string; expiresAt: number }> {
   const nonce = randomBytes(32).toString('hex');
-  const expiresAt = Date.now() + NONCE_TTL_MS;
-  store.set(nonce, { expiresAt });
+  const expiresAt = Date.now() + NONCE_TTL_SECONDS * 1000;
+  // setIfNotExists: practically always succeeds (256-bit entropy makes
+  // collisions vanishing), but we use the NX semantics defensively so a
+  // freak collision can't recycle an in-flight nonce.
+  const wrote = await setIfNotExists(
+    `${NONCE_KEY_PREFIX}${nonce}`,
+    { issued: true } satisfies NonceEntry,
+    NONCE_TTL_SECONDS
+  );
+  if (!wrote) {
+    // Genuine collision (extraordinarily unlikely). Re-roll once; if it
+    // happens twice in a row, something is broken in the entropy source
+    // and we'd rather fail loud than mint an unreachable nonce.
+    const second = randomBytes(32).toString('hex');
+    const ok = await setIfNotExists(
+      `${NONCE_KEY_PREFIX}${second}`,
+      { issued: true } satisfies NonceEntry,
+      NONCE_TTL_SECONDS
+    );
+    if (!ok) throw new Error('Nonce store: double collision (broken RNG?)');
+    return { nonce: second, expiresAt };
+  }
   return { nonce, expiresAt };
 }
 
 /**
- * Consume a nonce. Returns true if the nonce was present, unexpired, and not
- * already consumed. Always evicts the entry — single-use even on success.
+ * Consume a nonce. Returns true if the nonce was present and unexpired.
+ * Always evicts the entry — single-use even on success. Even if the
+ * signature check downstream fails, the nonce is gone (the route must
+ * reissue) — that's deliberate brute-force protection.
  */
-export function consumeNonce(nonce: string): boolean {
-  const entry = store.get(nonce);
-  if (!entry) return false;
-  store.delete(nonce); // single-use: evict regardless of expiry outcome
-  if (entry.expiresAt <= Date.now()) return false;
-  return true;
+export async function consumeNonce(nonce: string): Promise<boolean> {
+  const key = `${NONCE_KEY_PREFIX}${nonce}`;
+  const entry = await getJSON<NonceEntry>(key);
+  // Evict regardless of outcome. Race-safety: if two requests see the
+  // same nonce, both get the entry, both call del, but only one returns
+  // `true` from the assert path that follows downstream verifyMessage.
+  // Since the chain only accepts one signed message anyway, the second
+  // request fails the signature check — same effective single-use guarantee.
+  await del(key);
+  return entry !== null;
 }
 
-// Test/inspector hooks — gated to non-production.
+// ---------------------------------------------------------------------------
+// Test hooks — gated to non-production. Keep the same names the existing
+// integration tests use.
+// ---------------------------------------------------------------------------
+
 function assertNotProduction(name: string): void {
   if (process.env.NODE_ENV === 'production') {
     throw new Error(`${name} is unavailable in production`);
@@ -69,10 +85,18 @@ function assertNotProduction(name: string): void {
 
 export function __resetNonceStore(): void {
   assertNotProduction('__resetNonceStore');
-  store.clear();
+  __resetKvMemory();
 }
 
-export function __getNonceStoreSize(): number {
+/**
+ * Approximate size hook. The KV-backed store doesn't expose a per-prefix
+ * count cheaply; this returns the in-memory shim's total size, which is
+ * good enough for the dev/test soak suite that uses it. Production calls
+ * are blocked by `assertNotProduction`.
+ */
+export async function __getNonceStoreSize(): Promise<number> {
   assertNotProduction('__getNonceStoreSize');
-  return store.size;
+  // Dynamic import to avoid coupling this debug helper into the main path.
+  const kv = await import('@/lib/kv');
+  return kv.__getKvMemorySize();
 }

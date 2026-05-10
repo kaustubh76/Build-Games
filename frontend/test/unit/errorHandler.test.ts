@@ -36,18 +36,26 @@ describe('handleAPIError', () => {
   it('does NOT tag ethers CALL_EXCEPTION as DATABASE_ERROR', async () => {
     // This was the bug — ethers errors with code: 'CALL_EXCEPTION' got
     // mis-classified as DB errors, confusing users for an entire session.
-    const ethersError = {
-      code: 'CALL_EXCEPTION',
-      message: 'execution reverted (custom error)',
-      shortMessage: 'execution reverted',
-      reason: null,
-    };
-    const res = handleAPIError(ethersError, 'TEST');
-    expect(res.status).toBe(502);
-    const body = await res.json();
-    expect(body.code).toBe('CHAIN_CALL_FAILED');
-    expect(body.code).not.toBe('DATABASE_ERROR');
-    expect(body.error).toBe('execution reverted');
+    // Force dev mode here to verify the dev-mode shortMessage propagation;
+    // the prod-mode sanitisation is covered by its own test below.
+    const original = process.env.NODE_ENV;
+    (process.env as Record<string, string>).NODE_ENV = 'development';
+    try {
+      const ethersError = {
+        code: 'CALL_EXCEPTION',
+        message: 'execution reverted (custom error)',
+        shortMessage: 'execution reverted',
+        reason: null,
+      };
+      const res = handleAPIError(ethersError, 'TEST');
+      expect(res.status).toBe(502);
+      const body = await res.json();
+      expect(body.code).toBe('CHAIN_CALL_FAILED');
+      expect(body.code).not.toBe('DATABASE_ERROR');
+      expect(body.error).toBe('execution reverted');
+    } finally {
+      (process.env as Record<string, string>).NODE_ENV = original ?? 'test';
+    }
   });
 
   it('handles viem RPC errors (numeric -32000 codes are NOT Prisma)', async () => {
@@ -79,24 +87,80 @@ describe('handleAPIError', () => {
     expect(body.code).toBe('CHAIN_CALL_FAILED');
   });
 
-  it('truncates very long ethers messages to 240 chars', async () => {
-    const longMsg = 'execution reverted ' + 'A'.repeat(500);
-    const res = handleAPIError({ code: 'CALL_EXCEPTION', message: longMsg }, 'TEST');
-    const body = await res.json();
-    expect(body.error.length).toBeLessThanOrEqual(240);
+  it('truncates very long ethers messages to 240 chars (dev mode)', async () => {
+    const original = process.env.NODE_ENV;
+    (process.env as Record<string, string>).NODE_ENV = 'development';
+    try {
+      const longMsg = 'execution reverted ' + 'A'.repeat(500);
+      const res = handleAPIError({ code: 'CALL_EXCEPTION', message: longMsg }, 'TEST');
+      const body = await res.json();
+      expect(body.error.length).toBeLessThanOrEqual(240);
+    } finally {
+      (process.env as Record<string, string>).NODE_ENV = original ?? 'test';
+    }
   });
 
-  it('prefers shortMessage when available', async () => {
-    const res = handleAPIError(
-      {
-        code: 'CALL_EXCEPTION',
-        message: 'long detailed text...',
-        shortMessage: 'execution reverted',
-      },
-      'TEST'
-    );
-    const body = await res.json();
-    expect(body.error).toBe('execution reverted');
+  it('prefers shortMessage when available (dev mode)', async () => {
+    const original = process.env.NODE_ENV;
+    (process.env as Record<string, string>).NODE_ENV = 'development';
+    try {
+      const res = handleAPIError(
+        {
+          code: 'CALL_EXCEPTION',
+          message: 'long detailed text...',
+          shortMessage: 'execution reverted',
+        },
+        'TEST'
+      );
+      const body = await res.json();
+      expect(body.error).toBe('execution reverted');
+    } finally {
+      (process.env as Record<string, string>).NODE_ENV = original ?? 'test';
+    }
+  });
+
+  it('production mode strips revert reason; only code surfaces to client', async () => {
+    // Why: contract revert messages routinely include addresses, balances,
+    // and internal contract paths. A production deployment leaking that to
+    // anonymous callers gives an attacker free reconnaissance. The sanitised
+    // shape still keeps `details.chainCode` so the client can branch on
+    // INSUFFICIENT_FUNDS vs CALL_EXCEPTION without seeing user state.
+    const original = process.env.NODE_ENV;
+    (process.env as Record<string, string>).NODE_ENV = 'production';
+    try {
+      const res = handleAPIError(
+        {
+          code: 'CALL_EXCEPTION',
+          message: 'execution reverted: user 0xabc... balance 0.5 CRwN < required 10 CRwN',
+          shortMessage: 'execution reverted',
+        },
+        'TEST'
+      );
+      const body = await res.json();
+      expect(body.error).toBe('Chain call failed (CALL_EXCEPTION)');
+      expect(body.error).not.toContain('0xabc');
+      expect(body.error).not.toContain('CRwN');
+      expect(body.details.chainCode).toBe('CALL_EXCEPTION');
+      expect(body.details.fullMessage).toBeUndefined();
+    } finally {
+      (process.env as Record<string, string>).NODE_ENV = original ?? 'test';
+    }
+  });
+
+  it('non-production environments (test, development) keep the detailed message', async () => {
+    const original = process.env.NODE_ENV;
+    (process.env as Record<string, string>).NODE_ENV = 'development';
+    try {
+      const res = handleAPIError(
+        { code: 'CALL_EXCEPTION', message: 'detailed', shortMessage: 'short' },
+        'TEST'
+      );
+      const body = await res.json();
+      expect(body.error).toBe('short');
+      expect(body.details.fullMessage).toBe('detailed');
+    } finally {
+      (process.env as Record<string, string>).NODE_ENV = original ?? 'test';
+    }
   });
 
   it('plain Error → INTERNAL_ERROR', async () => {

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Rate limit to prevent abuse
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'internal-metrics',
       maxRequests: 30,
       windowMs: 60000,

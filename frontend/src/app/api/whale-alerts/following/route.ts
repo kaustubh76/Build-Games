@@ -11,7 +11,7 @@ import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'whale-following',
       maxRequests: 60,
       windowMs: 60000,

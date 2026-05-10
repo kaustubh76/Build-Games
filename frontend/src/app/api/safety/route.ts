@@ -20,13 +20,13 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    applyRateLimit(request, { prefix: 'safety-read', maxRequests: 60, windowMs: 60_000 });
+    await applyRateLimit(request, { prefix: 'safety-read', maxRequests: 60, windowMs: 60_000 });
     const address = request.nextUrl.searchParams.get('address');
     if (!address || !/^0[xX][0-9a-fA-F]{40}$/.test(address)) {
       throw ErrorResponses.badRequest('Missing or invalid address');
     }
     return NextResponse.json({
-      user: getUserSpendInfo(address),
+      user: await getUserSpendInfo(address),
       system: {
         perTradeCapWei: PER_TRADE_CAP_WEI.toString(),
         perUserDailyCapWei: PER_USER_DAILY_CAP_WEI.toString(),
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    applyRateLimit(request, { prefix: 'safety-write', maxRequests: 10, windowMs: 60_000 });
+    await applyRateLimit(request, { prefix: 'safety-write', maxRequests: 10, windowMs: 60_000 });
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== 'object') {
       throw ErrorResponses.badRequest('Body must be JSON');
@@ -50,15 +50,15 @@ export async function POST(request: NextRequest) {
       throw ErrorResponses.badRequest('Missing or invalid address');
     }
     if (action === 'pause') {
-      pauseUser(address);
+      await pauseUser(address);
     } else if (action === 'resume') {
-      unpauseUser(address);
+      await unpauseUser(address);
     } else {
       throw ErrorResponses.badRequest('action must be "pause" or "resume"');
     }
     return NextResponse.json({
       address,
-      paused: isUserPaused(address),
+      paused: await isUserPaused(address),
       action,
     });
   } catch (error) {

@@ -77,7 +77,7 @@ interface BattleStorageRecord {
  */
 export async function POST(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'arena-storage',
       maxRequests: 20,
       windowMs: 60000,
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'arena-storage-get',
       maxRequests: 60,
       windowMs: 60000,

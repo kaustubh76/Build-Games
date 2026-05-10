@@ -10,7 +10,7 @@ import { handleAPIError, applyRateLimit } from '@/lib/api';
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'whale-stats',
       maxRequests: 60,
       windowMs: 60000,
@@ -20,31 +20,31 @@ export async function GET(request: NextRequest) {
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
+    // Cap on rows pulled for the volume sum. Even at 10k whale trades per
+    // 24h window (well above realistic), this keeps the response fast and
+    // bounds memory. `amountUsd` is stored as a String, so we can't push
+    // the SUM down to Postgres via Prisma's aggregate API — fetch the
+    // strings and sum in JS, but with a take() ceiling.
+    const ROW_CEILING = 10_000;
+
     // Get 24h trades
-    const trades24h = await prisma.whaleTrade.findMany({
-      where: {
-        timestamp: { gte: twentyFourHoursAgo },
-      },
-      select: {
-        amountUsd: true,
-      },
-    });
-
-    // Get previous 24h trades (24-48h ago) for comparison
-    const tradesPrev24h = await prisma.whaleTrade.findMany({
-      where: {
-        timestamp: {
-          gte: fortyEightHoursAgo,
-          lt: twentyFourHoursAgo,
+    const [trades24h, tradesPrev24h, trackedTraderCount] = await Promise.all([
+      prisma.whaleTrade.findMany({
+        where: { timestamp: { gte: twentyFourHoursAgo } },
+        select: { amountUsd: true },
+        orderBy: { timestamp: 'desc' },
+        take: ROW_CEILING,
+      }),
+      prisma.whaleTrade.findMany({
+        where: {
+          timestamp: { gte: fortyEightHoursAgo, lt: twentyFourHoursAgo },
         },
-      },
-      select: {
-        amountUsd: true,
-      },
-    });
-
-    // Get tracked trader count
-    const trackedTraderCount = await prisma.trackedTrader.count();
+        select: { amountUsd: true },
+        orderBy: { timestamp: 'desc' },
+        take: ROW_CEILING,
+      }),
+      prisma.trackedTrader.count(),
+    ]);
 
     // Calculate current 24h stats
     const totalVolume24h = trades24h.reduce(

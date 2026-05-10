@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { handleAPIError, applyRateLimit, ErrorResponses } from '@/lib/api';
+import { handleAPIError, applyRateLimit, ErrorResponses, parsePagination } from '@/lib/api';
 import { requireSessionForAddress } from '@/lib/auth/requireSession';
 import { isAddress } from 'viem';
 
@@ -47,7 +47,7 @@ function validateCategory(category: string | undefined): MarketCategory {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting (10 market creations per minute)
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'markets-user-create-post',
       maxRequests: 10,
       windowMs: 60000,
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'markets-user-create-get',
       maxRequests: 60,
       windowMs: 60000,
@@ -174,9 +174,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const creatorAddress = searchParams.get('creator');
     const status = searchParams.get('status');
-    // Parse and validate limit with max constraints
-    const rawLimit = parseInt(searchParams.get('limit') || '50');
-    const limit = Math.min(Math.max(rawLimit, 1), 100); // Clamp between 1 and 100
+    // Parse and validate limit with max constraints. NaN-safe.
+    const { limit } = parsePagination(searchParams, { maxLimit: 100 });
 
     const where: Record<string, unknown> = {};
     if (creatorAddress) where.creatorAddress = creatorAddress;
@@ -222,7 +221,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'markets-user-create-patch',
       maxRequests: 30,
       windowMs: 60000,

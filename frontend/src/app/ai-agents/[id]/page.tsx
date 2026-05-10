@@ -10,6 +10,7 @@ import { useAgentINFT, useMyAgentINFTs } from '@/hooks/useAgentINFT';
 import { useAgentTradeHistory, formatTradePnL, formatConfidence, formatTradeTime, getTradePnLColor } from '@/hooks/useAgentTradeHistory';
 import { useAgentExternalTrading } from '@/hooks/useAgentExternalTrading';
 import { formatEther } from 'viem';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function AgentProfilePage() {
   const params = useParams();
@@ -113,6 +114,7 @@ export default function AgentProfilePage() {
   const pnlPositive = agent.pnlFormatted.startsWith('+');
 
   return (
+    <ErrorBoundary context="agent-profile">
     <div className="min-h-screen">
       <div className="container-arcade py-6 md:py-8">
         {/* Back Link */}
@@ -623,5 +625,6 @@ export default function AgentProfilePage() {
         </>
       )}
     </div>
+    </ErrorBoundary>
   );
 }

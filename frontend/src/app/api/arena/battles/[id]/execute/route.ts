@@ -137,7 +137,7 @@ export async function POST(
 ) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'arena-battles-execute',
       maxRequests: 20,
       windowMs: 60000,

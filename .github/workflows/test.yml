@@ -67,6 +67,10 @@ jobs:
         run: npm run lint
         continue-on-error: true # legacy code has 6.8k pre-existing warnings; lint is informational
 
+      - name: Typecheck (informational — codebase has a known React-types baseline)
+        run: npm run typecheck
+        continue-on-error: true # tracked separately; PR diff scrutiny catches new errors
+
       - name: Validate env (Fuji baseline — must pass; mainnet vars are warnings here)
         env:
           PRIVATE_KEY: '0x0101010101010101010101010101010101010101010101010101010101010101'

@@ -7,6 +7,7 @@ import { useMirrorMarketCreation } from '@/hooks/useMirrorMarket';
 import { UnifiedMarket, MarketSource } from '@/types/externalMarket';
 import { formatTokenAmount } from '@/utils/format';
 import { useAmountInput } from '@/hooks/useAmountInput';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 const MIN_LIQUIDITY_WEI = parseEther('10');
 
@@ -72,6 +73,10 @@ export function CreateMirrorMarketModal({
     }
   };
 
+  // Focus trap — keep keyboard inside while open. Hook called
+  // unconditionally; the boolean controls activation.
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
+
   if (!isOpen) return null;
 
   const getSourceColor = (source: MarketSource) => {
@@ -97,23 +102,31 @@ export function CreateMirrorMarketModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-mirror-market-title"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto bg-gray-900 border border-gray-700 rounded-xl shadow-2xl">
+      <div ref={trapRef} className="relative z-10 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto bg-gray-900 border border-gray-700 rounded-xl shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-          <h2 className="text-xl font-bold text-white">Create Mirror Market</h2>
+          <h2 id="create-mirror-market-title" className="text-xl font-bold text-white">Create Mirror Market</h2>
           <button
             onClick={onClose}
+            type="button"
+            aria-label="Close dialog"
             className="text-gray-400 hover:text-white transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

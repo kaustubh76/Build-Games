@@ -17,7 +17,7 @@ interface UnfollowRequest {
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'whale-unfollow',
       maxRequests: 20,
       windowMs: 60000,

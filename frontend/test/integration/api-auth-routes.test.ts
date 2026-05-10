@@ -278,3 +278,94 @@ describe('requireSessionForAddress on whale-alerts/follow', () => {
     expect(body.code).toBe('FORBIDDEN');
   });
 });
+
+/**
+ * /api/auth/verify is the door SIWE walks through. The most security-critical
+ * gate here is the domain allowlist: production must REJECT any message
+ * claiming a domain that's not on `AUTH_ALLOWED_DOMAINS`. If this gate ever
+ * regresses, an attacker spoofs `x-forwarded-host` at the edge and gets the
+ * server to accept a message signed against `attacker.com`.
+ *
+ * Each test forces NODE_ENV=production briefly so the production code path
+ * runs; the harness restores it afterwards. We can't rely on the global
+ * NODE_ENV being 'test' to opt out — the whole point is to test what
+ * production does.
+ */
+describe('/api/auth/verify — AUTH_ALLOWED_DOMAINS allowlist (production gate)', () => {
+  const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
+  const ORIGINAL_ALLOWED = process.env.AUTH_ALLOWED_DOMAINS;
+
+  afterEach(() => {
+    (process.env as Record<string, string>).NODE_ENV = ORIGINAL_NODE_ENV ?? 'test';
+    if (ORIGINAL_ALLOWED === undefined) delete process.env.AUTH_ALLOWED_DOMAINS;
+    else process.env.AUTH_ALLOWED_DOMAINS = ORIGINAL_ALLOWED;
+  });
+
+  it('production + claimed domain on the allowlist → accepted', async () => {
+    (process.env as Record<string, string>).NODE_ENV = 'production';
+    process.env.AUTH_ALLOWED_DOMAINS = 'warriors-ai-rena.vercel.app,localhost:3000';
+    const nonce = await getNonce();
+    const { message, signature } = await buildSignedMessage(nonce, {
+      domain: 'warriors-ai-rena.vercel.app',
+    });
+    const { POST } = await import('@/app/api/auth/verify/route');
+    const res = await POST(
+      makeVerifyRequest({ message, signature }, 'warriors-ai-rena.vercel.app')
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('production + claimed domain NOT on the allowlist → 401', async () => {
+    (process.env as Record<string, string>).NODE_ENV = 'production';
+    process.env.AUTH_ALLOWED_DOMAINS = 'warriors-ai-rena.vercel.app';
+    const nonce = await getNonce();
+    // Spoofed x-forwarded-host: attacker.com. Should be ignored; the
+    // SIWE message's `domain` is also attacker.com → fails the allowlist
+    // → returns 401 with the generic "Invalid sign-in message".
+    const { message, signature } = await buildSignedMessage(nonce, { domain: 'attacker.com' });
+    const { POST } = await import('@/app/api/auth/verify/route');
+    const res = await POST(makeVerifyRequest({ message, signature }, 'attacker.com'));
+    expect(res.status).toBe(401);
+  });
+
+  it('production + AUTH_ALLOWED_DOMAINS unset → 401 (fails closed, generic SIWE rejection)', async () => {
+    (process.env as Record<string, string>).NODE_ENV = 'production';
+    delete process.env.AUTH_ALLOWED_DOMAINS;
+    const nonce = await getNonce();
+    const { message, signature } = await buildSignedMessage(nonce);
+    const { POST } = await import('@/app/api/auth/verify/route');
+    const res = await POST(makeVerifyRequest({ message, signature }, 'whatever.test'));
+    // The deployment-misconfig throw inside `getExpectedDomain` is caught
+    // by the SIWE assert try/catch and converted to a generic 401. The
+    // critical security property is that the route does NOT accept the
+    // message — exposing the 401 vs a more specific error code is also
+    // intentional (don't leak which gate failed).
+    expect(res.status).toBe(401);
+  });
+
+  it('production + x-forwarded-host attempts to bypass with an allowlisted host but message claims a different domain → still 401', async () => {
+    (process.env as Record<string, string>).NODE_ENV = 'production';
+    process.env.AUTH_ALLOWED_DOMAINS = 'warriors-ai-rena.vercel.app';
+    const nonce = await getNonce();
+    // Attacker forges x-forwarded-host to the allowlisted value but the
+    // signed SIWE message's `domain` field is attacker.com. The SIWE
+    // assert step compares the message's claimed domain against what the
+    // server thinks the host is — they must MATCH. Any mismatch → reject.
+    const { message, signature } = await buildSignedMessage(nonce, { domain: 'attacker.com' });
+    const { POST } = await import('@/app/api/auth/verify/route');
+    const res = await POST(
+      makeVerifyRequest({ message, signature }, 'warriors-ai-rena.vercel.app')
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it('non-production + no allowlist → falls back to host header (dev convenience)', async () => {
+    (process.env as Record<string, string>).NODE_ENV = 'development';
+    delete process.env.AUTH_ALLOWED_DOMAINS;
+    const nonce = await getNonce();
+    const { message, signature } = await buildSignedMessage(nonce, { domain: 'localhost:3000' });
+    const { POST } = await import('@/app/api/auth/verify/route');
+    const res = await POST(makeVerifyRequest({ message, signature }, 'localhost:3000'));
+    expect(res.status).toBe(200);
+  });
+});

@@ -71,7 +71,7 @@ const VRF_EXEC_EVENT = parseAbiItem(
 
 export async function GET(request: NextRequest) {
   try {
-    applyRateLimit(request, {
+    await applyRateLimit(request, {
       prefix: 'mirror-positions',
       maxRequests: 60,
       windowMs: 60_000,

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { WhaleTrade } from '@/types/externalMarket';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface ConfirmMirrorModalProps {
   trade: WhaleTrade;
@@ -31,6 +32,7 @@ export function ConfirmMirrorModal({
 }: ConfirmMirrorModalProps) {
   const slippagePct = (slippageBps / 100).toFixed(2);
   const overCap = sizeCRwN > perTradeCap;
+  const trapRef = useFocusTrap<HTMLDivElement>(true);
 
   return (
     <div
@@ -41,6 +43,7 @@ export function ConfirmMirrorModal({
       onClick={onCancel}
     >
       <div
+        ref={trapRef}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-2xl bg-gradient-to-br from-purple-900/90 to-fuchsia-900/90 border border-fuchsia-500/40 p-5 text-white shadow-2xl"
       >
